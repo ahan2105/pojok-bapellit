@@ -11,31 +11,40 @@ use Illuminate\Support\Str;
 
 class AulaController extends Controller
 {
-    // Menampilkan daftar aula di panel admin
+    /**
+     * Menampilkan daftar aula di panel admin
+     */
     public function index()
     {
         $aulas = Aula::orderBy('created_at', 'desc')->get();
         return view('admin.aula.index', compact('aulas'));
     }
 
-    // Menampilkan form tambah aula
+    /**
+     * Menampilkan form tambah aula
+     */
     public function create()
     {
         return view('admin.aula.create');
     }
 
-    // Menyimpan data aula baru
-    public function store(Request $request)
+    /**
+     * Validasi dasar untuk store & update
+     */
+    private function validateAula(Request $request, $id = null)
     {
-        $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:255|unique:aulas,nama',
+        $rules = [
+            'nama' => 'required|string|max:255|unique:aulas,nama' . ($id ? ',' . $id : ''),
             'kapasitas' => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
+            'informasi_tambahan' => 'nullable|string',
+            'lokasi' => 'nullable|string|max:255',
             'foto.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-            'fasilitas' => 'nullable|array',
-            'fasilitas.*' => 'string|max:100',
+            'foto' => 'nullable|array|max:3',
             'status_aktif' => 'boolean'
-        ], [
+        ];
+
+        $messages = [
             'nama.required' => 'Nama aula wajib diisi',
             'nama.unique' => 'Nama aula sudah digunakan, silakan gunakan nama lain',
             'kapasitas.required' => 'Kapasitas wajib diisi',
@@ -43,8 +52,67 @@ class AulaController extends Controller
             'foto.*.image' => 'File yang diupload harus berupa gambar',
             'foto.*.mimes' => 'Format gambar harus JPG, JPEG, PNG, atau WEBP',
             'foto.*.max' => 'Ukuran gambar maksimal 5MB',
-        ]);
+            'foto.max' => 'Maksimal 3 foto yang dapat diupload',
+        ];
 
+        return Validator::make($request->all(), $rules, $messages);
+    }
+
+    /**
+     * Handle upload foto (TAMBAH ke yang sudah ada, bukan replace)
+     */
+    private function handleFoto($files, $existingFoto = [])
+    {
+        if (empty($files)) {
+            return $existingFoto;
+        }
+
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+
+        $validFiles = array_filter($files, function($file) {
+            return $file && $file->isValid();
+        });
+
+        $totalFoto = count($existingFoto) + count($validFiles);
+        if ($totalFoto > 3) {
+            return null;
+        }
+
+        $fotoPaths = $existingFoto;
+        foreach ($validFiles as $file) {
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('uploads/aulas', $filename, 'public');
+            $fotoPaths[] = $path;
+        }
+        return $fotoPaths;
+    }
+
+    /**
+     * Handle fasilitas dari JSON string
+     */
+    private function handleFasilitas($request)
+    {
+        if ($request->filled('fasilitas')) {
+            $fasilitas = json_decode($request->fasilitas, true);
+            if (is_array($fasilitas)) {
+                $fasilitas = array_filter($fasilitas, function($item) {
+                    return !empty(trim($item));
+                });
+                return array_values($fasilitas);
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Menyimpan data aula baru
+     */
+    public function store(Request $request)
+    {
+        $validator = $this->validateAula($request);
+        
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
@@ -56,36 +124,21 @@ class AulaController extends Controller
             $aula->nama = $request->nama;
             $aula->kapasitas = $request->kapasitas;
             $aula->deskripsi = $request->deskripsi;
+            $aula->informasi_tambahan = $request->informasi_tambahan;
+            $aula->lokasi = $request->lokasi;
             $aula->status_aktif = $request->has('status_aktif');
 
-            // Handle Upload Foto (Maksimal 3 foto)
             if ($request->hasFile('foto')) {
-                $files = $request->file('foto');
-                if (count($files) > 3) {
+                $fotoPaths = $this->handleFoto($request->file('foto'));
+                if ($fotoPaths === null) {
                     return redirect()->back()
                         ->withErrors(['foto' => 'Maksimal 3 foto yang dapat diupload'])
                         ->withInput();
                 }
-
-                $fotoPaths = [];
-                foreach ($files as $file) {
-                    $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('uploads/aulas', $filename, 'public');
-                    $fotoPaths[] = $path;
-                }
                 $aula->foto = $fotoPaths;
             }
 
-            // Handle Fasilitas
-            if ($request->has('fasilitas') && is_array($request->fasilitas)) {
-                $fasilitas = array_filter($request->fasilitas, function($item) {
-                    return !empty(trim($item));
-                });
-                $aula->fasilitas = array_values($fasilitas);
-            } else {
-                $aula->fasilitas = [];
-            }
-
+            $aula->fasilitas = $this->handleFasilitas($request);
             $aula->save();
 
             return redirect()->route('admin.aula.index')
@@ -98,35 +151,22 @@ class AulaController extends Controller
         }
     }
 
-    // Menampilkan form edit aula
+    /**
+     * Menampilkan form edit aula
+     */
     public function edit(int $id)
     {
         $aula = Aula::findOrFail($id);
         return view('admin.aula.edit', compact('aula'));
     }
 
-    // Mengupdate data aula yang sudah ada
+    /**
+     * Mengupdate data aula yang sudah ada (TAMBAH foto, bukan replace)
+     */
     public function update(Request $request, int $id)
     {
         $aula = Aula::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:255|unique:aulas,nama,' . $id,
-            'kapasitas' => 'required|integer|min:1',
-            'deskripsi' => 'nullable|string',
-            'foto.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-            'fasilitas' => 'nullable|array',
-            'fasilitas.*' => 'string|max:100',
-            'status_aktif' => 'boolean'
-        ], [
-            'nama.required' => 'Nama aula wajib diisi',
-            'nama.unique' => 'Nama aula sudah digunakan, silakan gunakan nama lain',
-            'kapasitas.required' => 'Kapasitas wajib diisi',
-            'kapasitas.min' => 'Kapasitas minimal 1 orang',
-            'foto.*.image' => 'File yang diupload harus berupa gambar',
-            'foto.*.mimes' => 'Format gambar harus JPG, JPEG, PNG, atau WEBP',
-            'foto.*.max' => 'Ukuran gambar maksimal 5MB',
-        ]);
+        $validator = $this->validateAula($request, $id);
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -138,43 +178,28 @@ class AulaController extends Controller
             $aula->nama = $request->nama;
             $aula->kapasitas = $request->kapasitas;
             $aula->deskripsi = $request->deskripsi;
+            $aula->informasi_tambahan = $request->informasi_tambahan;
+            $aula->lokasi = $request->lokasi;
             $aula->status_aktif = $request->has('status_aktif');
 
-            // Jika ada upload foto baru
             if ($request->hasFile('foto')) {
-                $files = $request->file('foto');
-                if (count($files) > 3) {
+                // Ambil foto yang sudah ada
+                $existingFoto = $aula->foto ?? [];
+                
+                // Handle foto baru (TAMBAH ke yang sudah ada)
+                $fotoPaths = $this->handleFoto($request->file('foto'), $existingFoto);
+                
+                if ($fotoPaths === null) {
                     return redirect()->back()
-                        ->withErrors(['foto' => 'Maksimal 3 foto yang dapat diupload'])
+                        ->withErrors(['foto' => 'Maksimal 3 foto yang dapat diupload (termasuk foto yang sudah ada)'])
                         ->withInput();
                 }
-
-                // Hapus foto lama
-                if ($aula->foto) {
-                    foreach ($aula->foto as $oldFoto) {
-                        Storage::disk('public')->delete($oldFoto);
-                    }
-                }
-
-                $fotoPaths = [];
-                foreach ($files as $file) {
-                    $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                    $path = $file->storeAs('uploads/aulas', $filename, 'public');
-                    $fotoPaths[] = $path;
-                }
+                
                 $aula->foto = $fotoPaths;
             }
+            // Jika TIDAK ada upload foto baru, foto lama TETAP dipertahankan
 
-            // Handle Fasilitas
-            if ($request->has('fasilitas') && is_array($request->fasilitas)) {
-                $fasilitas = array_filter($request->fasilitas, function($item) {
-                    return !empty(trim($item));
-                });
-                $aula->fasilitas = array_values($fasilitas);
-            } else {
-                $aula->fasilitas = [];
-            }
-
+            $aula->fasilitas = $this->handleFasilitas($request);
             $aula->save();
 
             return redirect()->route('admin.aula.index')
@@ -187,7 +212,9 @@ class AulaController extends Controller
         }
     }
 
-    // Menghapus data aula
+    /**
+     * Menghapus data aula
+     */
     public function destroy(int $id)
     {
         try {
@@ -196,7 +223,9 @@ class AulaController extends Controller
             
             if ($aula->foto) {
                 foreach ($aula->foto as $foto) {
-                    Storage::disk('public')->delete($foto);
+                    if (Storage::disk('public')->exists($foto)) {
+                        Storage::disk('public')->delete($foto);
+                    }
                 }
             }
 
@@ -211,7 +240,9 @@ class AulaController extends Controller
         }
     }
 
-    // Menampilkan detail aula (untuk booking)
+    /**
+     * Menampilkan detail aula (untuk booking)
+     */
     public function show(int $id)
     {
         try {
@@ -238,7 +269,9 @@ class AulaController extends Controller
         }
     }
 
-    // Toggle status aktif
+    /**
+     * Toggle status aktif
+     */
     public function toggleStatus(int $id)
     {
         try {
@@ -272,7 +305,9 @@ class AulaController extends Controller
         }
     }
 
-    // Menghapus semua foto aula
+    /**
+     * Menghapus semua foto aula
+     */
     public function deletePhotos(int $id)
     {
         try {
@@ -280,7 +315,9 @@ class AulaController extends Controller
             
             if ($aula->foto) {
                 foreach ($aula->foto as $foto) {
-                    Storage::disk('public')->delete($foto);
+                    if (Storage::disk('public')->exists($foto)) {
+                        Storage::disk('public')->delete($foto);
+                    }
                 }
                 $aula->foto = [];
                 $aula->save();
@@ -319,7 +356,9 @@ class AulaController extends Controller
         }
     }
 
-    // Menghapus satu foto tertentu
+    /**
+     * Menghapus satu foto tertentu
+     */
     public function deletePhoto(Request $request, int $id)
     {
         try {
@@ -327,7 +366,9 @@ class AulaController extends Controller
             $photoIndex = $request->input('index');
             
             if ($photoIndex !== null && isset($aula->foto[$photoIndex])) {
-                Storage::disk('public')->delete($aula->foto[$photoIndex]);
+                if (Storage::disk('public')->exists($aula->foto[$photoIndex])) {
+                    Storage::disk('public')->delete($aula->foto[$photoIndex]);
+                }
                 
                 $fotos = $aula->foto;
                 unset($fotos[$photoIndex]);
@@ -368,7 +409,9 @@ class AulaController extends Controller
         }
     }
 
-    // API untuk mendapatkan daftar aula (untuk booking)
+    /**
+     * API untuk mendapatkan daftar aula (untuk booking)
+     */
     public function getAulasForBooking()
     {
         try {

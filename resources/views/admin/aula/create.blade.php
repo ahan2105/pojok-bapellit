@@ -1,5 +1,7 @@
 @php
-    $layout = (auth()->check() && auth()->user()->role === 'admin') ? 'layouts.admin' : 'layouts.user';
+    $user = Auth::user();
+    $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
+    $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
 @endphp
 
 @extends($layout)
@@ -7,7 +9,7 @@
 @section('title', 'Tambah Aula Baru')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="aulaManager()">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     <!-- Breadcrumb -->
     <div class="mb-6 flex items-center justify-between">
@@ -25,17 +27,6 @@
         <p class="text-sm text-gray-600">Isi informasi lengkap untuk menambahkan aula baru.</p>
     </div>
 
-    <!-- Notifikasi Error -->
-    @if($errors->any())
-        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg">
-            <ul class="list-disc list-inside">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <!-- Form Tambah Aula -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
         <form action="{{ route('admin.aula.store') }}" method="POST" enctype="multipart/form-data">
@@ -48,7 +39,7 @@
                     <label class="block text-sm font-bold text-gray-800 mb-2">Foto Aula</label>
                     
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 transition bg-gray-50 relative cursor-pointer flex flex-col items-center justify-center min-h-[240px]">
-                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer" @change="previewImages($event)">
+                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer" id="foto-input">
                         <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
@@ -57,21 +48,21 @@
                     </div>
 
                     <div class="grid grid-cols-3 gap-3 mt-4" id="preview-container">
-                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner">
+                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot">
                             <div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                             </div>
                         </div>
-                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner">
+                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot">
                             <div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                             </div>
                         </div>
-                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner">
+                        <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot">
                             <div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -113,6 +104,27 @@
                         @enderror
                     </div>
 
+                    <!-- Informasi Tambahan -->
+                    <div>
+                        <label for="informasi_tambahan" class="block text-sm font-bold text-gray-800 mb-1">Informasi Tambahan</label>
+                        <textarea id="informasi_tambahan" name="informasi_tambahan" rows="4" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('informasi_tambahan') }}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">Contoh: Tersedia parkir VIP, Wi-Fi, dll. (pisahkan dengan enter)</p>
+                        @error('informasi_tambahan')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Lokasi -->
+                    <div>
+                        <label for="lokasi" class="block text-sm font-bold text-gray-800 mb-1">Lokasi</label>
+                        <input type="text" id="lokasi" name="lokasi" value="{{ old('lokasi') }}" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" 
+                            placeholder="Contoh: Gedung A, Lantai 2">
+                        @error('lokasi')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Fasilitas -->
                     <div x-data="facilityManager([])">
                         <label class="block text-sm font-bold text-gray-800 mb-1">Fasilitas</label>
@@ -126,6 +138,9 @@
                             <input type="text" @keydown.enter.prevent="addFacility($event)" placeholder="Tambah fasilitas..." class="flex-1 min-w-[120px] text-xs outline-none px-1 py-1">
                         </div>
                         <input type="hidden" name="fasilitas" :value="JSON.stringify(facilities)">
+                        @error('fasilitas')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
                 </div>
@@ -155,24 +170,51 @@
 </div>
 
 <script>
-    function aulaManager() {
-        return {
-            previewImages(event) {
-                const files = event.target.files;
+    // Preview Foto - Support Multiple Files
+    document.addEventListener('DOMContentLoaded', function() {
+        const fotoInput = document.getElementById('foto-input');
+        if (fotoInput) {
+            fotoInput.addEventListener('change', function(e) {
+                const files = e.target.files;
                 const container = document.getElementById('preview-container');
-                if (container) {
-                    const slots = container.querySelectorAll('div.h-20');
-                    for (let i = 0; i < Math.min(files.length, 3); i++) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            slots[i].innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                        }
-                        reader.readAsDataURL(files[i]);
-                    }
+                if (!container) return;
+                
+                const slots = container.querySelectorAll('.foto-slot');
+                
+                // Reset semua slot
+                const emptyHtml = `<div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>`;
+                
+                for (let i = 0; i < slots.length; i++) {
+                    slots[i].innerHTML = emptyHtml;
                 }
-            }
+                
+                // Preview max 3 files
+                const maxPreview = Math.min(files.length, 3);
+                for (let i = 0; i < maxPreview; i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        slots[i].innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover">`;
+                    }
+                    reader.readAsDataURL(files[i]);
+                }
+                
+                // Peringatan jika lebih dari 3
+                if (files.length > 3 && typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Maksimal 3 Foto',
+                        text: 'Anda memilih ' + files.length + ' file. Hanya 3 foto pertama yang akan diupload.',
+                        confirmButtonColor: '#f59e0b',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
         }
-    }
+    });
 
     function facilityManager(initialFacilities) {
         return {

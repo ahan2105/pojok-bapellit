@@ -12,6 +12,9 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     @stack('styles')
 </head>
 <body class="font-sans antialiased bg-gray-100">
@@ -22,6 +25,9 @@
             @yield('content')
         </div>
     </main>
+    
+    <!-- SweetAlert Notifikasi -->
+    @include('components.sweetalert')
     
     @stack('scripts')
 </body>

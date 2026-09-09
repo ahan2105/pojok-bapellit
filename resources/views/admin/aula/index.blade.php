@@ -1,5 +1,7 @@
 @php
-    $layout = (auth()->check() && auth()->user()->role === 'admin') ? 'layouts.admin' : 'layouts.user';
+    $user = Auth::user();
+    $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
+    $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
 @endphp
 
 @extends($layout)
@@ -8,7 +10,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="aulaManager()">
-    
+
     <!-- Breadcrumb / Tombol Kembali -->
     <div class="mb-6 flex items-center justify-between">
         <a href="{{ route('booking.index') }}" class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-indigo-600 transition">
@@ -31,33 +33,10 @@
         <p class="text-sm text-gray-600">Perbarui informasi dan fasilitas aula dengan mudah.</p>
     </div>
 
-    <!-- Notifikasi Sukses -->
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-lg">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                {{ session('success') }}
-            </div>
-        </div>
-    @endif
-
-    <!-- Notifikasi Error -->
-    @if($errors->any())
-        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg">
-            <ul class="list-disc list-inside">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <!-- TAB NAVIGASI AULA -->
     <div class="flex items-center space-x-2 mb-6 border-b pb-4 overflow-x-auto">
         @forelse($aulas as $index => $item)
-            <button @click="activeTab = {{ $index }}" 
+            <button @click="activeTab = {{ $index }}"
                 :class="activeTab === {{ $index }} ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'"
                 class="px-5 py-2.5 rounded-lg border text-sm transition focus:outline-none whitespace-nowrap">
                 {{ $item->nama }}
@@ -70,35 +49,50 @@
     <!-- KONTEN FORM BERDASARKAN TAB AKTIF -->
     @forelse($aulas as $index => $item)
     <div x-show="activeTab === {{ $index }}" x-cloak class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
-        <form action="{{ route('admin.aula.update', $item->id) }}" method="POST" enctype="multipart/form-data" @submit.prevent="submitForm($event)">
+        <form action="{{ route('admin.aula.update', $item->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
+
                 <!-- KOLOM KIRI: FOTO AULA -->
                 <div>
                     <label class="block text-sm font-bold text-gray-800 mb-2">Foto Aula</label>
-                    
-                    <!-- Box Drag & Drop Utama -->
-                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 transition bg-gray-50 relative cursor-pointer flex flex-col items-center justify-center min-h-[240px]">
-                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer" @change="previewImages($event, {{ $index }})">
-                        <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                        </svg>
-                        <p class="text-sm font-medium text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
-                        <p class="text-xs text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maks. 5MB, Maks 3 Foto)</p>
+
+                    @php
+                        $fotos = is_array($item->foto) ? $item->foto : [];
+                        $existingCount = count($fotos);
+                    @endphp
+
+                    <!-- Box Drag & Drop Utama = sekaligus preview foto BARU pertama -->
+                    <div id="dropzone-{{ $index }}"
+                         data-aula-id="{{ $item->id }}"
+                         data-existing-count="{{ $existingCount }}"
+                         class="dropzone-box border-2 border-dashed border-gray-300 rounded-xl relative cursor-pointer flex items-center justify-center min-h-[200px] bg-gray-50 hover:border-indigo-500 transition overflow-hidden">
+
+                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp"
+                               class="absolute inset-0 opacity-0 cursor-pointer z-10" id="foto-input-{{ $index }}">
+
+                        <!-- konten default / preview, diisi ulang oleh JS -->
+                        <div id="dropzone-content-{{ $index }}" class="w-full h-full flex flex-col items-center justify-center text-center p-8 pointer-events-none">
+                            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <p class="text-sm font-medium text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
+                            <p class="text-xs text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
+                        </div>
                     </div>
 
-                    <!-- Slot Preview 3 Foto -->
-                    <div class="grid grid-cols-3 gap-3 mt-4">
-                        @php 
-                            $fotos = is_array($item->foto) ? $item->foto : [];
-                        @endphp
+                    <!-- Baris slot: foto TERSIMPAN + overflow foto BARU (ke-2, ke-3) -->
+                    <div class="grid grid-cols-3 gap-3 mt-4" id="slot-row-{{ $index }}">
                         @for($i = 0; $i < 3; $i++)
-                            <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner">
+                            <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot" id="slot-{{ $index }}-{{ $i }}">
                                 @if(isset($fotos[$i]) && !empty($fotos[$i]))
                                     <img src="{{ asset('storage/' . $fotos[$i]) }}" class="w-full h-full object-cover" alt="Foto Aula {{ $i+1 }}">
+                                    <button type="button"
+                                        class="btn-delete-existing absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-xs w-5 h-5 rounded-bl leading-5"
+                                        data-aula-id="{{ $item->id }}" data-photo-index="{{ $i }}" data-tab-index="{{ $index }}"
+                                        title="Hapus foto ini">&times;</button>
                                 @else
                                     <div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
                                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,15 +103,10 @@
                             </div>
                         @endfor
                     </div>
-                    
-                    <!-- Hapus Foto Button -->
-                    @if(!empty($fotos))
-                        <div class="mt-2">
-                            <button type="button" @click="confirmDeletePhotos({{ $item->id }})" class="text-xs text-red-600 hover:text-red-800 transition">
-                                Hapus semua foto
-                            </button>
-                        </div>
-                    @endif
+                    <p class="text-xs text-gray-400 mt-2">
+                        <span class="inline-block w-2.5 h-2.5 rounded-sm bg-green-500 align-middle mr-1"></span>
+                        = foto baru, belum disimpan (klik "Simpan Perubahan" untuk menyimpan)
+                    </p>
                 </div>
 
                 <!-- KOLOM KANAN: INPUT INFORMASI -->
@@ -148,6 +137,27 @@
                         <label for="deskripsi_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Deskripsi</label>
                         <textarea id="deskripsi_{{ $item->id }}" name="deskripsi" rows="3" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('deskripsi', $item->deskripsi) }}</textarea>
                         @error('deskripsi')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Informasi Tambahan -->
+                    <div>
+                        <label for="informasi_tambahan_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Informasi Tambahan</label>
+                        <textarea id="informasi_tambahan_{{ $item->id }}" name="informasi_tambahan" rows="4" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('informasi_tambahan', $item->informasi_tambahan) }}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">Contoh: Tersedia parkir VIP, Wi-Fi, dll. (pisahkan dengan enter)</p>
+                        @error('informasi_tambahan')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Lokasi -->
+                    <div>
+                        <label for="lokasi_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Lokasi</label>
+                        <input type="text" id="lokasi_{{ $item->id }}" name="lokasi" value="{{ old('lokasi', $item->lokasi) }}" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" 
+                            placeholder="Contoh: Gedung A, Lantai 2">
+                        @error('lokasi')
                             <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
@@ -218,26 +228,10 @@
 
 </div>
 
-<!-- AlpineJS & SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     function aulaManager() {
         return {
             activeTab: 0,
-            previewImages(event, index) {
-                const files = event.target.files;
-                const previewContainer = event.target.closest('.border-2').nextElementSibling;
-                if (previewContainer) {
-                    const previewSlots = previewContainer.querySelectorAll('div.h-20');
-                    for (let i = 0; i < Math.min(files.length, 3); i++) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            previewSlots[i].innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                        }
-                        reader.readAsDataURL(files[i]);
-                    }
-                }
-            },
             confirmDelete(id, name) {
                 Swal.fire({
                     title: 'Hapus Aula?',
@@ -253,24 +247,6 @@
                         const form = document.getElementById('delete-form');
                         form.action = `/admin/aula/${id}`;
                         form.submit();
-                    }
-                });
-            },
-            confirmDeletePhotos(id) {
-                Swal.fire({
-                    title: 'Hapus Semua Foto?',
-                    text: 'Apakah Anda yakin ingin menghapus semua foto aula ini?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Dispatch event atau submit form untuk hapus foto
-                        // Bisa menggunakan AJAX atau form terpisah
-                        Swal.fire('Berhasil!', 'Foto berhasil dihapus', 'success');
                     }
                 });
             }
@@ -292,9 +268,202 @@
             }
         }
     }
+
+    // ============================================================
+    // FOTO: dropzone besar = preview foto baru pertama (hijau = belum
+    // disimpan), overflow foto baru turun ke slot bawah, dan hapus
+    // foto tersimpan dilakukan satu per satu lewat AJAX.
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const fotoData = {}; // { index: DataTransfer } -> semua file baru per tab
+
+        const emptySlotHtml = `<div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+        </div>`;
+
+        const defaultDropzoneHtml = `
+            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <p class="text-sm font-medium text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
+            <p class="text-xs text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
+        `;
+
+        document.querySelectorAll('input[id^="foto-input-"]').forEach(function (input) {
+            const index = input.id.replace('foto-input-', '');
+            fotoData[index] = new DataTransfer();
+
+            const dropzone = document.getElementById('dropzone-' + index);
+            const existingCount = parseInt(dropzone.getAttribute('data-existing-count'), 10) || 0;
+
+            input.addEventListener('change', function (e) {
+                const newFiles = Array.from(e.target.files);
+                const sisaSlot = 3 - existingCount - fotoData[index].items.length;
+
+                if (sisaSlot <= 0) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Slot Foto Penuh',
+                            text: 'Total foto (tersimpan + baru) sudah mencapai 3. Hapus salah satu dulu untuk menambah.',
+                            confirmButtonColor: '#f59e0b'
+                        });
+                    }
+                    input.value = '';
+                    return;
+                }
+
+                const filesToAdd = newFiles.slice(0, sisaSlot);
+                if (newFiles.length > filesToAdd.length && typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Maksimal 3 Foto',
+                        text: 'Hanya ' + filesToAdd.length + ' foto yang ditambahkan (sisa slot terbatas).',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                }
+
+                filesToAdd.forEach(file => fotoData[index].items.add(file));
+                input.files = fotoData[index].files; // akumulasi, bukan replace
+
+                renderAll(index, input, existingCount);
+            });
+        });
+
+        function renderAll(index, input, existingCount) {
+            const dropzone = document.getElementById('dropzone-' + index);
+            const dropContent = document.getElementById('dropzone-content-' + index);
+            const newFiles = Array.from(fotoData[index].files);
+
+            // ---- 1. Dropzone besar = preview foto baru PERTAMA ----
+            if (newFiles.length > 0) {
+                dropzone.classList.remove('border-gray-300', 'border-dashed');
+                dropzone.classList.add('border-green-500', 'border-solid');
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    dropContent.innerHTML = `
+                        <img src="${e.target.result}" class="absolute inset-0 w-full h-full object-cover">
+                        <span class="absolute top-2 left-2 bg-green-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full z-20">Belum disimpan</span>
+                        <button type="button" class="btn-remove-big absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white text-xs w-6 h-6 rounded-full leading-6 z-20">&times;</button>
+                        <span class="absolute bottom-2 left-2 right-2 text-center text-[11px] bg-black/50 text-white rounded px-2 py-1 z-20">Klik untuk tambah foto lagi</span>
+                    `;
+                    dropContent.classList.remove('pointer-events-none');
+                    dropContent.querySelector('.btn-remove-big').addEventListener('click', function (ev) {
+                        ev.stopPropagation();
+                        removeNewFile(index, 0, input, existingCount);
+                    });
+                };
+                reader.readAsDataURL(newFiles[0]);
+            } else {
+                dropzone.classList.add('border-gray-300', 'border-dashed');
+                dropzone.classList.remove('border-green-500', 'border-solid');
+                dropContent.classList.add('pointer-events-none');
+                dropContent.innerHTML = defaultDropzoneHtml;
+            }
+
+            // ---- 2. Slot bawah: existing dulu, sisanya overflow foto baru ----
+            const overflow = newFiles.slice(1); // foto baru ke-2 & ke-3
+            for (let i = 0; i < 3; i++) {
+                const slot = document.getElementById('slot-' + index + '-' + i);
+                if (!slot) continue;
+
+                if (i < existingCount) {
+                    // slot existing tetap seperti render awal dari server, jangan diutak-atik
+                    continue;
+                }
+
+                const overflowIdx = i - existingCount;
+                slot.classList.remove('border-gray-200');
+
+                if (overflow[overflowIdx]) {
+                    slot.classList.add('border-green-500');
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        slot.innerHTML = `
+                            <img src="${e.target.result}" class="w-full h-full object-cover">
+                            <span class="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-[9px] text-center font-semibold py-0.5">Baru</span>
+                            <button type="button" class="btn-remove-overflow absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-xs w-5 h-5 rounded-bl leading-5" data-overflow-index="${overflowIdx}">&times;</button>
+                        `;
+                        slot.querySelector('.btn-remove-overflow').addEventListener('click', function () {
+                            removeNewFile(index, overflowIdx + 1, input, existingCount);
+                        });
+                    };
+                    reader.readAsDataURL(overflow[overflowIdx]);
+                } else {
+                    slot.classList.add('border-gray-200');
+                    slot.innerHTML = emptySlotHtml;
+                }
+            }
+        }
+
+        function removeNewFile(index, fileArrayIndex, input, existingCount) {
+            const dt = new DataTransfer();
+            Array.from(fotoData[index].files).forEach((f, idx) => {
+                if (idx !== fileArrayIndex) dt.items.add(f);
+            });
+            fotoData[index] = dt;
+            input.files = dt.files;
+            renderAll(index, input, existingCount);
+        }
+
+        // ---- Hapus foto TERSIMPAN satu per satu (AJAX) ----
+        document.querySelectorAll('.btn-delete-existing').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const aulaId = this.getAttribute('data-aula-id');
+                const photoIndex = this.getAttribute('data-photo-index');
+
+                Swal.fire({
+                    title: 'Hapus Foto Ini?',
+                    text: 'Foto akan langsung dihapus dari server.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    fetch(`/admin/aula/${aulaId}/delete-photo`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ index: photoIndex })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Berhasil!', 'Foto berhasil dihapus', 'success')
+                                .then(() => window.location.reload());
+                        } else {
+                            Swal.fire('Gagal!', data.message || 'Gagal menghapus foto', 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Error!', 'Terjadi kesalahan pada server', 'error');
+                    });
+                });
+            });
+        });
+    });
 </script>
 
 <style>
     [x-cloak] { display: none !important; }
+
+    .dropzone-box { transition: border-color .15s ease; }
+
+    .foto-slot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 </style>
 @endsection

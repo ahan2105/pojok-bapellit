@@ -16,14 +16,12 @@ class BookingController extends Controller
      */
     public function index()
     {
-        // Tampilkan daftar aula untuk semua role (user & admin)
         $aulas = Aula::where('status_aktif', true)->get();
-        
         return view('booking.index', compact('aulas'));
     }
 
     /**
-     * Form booking detail aula
+     * Form booking detail aula (USER & ADMIN)
      */
     public function show(int $id)
     {
@@ -40,7 +38,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Simpan booking
+     * Simpan booking (USER & ADMIN)
      */
     public function store(Request $request)
     {
@@ -49,11 +47,22 @@ class BookingController extends Controller
             'tanggal_booking' => 'required|date|after_or_equal:today',
             'nama_penanggung_jawab' => 'required|string|max:255',
             'keperluan' => 'required|string|max:500',
-            'jumlah_peserta' => 'required|integer|min:1',
+            'jumlah_peserta' => 'required|integer|min:1|max:1000',
             'sesi_waktu' => 'required|in:pagi,siang,seharian',
+            'catatan' => 'nullable|string|max:500'
         ];
 
-        $validator = Validator::make($request->all(), $rules);
+        $messages = [
+            'tanggal_booking.after_or_equal' => 'Tanggal booking tidak boleh kurang dari hari ini.',
+            'nama_penanggung_jawab.required' => 'Nama penanggung jawab wajib diisi.',
+            'keperluan.required' => 'Keperluan acara wajib diisi.',
+            'jumlah_peserta.min' => 'Jumlah peserta minimal 1 orang.',
+            'jumlah_peserta.max' => 'Jumlah peserta melebihi kapasitas aula.',
+            'sesi_waktu.required' => 'Silakan pilih sesi waktu.',
+            'sesi_waktu.in' => 'Sesi waktu yang dipilih tidak valid.'
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -97,7 +106,10 @@ class BookingController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false, 
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $available = $this->isAvailable($request);
@@ -110,7 +122,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Detail booking (User & Admin)
+     * Detail booking (USER & ADMIN)
      */
     public function detail(int $id)
     {

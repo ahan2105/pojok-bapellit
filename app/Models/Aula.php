@@ -13,6 +13,8 @@ class Aula extends Model
         'nama',
         'kapasitas',
         'deskripsi',
+        'informasi_tambahan',
+        'lokasi',
         'foto',
         'fasilitas',
         'status_aktif'

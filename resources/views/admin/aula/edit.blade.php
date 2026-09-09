@@ -1,5 +1,7 @@
 @php
-    $layout = (auth()->check() && auth()->user()->role === 'admin') ? 'layouts.admin' : 'layouts.user';
+    $user = Auth::user();
+    $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
+    $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
 @endphp
 
 @extends($layout)
@@ -7,7 +9,7 @@
 @section('title', 'Edit Data Aula')
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="aulaManager()">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     <!-- Tombol Kembali -->
     <div class="mb-6 flex items-center justify-between">
@@ -25,33 +27,9 @@
         <p class="text-sm text-gray-600">Perbarui informasi, foto, dan fasilitas aula.</p>
     </div>
 
-    <!-- Notifikasi Sukses -->
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-lg">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                {{ session('success') }}
-            </div>
-        </div>
-    @endif
-
-    <!-- Menampilkan Error Validasi Jika Ada -->
-    @if ($errors->any())
-        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <strong class="font-bold">Terjadi Kesalahan!</strong>
-            <ul class="mt-1 list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <!-- Form Edit Aula -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
-        <form action="{{ route('admin.aula.update', $aula->id) }}" method="POST" enctype="multipart/form-data" @submit.prevent="submitForm($event)">
+        <form action="{{ route('admin.aula.update', $aula->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -62,25 +40,29 @@
                     <label class="block text-sm font-bold text-gray-800 mb-2">Foto Aula (Maks. 3)</label>
                     
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-indigo-500 transition bg-gray-50 relative cursor-pointer flex flex-col items-center justify-center min-h-[180px] mb-4">
-                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer" @change="previewImages($event)">
+                        <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp" class="absolute inset-0 opacity-0 cursor-pointer" id="foto-input">
                         <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                        <p class="text-xs font-medium text-gray-700">Klik atau drag untuk ganti foto baru</p>
-                        <p class="text-[10px] text-gray-400 mt-0.5">Mengupload foto baru akan mengganti seluruh foto lama.</p>
+                        <p class="text-xs font-medium text-gray-700">Klik atau drag untuk tambah foto baru</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Foto baru akan ditambahkan ke yang sudah ada (Maks 3)</p>
                     </div>
 
                     <!-- Preview Foto Saat Ini -->
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">Foto Saat Ini:</label>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-3 gap-2" id="preview-container">
                             @php 
                                 $fotos = is_array($aula->foto) ? $aula->foto : [];
                             @endphp
                             @for($i = 0; $i < 3; $i++)
-                                <div class="h-20 border rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden relative border-gray-200">
+                                <div class="h-20 border rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden relative border-gray-200 foto-slot">
                                     @if(isset($fotos[$i]) && !empty($fotos[$i]))
                                         <img src="{{ asset('storage/' . $fotos[$i]) }}" class="w-full h-full object-cover" alt="Foto Aula {{ $i+1 }}">
+                                        <button type="button" onclick="deleteSinglePhoto({{ $aula->id }}, {{ $i }})" 
+                                            class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-700 transition shadow-lg">
+                                            ✕
+                                        </button>
                                     @else
                                         <div class="flex flex-col items-center text-gray-300">
                                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,16 +74,6 @@
                                 </div>
                             @endfor
                         </div>
-                        @if(!empty($fotos))
-                            <div class="mt-2">
-                                <button type="button" @click="confirmDeletePhotos({{ $aula->id }})" class="text-xs text-red-600 hover:text-red-800 transition flex items-center">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                    Hapus semua foto
-                                </button>
-                            </div>
-                        @endif
                     </div>
                 </div>
 
@@ -133,6 +105,27 @@
                         <label for="deskripsi" class="block text-sm font-bold text-gray-800 mb-1">Deskripsi</label>
                         <textarea id="deskripsi" name="deskripsi" rows="3" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('deskripsi', $aula->deskripsi) }}</textarea>
                         @error('deskripsi')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Informasi Tambahan -->
+                    <div>
+                        <label for="informasi_tambahan" class="block text-sm font-bold text-gray-800 mb-1">Informasi Tambahan</label>
+                        <textarea id="informasi_tambahan" name="informasi_tambahan" rows="4" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('informasi_tambahan', $aula->informasi_tambahan) }}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">Contoh: Tersedia parkir VIP, Wi-Fi, dll. (pisahkan dengan enter)</p>
+                        @error('informasi_tambahan')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Lokasi -->
+                    <div>
+                        <label for="lokasi" class="block text-sm font-bold text-gray-800 mb-1">Lokasi</label>
+                        <input type="text" id="lokasi" name="lokasi" value="{{ old('lokasi', $aula->lokasi) }}" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" 
+                            placeholder="Contoh: Gedung A, Lantai 2">
+                        @error('lokasi')
                             <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>
@@ -176,7 +169,7 @@
                 <div class="flex items-center space-x-3">
                     <a href="{{ route('admin.aula.index') }}" class="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition">Batal</a>
                     <button type="submit" class="px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">Perbarui Aula</button>
-                    <button type="button" @click="confirmDelete({{ $aula->id }}, '{{ $aula->nama }}')" class="px-5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Hapus</button>
+                    <button type="button" onclick="confirmDelete({{ $aula->id }}, '{{ $aula->nama }}')" class="px-5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Hapus</button>
                 </div>
             </div>
 
@@ -191,86 +184,116 @@
     @method('DELETE')
 </form>
 
-<!-- AlpineJS & SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    function aulaManager() {
-        return {
-            previewImages(event) {
-                const files = event.target.files;
-                const container = event.target.closest('.border-2').nextElementSibling?.nextElementSibling;
-                if (container) {
-                    const slots = container.querySelectorAll('div.h-20');
-                    for (let i = 0; i < Math.min(files.length, 3); i++) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            slots[i].innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                        }
-                        reader.readAsDataURL(files[i]);
+    // Preview Foto - Support Multiple Files
+    document.addEventListener('DOMContentLoaded', function() {
+        const fotoInput = document.getElementById('foto-input');
+        if (fotoInput) {
+            fotoInput.addEventListener('change', function(e) {
+                const files = e.target.files;
+                const container = document.getElementById('preview-container');
+                if (!container) return;
+                
+                const slots = container.querySelectorAll('.foto-slot');
+                
+                // Cek berapa slot yang sudah terisi
+                let filledSlots = 0;
+                for (let i = 0; i < slots.length; i++) {
+                    if (slots[i].querySelector('img')) {
+                        filledSlots++;
                     }
                 }
-            },
-            confirmDelete(id, name) {
-                Swal.fire({
-                    title: 'Hapus Aula?',
-                    html: `Apakah Anda yakin ingin menghapus <strong>"${name}"</strong>?<br>Tindakan ini tidak dapat dibatalkan.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const form = document.getElementById('delete-form');
-                        form.action = `/admin/aula/${id}`;
-                        form.submit();
+                
+                // Hitung total foto setelah upload
+                const totalAfterUpload = filledSlots + files.length;
+                if (totalAfterUpload > 3) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Maksimal 3 Foto',
+                        text: 'Total foto (yang sudah ada + yang baru) tidak boleh lebih dari 3.',
+                        confirmButtonColor: '#f59e0b',
+                        confirmButtonText: 'OK'
+                    });
+                    fotoInput.value = '';
+                    return;
+                }
+                
+                // Preview file baru ke slot kosong
+                let slotIndex = 0;
+                for (let i = 0; i < slots.length; i++) {
+                    if (!slots[i].querySelector('img')) {
+                        slotIndex = i;
+                        break;
                     }
-                });
-            },
-            confirmDeletePhotos(id) {
-                Swal.fire({
-                    title: 'Hapus Semua Foto?',
-                    text: 'Apakah Anda yakin ingin menghapus semua foto aula ini?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Kirim request ke endpoint hapus foto
-                        fetch(`/admin/aula/${id}/delete-photos`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire('Berhasil!', 'Semua foto berhasil dihapus', 'success');
-                                setTimeout(() => window.location.reload(), 1500);
-                            } else {
-                                Swal.fire('Gagal!', 'Gagal menghapus foto', 'error');
-                            }
-                        })
-                        .catch(() => {
-                            Swal.fire('Error!', 'Terjadi kesalahan pada server', 'error');
-                        });
+                }
+                
+                for (let i = 0; i < Math.min(files.length, 3 - filledSlots); i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const currentSlot = slots[slotIndex + i];
+                        currentSlot.innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover">`;
                     }
-                });
-            },
-            submitForm(event) {
-                // Optional: Tambahkan loading state
-                const submitBtn = event.target.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = 'Menyimpan...';
-                event.target.submit();
-            }
+                    reader.readAsDataURL(files[i]);
+                }
+            });
         }
+    });
+
+    // Delete Single Photo
+    function deleteSinglePhoto(aulaId, photoIndex) {
+        Swal.fire({
+            title: 'Hapus Foto?',
+            text: 'Apakah Anda yakin ingin menghapus foto ini?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/admin/aula/${aulaId}/delete-photo`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ index: photoIndex })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Berhasil!', 'Foto berhasil dihapus', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        Swal.fire('Gagal!', data.message || 'Gagal menghapus foto', 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Error!', 'Terjadi kesalahan pada server', 'error');
+                });
+            }
+        });
+    }
+
+    // Confirm Delete Aula
+    function confirmDelete(id, name) {
+        Swal.fire({
+            title: 'Hapus Aula?',
+            html: `Apakah Anda yakin ingin menghapus <strong>"${name}"</strong>?<br>Tindakan ini tidak dapat dibatalkan.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('delete-form');
+                form.action = `/admin/aula/${id}`;
+                form.submit();
+            }
+        });
     }
 
     function facilityManager(initialFacilities) {
@@ -288,42 +311,19 @@
             }
         }
     }
-
-    // Auto-hide success message setelah 3 detik
-    document.addEventListener('DOMContentLoaded', function() {
-        const successMessage = document.querySelector('.bg-green-50');
-        if (successMessage) {
-            setTimeout(() => {
-                successMessage.style.transition = 'opacity 0.5s';
-                successMessage.style.opacity = '0';
-                setTimeout(() => successMessage.remove(), 500);
-            }, 3000);
-        }
-    });
 </script>
 
 <style>
     [x-cloak] { display: none !important; }
     
-    /* Animasi untuk loading */
-    .loading-spinner {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid #f3f3f3;
-        border-radius: 50%;
-        border-top: 2px solid #6366f1;
-        animation: spin 1s linear infinite;
+    .foto-slot {
+        position: relative;
     }
     
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    /* Hover effect untuk tombol hapus foto */
-    .delete-photos-btn:hover {
-        background-color: #fef2f2;
+    .foto-slot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 </style>
 @endsection

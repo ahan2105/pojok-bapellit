@@ -29,6 +29,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
     Route::post('/booking/check-availability', [BookingController::class, 'checkAvailability'])->name('booking.check-availability');
     Route::get('/booking/{id}', [BookingController::class, 'detail'])->name('booking.detail');
+    Route::post('/booking/{id}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
     
     // ===== RIWAYAT BOOKING (USER & ADMIN) =====
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat.index');
@@ -44,16 +45,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/aula/{id}/detail', [AulaController::class, 'show'])->name('aula.show');
         Route::post('/aula/{id}/delete-photos', [AulaController::class, 'deletePhotos'])->name('aula.delete-photos');
         Route::delete('/aula/{id}/delete-photo', [AulaController::class, 'deletePhoto'])->name('aula.delete-photo');
+        Route::delete('/aula/{id}/delete-photo', [AulaController::class, 'deletePhoto'])->name('aula.delete-photo');
         
         // ===== KELOLA BOOKING (ADMIN) =====
         Route::get('/kelolabooking', [AdminBookingController::class, 'index'])->name('kelolabooking.index');
         Route::get('/kelolabooking/{id}', [AdminBookingController::class, 'detail'])->name('kelolabooking.detail');
         
         // ===== AKSI BOOKING (ADMIN) =====
-        Route::post('/booking/{id}/approve', [BookingController::class, 'approve'])->name('booking.approve');
-        Route::post('/booking/{id}/reject', [BookingController::class, 'reject'])->name('booking.reject');
-        Route::post('/booking/{id}/complete', [BookingController::class, 'complete'])->name('booking.complete');
-        Route::put('/booking/{id}', [BookingController::class, 'update'])->name('booking.update');
-        Route::delete('/booking/{id}', [BookingController::class, 'destroy'])->name('booking.destroy');
+        Route::post('/kelolabooking/{id}/approve', [AdminBookingController::class, 'approve'])->name('kelolabooking.approve');
+        Route::post('/kelolabooking/{id}/reject', [AdminBookingController::class, 'reject'])->name('kelolabooking.reject');
+        Route::post('/kelolabooking/{id}/complete', [AdminBookingController::class, 'complete'])->name('kelolabooking.complete');
+        Route::delete('/kelolabooking/{id}', [AdminBookingController::class, 'destroy'])->name('kelolabooking.destroy');
     });
 });
