@@ -10,7 +10,7 @@
             <!-- KIRI: Logo -->
             <div class="flex items-center">
                 <span class="text-xl font-bold text-indigo-600">
-                    Pojok Bapelit
+                    SI
                 </span>
             </div>
             
