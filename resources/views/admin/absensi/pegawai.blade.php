@@ -55,12 +55,15 @@
         </div>
     </div>
 
-    <!-- Toolbar: Search + Filter Bidang -->
+    <!-- Toolbar: Search + Filter Bidang + Filter Jabatan -->
     <div class="bg-white rounded-t-2xl shadow-sm border border-gray-200 p-4 sm:p-5">
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             
             <!-- Search -->
             <form method="GET" action="{{ route('admin.pegawai.index') }}" class="flex-1 sm:max-w-md">
+                @if($filterBidang) <input type="hidden" name="bidang" value="{{ $filterBidang }}"> @endif
+                @if(request('jabatan')) <input type="hidden" name="jabatan" value="{{ request('jabatan') }}"> @endif
+                
                 <div class="relative">
                     <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -68,11 +71,11 @@
                     <input type="text" 
                            name="search" 
                            value="{{ $search }}"
-                           placeholder="Cari nama atau email..."
+                           placeholder="Cari nama, NIP, atau email..."
                            class="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none transition">
                     
                     @if($search)
-                        <a href="{{ route('admin.pegawai.index', ['bidang' => $filterBidang]) }}" 
+                        <a href="{{ route('admin.pegawai.index', array_filter(['bidang' => $filterBidang, 'jabatan' => request('jabatan')])) }}" 
                            class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
                            title="Hapus pencarian">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,9 +88,9 @@
 
             <!-- Filter Bidang -->
             <form method="GET" action="{{ route('admin.pegawai.index') }}" class="w-full sm:w-56 flex-shrink-0">
-                @if($search)
-                    <input type="hidden" name="search" value="{{ $search }}">
-                @endif
+                @if($search) <input type="hidden" name="search" value="{{ $search }}"> @endif
+                @if(request('jabatan')) <input type="hidden" name="jabatan" value="{{ request('jabatan') }}"> @endif
+                
                 <select name="bidang" 
                         onchange="this.form.submit()"
                         class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none transition cursor-pointer">
@@ -99,10 +102,38 @@
                     @endforeach
                 </select>
             </form>
+
+            <!-- Filter Jabatan -->
+            <form method="GET" action="{{ route('admin.pegawai.index') }}" class="w-full sm:w-56 flex-shrink-0">
+                @if($search) <input type="hidden" name="search" value="{{ $search }}"> @endif
+                @if($filterBidang) <input type="hidden" name="bidang" value="{{ $filterBidang }}"> @endif
+                
+                <select name="jabatan" 
+                        onchange="this.form.submit()"
+                        class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none transition cursor-pointer">
+                    <option value="">Semua Jabatan</option>
+                    @foreach($jabatanList ?? [] as $j)
+                        <option value="{{ $j }}" {{ request('jabatan') === $j ? 'selected' : '' }}>
+                            {{ Str::limit($j, 30) }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+
+            <!-- Tombol Reset -->
+            @if($search || $filterBidang || request('jabatan'))
+                <a href="{{ route('admin.pegawai.index') }}" 
+                   class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Reset
+                </a>
+            @endif
         </div>
     </div>
 
-    <!-- ===== Tabel Pegawai ===== -->
+    <!-- ===== Tabel Pegawai (Grouped per Bidang) ===== -->
     <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-200 overflow-hidden">
         
         {{-- DESKTOP: Table --}}
@@ -112,35 +143,68 @@
                     <tr>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">NO</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NAMA PEGAWAI</th>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ASAL BIDANG</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NIP</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">JABATAN</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">TOTAL ABSEN</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($pegawai as $index => $p)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 text-base text-gray-600 font-medium">
-                                {{ $pegawai->firstItem() + $index }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
-                                <div class="text-sm text-gray-500">{{ $p->email }}</div>
-                            </td>
-                            <td class="px-6 py-4 text-base text-gray-600">{{ $p->bidang ?? '-' }}</td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700">
-                                    {{ $p->absensi_details_count }} sesi
-                                </span>
+                <tbody>
+                    @php
+                        $grouped = $pegawai->getCollection()->groupBy(function ($p) {
+                            return $p->bidang ?? 'TANPA BIDANG';
+                        });
+                        $globalNo = $pegawai->firstItem() ?? 1;
+                    @endphp
+
+                    @forelse($grouped as $bidang => $groupPegawai)
+                        <!-- Header Bidang -->
+                        <tr class="bg-gradient-to-r from-indigo-50 to-purple-50 border-y border-indigo-100">
+                            <td colspan="5" class="px-6 py-3.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                    <span class="text-sm font-bold text-indigo-800 uppercase tracking-wider">
+                                        {{ $bidang }}
+                                    </span>
+                                    <span class="text-xs font-medium text-indigo-600 bg-white/60 px-2 py-0.5 rounded-full">
+                                        {{ $groupPegawai->count() }} orang
+                                    </span>
+                                </div>
                             </td>
                         </tr>
+
+                        <!-- Daftar Pegawai -->
+                        @foreach($groupPegawai as $p)
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4 text-base text-gray-600 font-medium">
+                                    {{ $globalNo++ }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
+                                    @if($p->email)
+                                        <div class="text-sm text-gray-500">{{ $p->email }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 font-mono">
+                                    {{ $p->nip ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-700">
+                                    {{ $p->jabatan ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700">
+                                        {{ $p->absensi_details_count }} sesi
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-16 text-center">
+                            <td colspan="5" class="px-6 py-16 text-center">
                                 <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
                                 <p class="text-base text-gray-500">
-                                    @if($search || $filterBidang)
+                                    @if($search || $filterBidang || request('jabatan'))
                                         Tidak ada pegawai yang cocok dengan filter.
                                     @else
                                         Belum ada pegawai aktif. Tambah di halaman Kelola Akun.
@@ -153,31 +217,55 @@
             </table>
         </div>
 
-        {{-- MOBILE: Card List --}}
-        <div class="block md:hidden divide-y divide-gray-100">
-            @forelse($pegawai as $index => $p)
-                <div class="p-4 hover:bg-gray-50 transition">
-                    <div class="flex items-start gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700">
-                            {{ $pegawai->firstItem() + $index }}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
-                            <div class="text-sm text-gray-500 mt-0.5">{{ $p->email }}</div>
-                            
-                            @if($p->bidang)
-                                <div class="mt-1.5 text-sm text-gray-600">
-                                    {{ $p->bidang }}
-                                </div>
-                            @endif
+        {{-- MOBILE: Card List Grouped --}}
+        <div class="block md:hidden">
+            @php
+                $groupedMobile = $pegawai->getCollection()->groupBy(function ($p) {
+                    return $p->bidang ?? 'TANPA BIDANG';
+                });
+                $globalNoMobile = $pegawai->firstItem() ?? 1;
+            @endphp
 
-                            <div class="mt-2">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-                                    {{ $p->absensi_details_count }} sesi diabsen
-                                </span>
+            @forelse($groupedMobile as $bidang => $groupPegawai)
+                <!-- Header Bidang (Mobile) -->
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border-y border-indigo-100 px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                        <span class="text-xs font-bold text-indigo-800 uppercase tracking-wider">
+                            {{ $bidang }}
+                        </span>
+                        <span class="text-xs font-medium text-indigo-600 bg-white/60 px-2 py-0.5 rounded-full">
+                            {{ $groupPegawai->count() }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                    @foreach($groupPegawai as $p)
+                        <div class="p-4 hover:bg-gray-50 transition">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700">
+                                    {{ $globalNoMobile++ }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
+                                    @if($p->email)
+                                        <div class="text-sm text-gray-500 mt-0.5">{{ $p->email }}</div>
+                                    @endif
+                                    
+                                    @if($p->jabatan)
+                                        <div class="text-sm text-gray-600 mt-1">{{ $p->jabatan }}</div>
+                                    @endif
+
+                                    <div class="mt-2">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                            {{ $p->absensi_details_count }} sesi diabsen
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endforeach
                 </div>
             @empty
                 <div class="p-12 text-center">
@@ -185,7 +273,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                     <p class="text-base text-gray-500">
-                        @if($search || $filterBidang)
+                        @if($search || $filterBidang || request('jabatan'))
                             Tidak ada pegawai yang cocok dengan filter.
                         @else
                             Belum ada pegawai aktif. Tambah di halaman Kelola Akun.

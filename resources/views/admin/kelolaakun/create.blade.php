@@ -32,7 +32,8 @@
     </div>
 
     <!-- Card Form -->
-    <div class="bg-white rounded-xl shadow-sm p-8 md:p-10 border border-gray-100">
+    <div class="bg-white rounded-xl shadow-sm p-8 md:p-10 border border-gray-100" 
+         x-data="formAkun('{{ old('bidang', $user->bidang ?? '') }}')">
         
         @if(session('error'))
             <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-6 text-base">
@@ -46,161 +47,242 @@
                 @method('PUT')
             @endif
 
-            <!-- Baris 1: Nama & WhatsApp -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Nama Lengkap <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="name" 
-                           value="{{ old('name', $user->name ?? '') }}" 
-                           placeholder="Masukkan nama lengkap"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('name') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">No. WhatsApp</label>
-                    <input type="text" name="whatsapp" 
-                           value="{{ old('whatsapp', $user->whatsapp ?? '') }}" 
-                           placeholder="0812xxxxxxx"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('whatsapp') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
-
-            <!-- Baris 2: Username & NIP -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Username <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="username" 
-                           value="{{ old('username', $user->username ?? '') }}" 
-                           placeholder="Masukkan username"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('username') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">NIP</label>
-                    <input type="text" name="nip" 
-                           value="{{ old('nip', $user->nip ?? '') }}" 
-                           placeholder="Nomor Induk Pegawai (tidak harus )"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('nip') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
-
-            <!-- Baris 3: Email & Role -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Email Aktif <span class="text-red-500">*</span>
-                    </label>
-                    <input type="email" name="email" 
-                           value="{{ old('email', $user->email ?? '') }}" 
-                           placeholder="example@domain.com"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('email') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Peran / Role <span class="text-red-500">*</span>
-                    </label>
-                    <select name="role" 
-                            class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                        <option value="">-- Pilih Role --</option>
-                        <option value="admin" {{ old('role', $user->role ?? '') == 'admin' ? 'selected' : '' }}>Admin</option>
-                        <option value="user"  {{ old('role', $user->role ?? '') == 'user'  ? 'selected' : '' }}>User</option>
-                    </select>
-                    @error('role') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
-
-            <!-- Baris 4: Bidang & Status -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Asal Bidang / Bagian <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="bidang" 
-                           value="{{ old('bidang', $user->bidang ?? '') }}" 
-                           placeholder="masukan bidang pegawai"
-                           class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                    @error('bidang') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Status Akun <span class="text-red-500">*</span>
-                    </label>
-                    <select name="status" 
-                            class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
-                        <option value="aktif"    {{ old('status', $user->status ?? 'aktif') == 'aktif'    ? 'selected' : '' }}>Aktif</option>
-                        <option value="nonaktif" {{ old('status', $user->status ?? '') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
-                    </select>
-                    @error('status') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
-
-            <!-- Baris 5: Password & Konfirmasi -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- ========== SECTION 1: DATA PRIBADI ========== -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                    Data Pribadi
+                </h3>
                 
-                <!-- Password -->
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">
-                        Password
-                        @if($isEdit)
-                            <span class="text-sm text-gray-400 font-normal">(kosongkan jika tidak ingin ubah)</span>
-                        @else
-                            <span class="text-red-500">*</span>
-                        @endif
-                    </label>
-                    <div class="relative">
-                        <input type="password" 
-                               id="password"
-                               name="password" 
-                               placeholder="Minimal 8 karakter"
-                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 pr-12 text-base">
-                        <!-- Ikon Mata -->
-                        <button type="button" 
-                                onclick="togglePassword('password', 'eye-open-1', 'eye-closed-1')"
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-                            <svg id="eye-open-1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            <svg id="eye-closed-1" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-                            </svg>
-                        </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nama Lengkap -->
+                    <div class="md:col-span-2">
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Nama Lengkap <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="name" 
+                               value="{{ old('name', $user->name ?? '') }}" 
+                               placeholder="Masukkan nama lengkap"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('name') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    @error('password') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+
+                    <!-- NIP -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">NIP / NI PPPK</label>
+                        <input type="text" name="nip" 
+                               value="{{ old('nip', $user->nip ?? '') }}" 
+                               placeholder="Contoh: 19780712 200701 2 016"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('nip') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- No WhatsApp -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">No. WhatsApp</label>
+                        <input type="text" name="whatsapp" 
+                               value="{{ old('whatsapp', $user->whatsapp ?? '') }}" 
+                               placeholder="0812xxxxxxx"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('whatsapp') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SECTION 2: DATA KEPEGAWAIAN ========== -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                    Data Kepegawaian
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Jabatan -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Jabatan <span class="text-sm text-gray-400 font-normal">(opsional)</span>
+                        </label>
+                        <input type="text" name="jabatan" 
+                               value="{{ old('jabatan', $user->jabatan ?? '') }}" 
+                               placeholder="Contoh: Kepala Bidang, Perencana Ahli Muda"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('jabatan') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Golongan -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">Golongan</label>
+                        <input type="text" name="golongan" 
+                               value="{{ old('golongan', $user->golongan ?? '') }}" 
+                               placeholder="Contoh: IV/c, III/d, IX"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('golongan') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Bidang (Dropdown + Manual Input) — OPSIONAL -->
+                    <div class="md:col-span-2">
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Asal Bidang / Bagian <span class="text-sm text-gray-400 font-normal">(opsional)</span>
+                        </label>
+                        
+                        {{-- Dropdown Bidang --}}
+                        <select x-model="selected" 
+                                @change="handleChange()"
+                                class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                            <option value="">-- Pilih Bidang --</option>
+                            <option value="KEPALA BADAN">Kepala Badan</option>
+                            <option value="SEKRETARIAT">Sekretariat</option>
+                            <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM">Bidang Perekonomian dan Sumber Daya Alam</option>
+                            <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN">Bidang Infrastruktur dan Kewilayahan</option>
+                            <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA">Bidang Pemerintahan dan Pembangunan Manusia</option>
+                            <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI">Bidang Perencanaan Pengendalian dan Evaluasi</option>
+                            <option value="BIDANG PENELITIAN DAN PENGEMBANGAN">Bidang Penelitian dan Pengembangan</option>
+                            <option value="__lainnya__">✏️ Lainnya (isi manual)...</option>
+                        </select>
+
+                        {{-- Input Manual (muncul kalau pilih "Lainnya") --}}
+                        <div x-show="isLainnya" x-cloak class="mt-3">
+                            <input type="text" 
+                                   x-model="customBidang"
+                                   placeholder="Ketik nama bidang manual..."
+                                   class="w-full border border-blue-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base bg-blue-50/30">
+                            <p class="text-sm text-gray-500 mt-1.5">Isi nama bidang dengan lengkap</p>
+                        </div>
+
+                        {{-- Hidden input yang dikirim ke controller --}}
+                        <input type="hidden" name="bidang" :value="finalBidang">
+
+                        @error('bidang') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SECTION 3: AKUN & HAK AKSES ========== -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                    Akun & Hak Akses
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Username -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">Username</label>
+                        <input type="text" name="username" 
+                               value="{{ old('username', $user->username ?? '') }}" 
+                               placeholder="Kosongkan jika pegawai tidak perlu login"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('username') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">Email Aktif</label>
+                        <input type="email" name="email" 
+                               value="{{ old('email', $user->email ?? '') }}" 
+                               placeholder="example@domain.com"
+                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                        @error('email') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Peran / Role <span class="text-red-500">*</span>
+                        </label>
+                        <select name="role" 
+                                class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                            <option value="">-- Pilih Role --</option>
+                            <option value="admin" {{ old('role', $user->role ?? '') == 'admin' ? 'selected' : '' }}>Admin</option>
+                            <option value="user"  {{ old('role', $user->role ?? '') == 'user'  ? 'selected' : '' }}>User</option>
+                        </select>
+                        @error('role') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Status Akun <span class="text-red-500">*</span>
+                        </label>
+                        <select name="status" 
+                                class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
+                            <option value="aktif"    {{ old('status', $user->status ?? 'aktif') == 'aktif'    ? 'selected' : '' }}>Aktif</option>
+                            <option value="nonaktif" {{ old('status', $user->status ?? '') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
+                        </select>
+                        @error('status') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
                 </div>
 
-                <!-- Konfirmasi Password -->
-                <div>
-                    <label class="block text-base font-medium text-gray-700 mb-2">Konfirmasi Password</label>
-                    <div class="relative">
-                        <input type="password" 
-                               id="password_confirmation"
-                               name="password_confirmation" 
-                               placeholder="Ulangi password"
-                               class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 pr-12 text-base">
-                        <!-- Ikon Mata -->
-                        <button type="button" 
-                                onclick="togglePassword('password_confirmation', 'eye-open-2', 'eye-closed-2')"
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-                            <svg id="eye-open-2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            <svg id="eye-closed-2" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-                            </svg>
-                        </button>
+                <!-- Info: Login Opsional -->
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-semibold mb-1">Pegawai tanpa akun login?</p>
+                            <p>Kosongkan <strong>username</strong>, <strong>email</strong>, dan <strong>password</strong> jika pegawai hanya untuk diabsen dan tidak perlu login ke sistem.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SECTION 4: PASSWORD ========== -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                    Password
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">
+                            Password
+                            @if($isEdit)
+                                <span class="text-sm text-gray-400 font-normal">(kosongkan jika tidak ingin ubah)</span>
+                            @else
+                                <span class="text-sm text-gray-400 font-normal">(kosongkan jika pegawai tanpa akun)</span>
+                            @endif
+                        </label>
+                        <div class="relative">
+                            <input type="password" 
+                                   id="password"
+                                   name="password" 
+                                   placeholder="Minimal 8 karakter"
+                                   class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 pr-12 text-base">
+                            <button type="button" 
+                                    onclick="togglePassword('password', 'eye-open-1', 'eye-closed-1')"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                                <svg id="eye-open-1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <svg id="eye-closed-1" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        @error('password') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Konfirmasi Password -->
+                    <div>
+                        <label class="block text-base font-medium text-gray-700 mb-2">Konfirmasi Password</label>
+                        <div class="relative">
+                            <input type="password" 
+                                   id="password_confirmation"
+                                   name="password_confirmation" 
+                                   placeholder="Ulangi password"
+                                   class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 pr-12 text-base">
+                            <button type="button" 
+                                    onclick="togglePassword('password_confirmation', 'eye-open-2', 'eye-closed-2')"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                                <svg id="eye-open-2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <svg id="eye-closed-2" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -220,7 +302,11 @@
     </div>
 </div>
 
+<!-- Alpine.js (kalau belum ada di layout) -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 <script>
+    // ===== Toggle Password Visibility =====
     function togglePassword(inputId, eyeOpenId, eyeClosedId) {
         const input = document.getElementById(inputId);
         const eyeOpen = document.getElementById(eyeOpenId);
@@ -235,6 +321,42 @@
             eyeOpen.classList.remove('hidden');
             eyeClosed.classList.add('hidden');
         }
+    }
+
+    // ===== Bidang Manager (Dropdown + Manual Input) =====
+    function formAkun(initialBidang = '') {
+        // Daftar bidang — HURUF BESAR, sinkron dengan <option value>
+        const listBidang = [
+            'KEPALA BADAN',
+            'SEKRETARIAT',
+            'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM',
+            'BIDANG INFRASTRUKTUR DAN KEWILAYAHAN',
+            'BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA',
+            'BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI',
+            'BIDANG PENELITIAN DAN PENGEMBANGAN',
+            'IT',
+        ];
+
+        const isInList = listBidang.includes(initialBidang);
+
+        return {
+            selected: isInList ? initialBidang : (initialBidang ? '__lainnya__' : ''),
+            customBidang: isInList ? '' : (initialBidang || ''),
+
+            get isLainnya() {
+                return this.selected === '__lainnya__';
+            },
+
+            get finalBidang() {
+                return this.isLainnya ? this.customBidang : this.selected;
+            },
+
+            handleChange() {
+                if (!this.isLainnya) {
+                    this.customBidang = '';
+                }
+            },
+        };
     }
 </script>
 @endsection

@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\AbsensiSesiExport;
 use App\Models\AbsensiDetail;
 use App\Models\AbsensiSesi;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AbsensiController extends Controller
 {
@@ -26,7 +30,7 @@ class AbsensiController extends Controller
                 'details as jumlah_tidak' => fn($q) => $q->where('status_kehadiran', 'tidak'),
             ]);
 
-        // Filter logic (3 filter: hari_ini, ice_breaking, semua)
+        // Filter logic
         if ($filter === 'hari_ini') {
             $query->whereDate('tanggal', today());
         } elseif ($filter === 'ice_breaking') {
@@ -35,7 +39,6 @@ class AbsensiController extends Controller
                   ->orWhere('nama_sesi', 'like', '%breaking%');
             });
         }
-        // 'semua' → tanpa filter tambahan
 
         if ($search) {
             $query->where('nama_sesi', 'like', "%{$search}%");
@@ -79,7 +82,6 @@ class AbsensiController extends Controller
             'created_by' => Auth::id(),
         ]);
 
-        // Generate detail untuk semua user aktif saat sesi dibuat
         $users = User::where('status', 'aktif')->get();
         foreach ($users as $u) {
             AbsensiDetail::create([
@@ -96,12 +98,6 @@ class AbsensiController extends Controller
 
     /**
      * Halaman absensi 1 sesi
-     *
-     * ⚠️ Behavior berbeda berdasarkan status locked:
-     * - Sesi LOCKED    → tampilkan SEMUA user yang punya record (termasuk yang sudah nonaktif)
-     *                    Tujuan: data historis tidak hilang saat di-export
-     * - Sesi BELUM LOCKED → tampilkan user aktif saja
-     *                    Tujuan: user yang resign tidak ikut absen yang belum finalized
      */
     public function show(Request $request, int $id)
     {
@@ -110,7 +106,6 @@ class AbsensiController extends Controller
 
         if ($sesi->is_locked) {
             // 🔒 SESI LOCKED: ambil dari absensi_detail
-            // Termasuk user yang sudah nonaktif → data historis tetap terjaga
             $peserta = AbsensiDetail::with('user')
                 ->where('absensi_sesi_id', $id)
                 ->when($search, function ($q, $search) {
@@ -118,14 +113,14 @@ class AbsensiController extends Controller
                         $sub->where('name', 'like', "%{$search}%");
                     });
                 })
-                ->whereHas('user') // cegah error kalau user-nya sudah dihapus permanen
+                ->whereHas('user')
                 ->get()
                 ->map(function ($detail) {
                     return (object) [
                         'id'               => $detail->user->id,
                         'name'             => $detail->user->name,
                         'bidang'           => $detail->user->bidang,
-                        'status'           => $detail->user->status, // ⭐ untuk badge "Nonaktif"
+                        'status'           => $detail->user->status,
                         'detail_id'        => $detail->id,
                         'status_kehadiran' => $detail->status_kehadiran,
                         'keterangan'       => $detail->keterangan,
@@ -227,19 +222,24 @@ class AbsensiController extends Controller
     }
 
     /**
-     * Export Excel per sesi (placeholder)
+     * ⭐ Export Excel per sesi
+     * Format: DAFTAR HADIR (sesuai Excel asli)
      */
     public function exportSesi(int $id)
     {
         $sesi = AbsensiSesi::findOrFail($id);
 
-        return redirect()
-            ->route('admin.absensi.show', $id)
-            ->with('error', 'Fitur Export Excel belum tersedia. Silakan install package maatwebsite/excel dulu.');
+        // ⭐ Pakai Carbon::parse untuk hilangkan warning Intelephense
+        $tanggal = Carbon::parse($sesi->tanggal)->format('Y-m-d');
+        $namaSesi = Str::slug($sesi->nama_sesi, '_');
+        $namaFile = "Daftar_Hadir_{$namaSesi}_{$tanggal}.xlsx";
+
+        return Excel::download(new AbsensiSesiExport($sesi), $namaFile);
     }
 
     /**
      * ⭐ Export Rekap Excel — berdasarkan periode (minggu/bulan/tahun)
+     * TODO: implement dengan multi-sheet export
      */
     public function exportRekap(Request $request)
     {
@@ -260,18 +260,12 @@ class AbsensiController extends Controller
             $label = 'Bulanan (' . $now->translatedFormat('F Y') . ')';
         }
 
-        // Ambil data sesi dalam periode tersebut
-        $sesiList = AbsensiSesi::with(['details.user'])
-            ->whereBetween('tanggal', [$start, $end])
-            ->orderByDesc('tanggal')
-            ->get();
-
-        // TODO: Setelah install maatwebsite/excel, generate file Excel di sini
-        // return Excel::download(new RekapAbsensiExport($sesiList, $label), 'rekap-absensi.xlsx');
+        // TODO: Implementasi rekap multi-sheet
+        // return Excel::download(new RekapAbsensiExport($start, $end, $label), 'rekap-absensi.xlsx');
 
         return redirect()
             ->route('admin.absensi.index')
-            ->with('error', "Fitur Export Rekap ({$label}) belum tersedia. Silakan install package maatwebsite/excel dulu.");
+            ->with('error', "Fitur Export Rekap ({$label}) belum tersedia.");
     }
 
     /**
@@ -297,7 +291,6 @@ class AbsensiController extends Controller
 
     /**
      * ⭐ Kelola Pegawai — daftar user yang bisa diabsen
-     * Kriteria peserta absensi: user dengan status 'aktif'
      */
     public function pegawai(Request $request)
     {

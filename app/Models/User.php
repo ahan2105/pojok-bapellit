@@ -12,12 +12,14 @@ use Illuminate\Notifications\Notifiable;
  * @property int $id
  * @property string $name
  * @property string|null $username
- * @property string $email
+ * @property string|null $email
  * @property string|null $nip
  * @property string|null $whatsapp
- * @property string $password
+ * @property string|null $password
  * @property string|null $role
  * @property string|null $bidang
+ * @property string|null $jabatan
+ * @property string|null $golongan
  * @property bool $is_admin
  * @property string $status
  * @property \Illuminate\Support\Carbon|null $email_verified_at
@@ -42,6 +44,8 @@ class User extends Authenticatable
         'password',
         'role',
         'bidang',
+        'jabatan',
+        'golongan',
         'is_admin',
         'status',
     ];

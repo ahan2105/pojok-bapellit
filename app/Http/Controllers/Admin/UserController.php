@@ -10,21 +10,44 @@ use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
     /**
-     * Tampilkan daftar akun (dengan search & pagination)
+     * Tampilkan daftar akun
+     * Support: search, filter bidang, filter jabatan
+     * Pagination: 25 per halaman
      */
     public function index(Request $request)
     {
-        $search = $request->input('search');
+        $search        = $request->input('search');
+        $filterBidang  = $request->input('bidang');
+        $filterJabatan = $request->input('jabatan');
 
         $users = User::when($search, function ($query, $search) {
-                return $query->where('name', 'like', "%{$search}%")
-                             ->orWhere('email', 'like', "%{$search}%")
-                             ->orWhere('nip', 'like', "%{$search}%");
+                return $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('nip', 'like', "%{$search}%");
+                });
             })
-            ->latest()
-            ->paginate(10);
+            ->when($filterBidang, function ($q, $bidang) {
+                return $q->where('bidang', $bidang);
+            })
+            ->when($filterJabatan, function ($q, $jabatan) {
+                return $q->where('jabatan', $jabatan);
+            })
+            // ⭐ Urutkan per bidang (alphabet) lalu per nama
+            ->orderBy('bidang')
+            ->orderBy('name')
+            ->paginate(25)                          // ⭐ 25 per halaman
+            ->withQueryString();
 
-        return view('admin.kelolaakun.index', compact('users', 'search'));
+        // ⭐ Ambil daftar jabatan unik untuk dropdown filter
+        $jabatanList = User::whereNotNull('jabatan')
+            ->where('jabatan', '!=', '')
+            ->distinct()
+            ->orderBy('jabatan')
+            ->pluck('jabatan');
+
+        // ⭐ Kirim $jabatanList ke view
+        return view('admin.kelolaakun.index', compact('users', 'search', 'jabatanList'));
     }
 
     /**
@@ -44,26 +67,30 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username',
-            'email'    => 'required|email|max:255|unique:users,email',
+            'username' => 'nullable|string|max:255|unique:users,username',
+            'email'    => 'nullable|email|max:255|unique:users,email',
             'nip'      => 'nullable|string|max:50',
             'whatsapp' => 'nullable|string|max:20',
+            'jabatan'  => 'nullable|string|max:255',
+            'golongan' => 'nullable|string|max:50',
             'role'     => 'required|string',
-            'bidang'   => 'required|string',
+            'bidang'   => 'nullable|string|max:255',
             'status'   => 'required|in:aktif,nonaktif',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         User::create([
             'name'     => $validated['name'],
-            'username' => $validated['username'],
-            'email'    => $validated['email'],
+            'username' => $validated['username'] ?? null,
+            'email'    => $validated['email'] ?? null,
             'nip'      => $validated['nip'] ?? null,
             'whatsapp' => $validated['whatsapp'] ?? null,
+            'jabatan'  => $validated['jabatan'] ?? null,
+            'golongan' => $validated['golongan'] ?? null,
             'role'     => $validated['role'],
-            'bidang'   => $validated['bidang'],
+            'bidang'   => $validated['bidang'] ?? null,
             'status'   => $validated['status'],
-            'password' => $validated['password'], // di-hash otomatis lewat casts 'hashed'
+            'password' => !empty($validated['password']) ? $validated['password'] : null,
             'is_admin' => $validated['role'] === 'admin',
         ]);
 
@@ -93,23 +120,27 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
-            'email'    => 'required|email|max:255|unique:users,email,' . $user->id,
+            'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
+            'email'    => 'nullable|email|max:255|unique:users,email,' . $user->id,
             'nip'      => 'nullable|string|max:50',
             'whatsapp' => 'nullable|string|max:20',
+            'jabatan'  => 'nullable|string|max:255',
+            'golongan' => 'nullable|string|max:50',
             'role'     => 'required|string',
-            'bidang'   => 'required|string',
+            'bidang'   => 'nullable|string|max:255',
             'status'   => 'required|in:aktif,nonaktif',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         $user->name     = $validated['name'];
-        $user->username = $validated['username'];
-        $user->email    = $validated['email'];
+        $user->username = $validated['username'] ?? null;
+        $user->email    = $validated['email'] ?? null;
         $user->nip      = $validated['nip'] ?? null;
         $user->whatsapp = $validated['whatsapp'] ?? null;
+        $user->jabatan  = $validated['jabatan'] ?? null;
+        $user->golongan = $validated['golongan'] ?? null;
         $user->role     = $validated['role'];
-        $user->bidang   = $validated['bidang'];
+        $user->bidang   = $validated['bidang'] ?? null;
         $user->status   = $validated['status'];
         $user->is_admin = $validated['role'] === 'admin';
 

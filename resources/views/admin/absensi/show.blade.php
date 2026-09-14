@@ -50,7 +50,7 @@
                 Absensi Peserta - {{ $sesi->nama_sesi }}
             </h1>
             <p class="text-base text-gray-600 mt-2 flex items-center flex-wrap gap-x-2 gap-y-1">
-                <span>📅 {{ $sesi->tanggal->translatedFormat('d F Y') }}</span>
+                <span>📅 {{ \Carbon\Carbon::parse($sesi->tanggal)->translatedFormat('d F Y') }}</span>
                 @if($sesi->lokasi)
                     <span>· 📍 {{ $sesi->lokasi }}</span>
                 @endif
@@ -141,7 +141,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">NO</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16 text-center">NO</th>
                             <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NAMA PESERTA</th>
                             <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ASAL BIDANG</th>
                             
@@ -184,63 +184,118 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @forelse($peserta as $index => $p)
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-5 text-base text-gray-600 font-medium align-top">{{ $index + 1 }}</td>
-                                
-                                <td class="px-6 py-5 align-top">
-                                    <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
-                                </td>
-                                
-                                <td class="px-6 py-5 text-base text-gray-600 align-top">{{ $p->bidang ?? '-' }}</td>
-                                
-                                <td class="px-6 py-5">
-                                    <div class="flex flex-col gap-3">
-                                        
-                                        <!-- Radio: Hadir / Tidak -->
-                                        <div class="flex items-center gap-6">
-                                            <!-- HADIR -->
-                                            <label class="inline-flex items-center gap-2 cursor-pointer">
-                                                <input type="radio" 
-                                                       name="kehadiran[{{ $p->id }}]" 
-                                                       value="hadir"
-                                                       id="hadir-{{ $p->id }}"
-                                                       {{ $p->status_kehadiran === 'hadir' ? 'checked' : '' }}
-                                                       onchange="toggleKeterangan({{ $p->id }})"
-                                                       class="w-4 h-4 text-green-600 focus:ring-green-500 cursor-pointer"
-                                                       @if($sesi->is_locked) disabled @endif>
-                                                <span class="text-base font-medium {{ $p->status_kehadiran === 'hadir' ? 'text-green-600' : 'text-gray-600' }}">
-                                                    Hadir
-                                                </span>
-                                            </label>
+                        @php
+                            // 1. Kelompokkan peserta per bidang dengan normalisasi string
+                            $groupedRaw = collect($peserta)->groupBy(function ($p) {
+                                $b = trim(strtoupper($p->bidang ?? ''));
+                                $b = preg_replace('/\s+/', ' ', $b); // Bersihkan spasi ganda
+                                return $b === '' ? 'TANPA BIDANG' : $b;
+                            });
 
-                                            <!-- TIDAK HADIR -->
-                                            <label class="inline-flex items-center gap-2 cursor-pointer">
-                                                <input type="radio" 
-                                                       name="kehadiran[{{ $p->id }}]" 
-                                                       value="tidak"
-                                                       id="tidak-{{ $p->id }}"
-                                                       {{ $p->status_kehadiran === 'tidak' ? 'checked' : '' }}
-                                                       onchange="toggleKeterangan({{ $p->id }})"
-                                                       class="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer"
-                                                       @if($sesi->is_locked) disabled @endif>
-                                                <span class="text-base font-medium {{ $p->status_kehadiran === 'tidak' ? 'text-red-600' : 'text-gray-600' }}">
-                                                    Tidak
-                                                </span>
-                                            </label>
-                                        </div>
+                            // 2. Pisahkan prioritas: Kepala Badan dan Tanpa Bidang
+                            $kepalaBadan = $groupedRaw->pull('KEPALA BADAN', collect());
+                            $tanpaBidang = $groupedRaw->pull('TANPA BIDANG', collect());
+                            
+                            // 3. Sisa bidang lainnya diurutkan secara alfabetis agar rapi
+                            $bidangLainnya = $groupedRaw->sortKeys();
 
-                                        <!-- Input Keterangan -->
-                                        <input type="text" 
-                                               name="keterangan[{{ $p->id }}]" 
-                                               id="keterangan-{{ $p->id }}"
-                                               value="{{ $p->keterangan }}"
-                                               placeholder="Keterangan (alasan tidak hadir)..."
-                                               {{ $p->status_kehadiran === 'tidak' && !$sesi->is_locked ? '' : 'disabled' }}
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400">
+                            // 4. Gabungkan kembali dengan urutan: Kepala Badan -> Bidang Lainnya -> Tanpa Bidang
+                            $groupedPeserta = collect();
+                            
+                            if ($kepalaBadan->isNotEmpty()) {
+                                $groupedPeserta->put('KEPALA BADAN', $kepalaBadan);
+                            }
+                            
+                            foreach ($bidangLainnya as $bidang => $users) {
+                                $groupedPeserta->put($bidang, $users);
+                            }
+                            
+                            if ($tanpaBidang->isNotEmpty()) {
+                                $groupedPeserta->put('TANPA BIDANG', $tanpaBidang);
+                            }
+
+                            $globalNo = 1;
+                        @endphp
+
+                        @forelse($groupedPeserta as $bidang => $groupUsers)
+                            <!-- ===== HEADER BIDANG ===== -->
+                            <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-y border-blue-100">
+                                <td colspan="4" class="px-6 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+                                        <span class="text-sm font-bold text-blue-900 tracking-wide">
+                                            @if($bidang === 'TANPA BIDANG')
+                                                BELUM MEMILIKI BIDANG
+                                            @else
+                                                {{ ucwords(strtolower(str_replace('_', ' ', $bidang))) }}
+                                            @endif
+                                        </span>
+                                        <span class="text-xs font-semibold text-blue-700 bg-white/70 px-2.5 py-0.5 rounded-full border border-blue-100">
+                                            {{ $groupUsers->count() }} Orang
+                                        </span>
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- ===== DAFTAR PESERTA DI BIDANG INI ===== -->
+                            @foreach($groupUsers as $p)
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-5 text-base text-gray-600 font-medium align-top text-center">{{ $globalNo++ }}</td>
+                                    
+                                    <td class="px-6 py-5 align-top">
+                                        <div class="text-base font-semibold text-gray-800">{{ $p->name }}</div>
+                                    </td>
+                                    
+                                    <td class="px-6 py-5 text-base text-gray-600 align-top">{{ $p->bidang ?? '-' }}</td>
+                                    
+                                    <td class="px-6 py-5">
+                                        <div class="flex flex-col gap-3">
+                                            
+                                            <!-- Radio: Hadir / Tidak -->
+                                            <div class="flex items-center gap-6">
+                                                <!-- HADIR -->
+                                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" 
+                                                           name="kehadiran[{{ $p->id }}]" 
+                                                           value="hadir"
+                                                           id="hadir-{{ $p->id }}"
+                                                           {{ $p->status_kehadiran === 'hadir' ? 'checked' : '' }}
+                                                           onchange="toggleKeterangan({{ $p->id }})"
+                                                           class="w-4 h-4 text-green-600 focus:ring-green-500 cursor-pointer"
+                                                           @if($sesi->is_locked) disabled @endif>
+                                                    <span class="text-base font-medium {{ $p->status_kehadiran === 'hadir' ? 'text-green-600' : 'text-gray-600' }}">
+                                                        Hadir
+                                                    </span>
+                                                </label>
+
+                                                <!-- TIDAK HADIR -->
+                                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" 
+                                                           name="kehadiran[{{ $p->id }}]" 
+                                                           value="tidak"
+                                                           id="tidak-{{ $p->id }}"
+                                                           {{ $p->status_kehadiran === 'tidak' ? 'checked' : '' }}
+                                                           onchange="toggleKeterangan({{ $p->id }})"
+                                                           class="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer"
+                                                           @if($sesi->is_locked) disabled @endif>
+                                                    <span class="text-base font-medium {{ $p->status_kehadiran === 'tidak' ? 'text-red-600' : 'text-gray-600' }}">
+                                                        Tidak
+                                                    </span>
+                                                </label>
+                                            </div>
+
+                                            <!-- Input Keterangan -->
+                                            <input type="text" 
+                                                   name="keterangan[{{ $p->id }}]" 
+                                                   id="keterangan-{{ $p->id }}"
+                                                   value="{{ $p->keterangan }}"
+                                                   placeholder="Keterangan (alasan tidak hadir)..."
+                                                   {{ $p->status_kehadiran === 'tidak' && !$sesi->is_locked ? '' : 'disabled' }}
+                                                   class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400">
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
                         @empty
                             <tr>
                                 <td colspan="4" class="px-6 py-16 text-center">
@@ -335,7 +390,6 @@
                     showConfirmButton: false
                 });
             } else {
-                // Uncheck radio bulk kalau user batal
                 document.getElementById('bulk-hadir').checked = false;
             }
         });
@@ -379,7 +433,6 @@
                     showConfirmButton: false
                 });
             } else {
-                // Uncheck radio bulk kalau user batal
                 document.getElementById('bulk-tidak').checked = false;
             }
         });
@@ -408,15 +461,13 @@
         });
     }
 
-    // Reset radio bulk setelah selesai (biar bisa diklik lagi)
+    // Reset radio bulk setelah selesai
     document.addEventListener('DOMContentLoaded', function() {
-        // Setelah bulk selesai, uncheck radio bulk
         const bulkHadir = document.getElementById('bulk-hadir');
         const bulkTidak = document.getElementById('bulk-tidak');
         
         if (bulkHadir) {
             bulkHadir.addEventListener('click', function() {
-                // Radio otomatis unchecked oleh sistem karena bukan bagian dari form peserta
                 setTimeout(() => { this.checked = false; }, 100);
             });
         }
