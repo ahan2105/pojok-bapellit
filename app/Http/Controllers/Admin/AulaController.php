@@ -31,7 +31,7 @@ class AulaController extends Controller
     /**
      * Validasi dasar untuk store & update
      */
-    private function validateAula(Request $request, $id = null)
+    private function validateAula(Request $request, ?int $id = null)
     {
         $rules = [
             'nama' => 'required|string|max:255|unique:aulas,nama' . ($id ? ',' . $id : ''),
@@ -60,18 +60,18 @@ class AulaController extends Controller
 
     /**
      * Handle upload foto (TAMBAH ke yang sudah ada, bukan replace)
+     *
+     * @param array $files
+     * @param array $existingFoto
+     * @return array|null
      */
-    private function handleFoto($files, $existingFoto = [])
+    private function handleFoto(array $files, array $existingFoto = []): ?array
     {
         if (empty($files)) {
             return $existingFoto;
         }
 
-        if (!is_array($files)) {
-            $files = [$files];
-        }
-
-        $validFiles = array_filter($files, function($file) {
+        $validFiles = array_filter($files, function ($file) {
             return $file && $file->isValid();
         });
 
@@ -91,13 +91,16 @@ class AulaController extends Controller
 
     /**
      * Handle fasilitas dari JSON string
+     *
+     * @param Request $request
+     * @return array
      */
-    private function handleFasilitas($request)
+    private function handleFasilitas(Request $request): array
     {
         if ($request->filled('fasilitas')) {
             $fasilitas = json_decode($request->fasilitas, true);
             if (is_array($fasilitas)) {
-                $fasilitas = array_filter($fasilitas, function($item) {
+                $fasilitas = array_filter($fasilitas, function ($item) {
                     return !empty(trim($item));
                 });
                 return array_values($fasilitas);
@@ -112,7 +115,7 @@ class AulaController extends Controller
     public function store(Request $request)
     {
         $validator = $this->validateAula($request);
-        
+
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
@@ -185,16 +188,16 @@ class AulaController extends Controller
             if ($request->hasFile('foto')) {
                 // Ambil foto yang sudah ada
                 $existingFoto = $aula->foto ?? [];
-                
+
                 // Handle foto baru (TAMBAH ke yang sudah ada)
                 $fotoPaths = $this->handleFoto($request->file('foto'), $existingFoto);
-                
+
                 if ($fotoPaths === null) {
                     return redirect()->back()
                         ->withErrors(['foto' => 'Maksimal 3 foto yang dapat diupload (termasuk foto yang sudah ada)'])
                         ->withInput();
                 }
-                
+
                 $aula->foto = $fotoPaths;
             }
             // Jika TIDAK ada upload foto baru, foto lama TETAP dipertahankan
@@ -220,7 +223,7 @@ class AulaController extends Controller
         try {
             $aula = Aula::findOrFail($id);
             $namaAula = $aula->nama;
-            
+
             if ($aula->foto) {
                 foreach ($aula->foto as $foto) {
                     if (Storage::disk('public')->exists($foto)) {
@@ -247,7 +250,7 @@ class AulaController extends Controller
     {
         try {
             $aula = Aula::findOrFail($id);
-            
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -255,9 +258,9 @@ class AulaController extends Controller
                     'foto_urls' => $aula->foto_urls
                 ]);
             }
-            
+
             return view('admin.aula.show', compact('aula'));
-            
+
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
@@ -280,7 +283,7 @@ class AulaController extends Controller
             $aula->save();
 
             $status = $aula->status_aktif ? 'diaktifkan' : 'dinonaktifkan';
-            
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -299,7 +302,7 @@ class AulaController extends Controller
                     'message' => 'Gagal mengubah status: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Gagal mengubah status: ' . $e->getMessage());
         }
@@ -312,7 +315,7 @@ class AulaController extends Controller
     {
         try {
             $aula = Aula::findOrFail($id);
-            
+
             if ($aula->foto) {
                 foreach ($aula->foto as $foto) {
                     if (Storage::disk('public')->exists($foto)) {
@@ -321,28 +324,28 @@ class AulaController extends Controller
                 }
                 $aula->foto = [];
                 $aula->save();
-                
+
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => true,
                         'message' => 'Semua foto berhasil dihapus'
                     ]);
                 }
-                
+
                 return redirect()->back()
                     ->with('success', 'Semua foto berhasil dihapus!');
             }
-            
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Tidak ada foto untuk dihapus'
                 ]);
             }
-            
+
             return redirect()->back()
                 ->with('info', 'Tidak ada foto untuk dihapus');
-            
+
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
@@ -350,7 +353,7 @@ class AulaController extends Controller
                     'message' => 'Gagal menghapus foto: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Gagal menghapus foto: ' . $e->getMessage());
         }
@@ -364,38 +367,38 @@ class AulaController extends Controller
         try {
             $aula = Aula::findOrFail($id);
             $photoIndex = $request->input('index');
-            
+
             if ($photoIndex !== null && isset($aula->foto[$photoIndex])) {
                 if (Storage::disk('public')->exists($aula->foto[$photoIndex])) {
                     Storage::disk('public')->delete($aula->foto[$photoIndex]);
                 }
-                
+
                 $fotos = $aula->foto;
                 unset($fotos[$photoIndex]);
                 $aula->foto = array_values($fotos);
                 $aula->save();
-                
+
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => true,
                         'message' => 'Foto berhasil dihapus'
                     ]);
                 }
-                
+
                 return redirect()->back()
                     ->with('success', 'Foto berhasil dihapus!');
             }
-            
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto tidak ditemukan'
                 ], 404);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Foto tidak ditemukan');
-            
+
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
@@ -403,7 +406,7 @@ class AulaController extends Controller
                     'message' => 'Gagal menghapus foto: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Gagal menghapus foto: ' . $e->getMessage());
         }
@@ -418,7 +421,7 @@ class AulaController extends Controller
             $aulas = Aula::where('status_aktif', true)
                 ->select('id', 'nama', 'kapasitas', 'deskripsi', 'foto')
                 ->get()
-                ->map(function($aula) {
+                ->map(function ($aula) {
                     return [
                         'id' => $aula->id,
                         'nama' => $aula->nama,
@@ -428,12 +431,12 @@ class AulaController extends Controller
                         'fasilitas' => $aula->fasilitas
                     ];
                 });
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $aulas
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

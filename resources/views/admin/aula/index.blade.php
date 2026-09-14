@@ -9,18 +9,13 @@
 @section('title', 'Kelola Data Aula')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="aulaManager()">
+<div class="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-8" x-data="aulaManager()">
 
-    <!-- Breadcrumb / Tombol Kembali -->
-    <div class="mb-6 flex items-center justify-between">
-        <a href="{{ route('booking.index') }}" class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-indigo-600 transition">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-            HOME
-        </a>
-        <a href="{{ route('admin.aula.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Tombol Tambah (di kanan) -->
+    <div class="mb-8 flex justify-end">
+        <a href="{{ route('admin.aula.create') }}" 
+           class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-base font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             Tambah Aula Baru
@@ -28,36 +23,36 @@
     </div>
 
     <!-- Header Judul -->
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Kelola Data Aula</h1>
-        <p class="text-sm text-gray-600">Perbarui informasi dan fasilitas aula dengan mudah.</p>
+    <div class="mb-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Kelola Data Aula</h1>
+        <p class="text-base text-gray-600 mt-2">Perbarui informasi dan fasilitas aula dengan mudah.</p>
     </div>
 
     <!-- TAB NAVIGASI AULA -->
-    <div class="flex items-center space-x-2 mb-6 border-b pb-4 overflow-x-auto">
+    <div class="flex items-center space-x-2 mb-8 border-b border-gray-200 pb-5 overflow-x-auto">
         @forelse($aulas as $index => $item)
             <button @click="activeTab = {{ $index }}"
                 :class="activeTab === {{ $index }} ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'"
-                class="px-5 py-2.5 rounded-lg border text-sm transition focus:outline-none whitespace-nowrap">
+                class="px-6 py-3 rounded-lg border-2 text-base transition focus:outline-none whitespace-nowrap">
                 {{ $item->nama }}
             </button>
         @empty
-            <div class="text-gray-500 text-sm py-2">Belum ada data aula. Silakan tambahkan aula baru.</div>
+            <div class="text-gray-500 text-base py-3">Belum ada data aula. Silakan tambahkan aula baru.</div>
         @endforelse
     </div>
 
     <!-- KONTEN FORM BERDASARKAN TAB AKTIF -->
     @forelse($aulas as $index => $item)
-    <div x-show="activeTab === {{ $index }}" x-cloak class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
+    <div x-show="activeTab === {{ $index }}" x-cloak class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-10">
         <form action="{{ route('admin.aula.update', $item->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
                 <!-- KOLOM KIRI: FOTO AULA -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-800 mb-2">Foto Aula</label>
+                    <label class="block text-base font-bold text-gray-800 mb-3">Foto Aula</label>
 
                     @php
                         $fotos = is_array($item->foto) ? $item->foto : [];
@@ -68,34 +63,33 @@
                     <div id="dropzone-{{ $index }}"
                          data-aula-id="{{ $item->id }}"
                          data-existing-count="{{ $existingCount }}"
-                         class="dropzone-box border-2 border-dashed border-gray-300 rounded-xl relative cursor-pointer flex items-center justify-center min-h-[200px] bg-gray-50 hover:border-indigo-500 transition overflow-hidden">
+                         class="dropzone-box border-2 border-dashed border-gray-300 rounded-xl relative cursor-pointer flex items-center justify-center min-h-[260px] bg-gray-50 hover:border-indigo-500 transition overflow-hidden">
 
                         <input type="file" name="foto[]" multiple accept="image/png, image/jpeg, image/webp"
                                class="absolute inset-0 opacity-0 cursor-pointer z-10" id="foto-input-{{ $index }}">
 
-                        <!-- konten default / preview, diisi ulang oleh JS -->
-                        <div id="dropzone-content-{{ $index }}" class="w-full h-full flex flex-col items-center justify-center text-center p-8 pointer-events-none">
-                            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div id="dropzone-content-{{ $index }}" class="w-full h-full flex flex-col items-center justify-center text-center p-10 pointer-events-none">
+                            <svg class="w-14 h-14 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
-                            <p class="text-sm font-medium text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
-                            <p class="text-xs text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
+                            <p class="text-base font-semibold text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
+                            <p class="text-sm text-gray-400 mt-2">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
                         </div>
                     </div>
 
-                    <!-- Baris slot: foto TERSIMPAN + overflow foto BARU (ke-2, ke-3) -->
-                    <div class="grid grid-cols-3 gap-3 mt-4" id="slot-row-{{ $index }}">
+                    <!-- Baris slot foto -->
+                    <div class="grid grid-cols-3 gap-4 mt-5" id="slot-row-{{ $index }}">
                         @for($i = 0; $i < 3; $i++)
-                            <div class="h-20 border rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot" id="slot-{{ $index }}-{{ $i }}">
+                            <div class="h-28 border-2 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden relative border-gray-200 shadow-inner foto-slot" id="slot-{{ $index }}-{{ $i }}">
                                 @if(isset($fotos[$i]) && !empty($fotos[$i]))
                                     <img src="{{ asset('storage/' . $fotos[$i]) }}" class="w-full h-full object-cover" alt="Foto Aula {{ $i+1 }}">
                                     <button type="button"
-                                        class="btn-delete-existing absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-xs w-5 h-5 rounded-bl leading-5"
+                                        class="btn-delete-existing absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-sm w-7 h-7 rounded-bl-lg leading-7 font-bold"
                                         data-aula-id="{{ $item->id }}" data-photo-index="{{ $i }}" data-tab-index="{{ $index }}"
                                         title="Hapus foto ini">&times;</button>
                                 @else
-                                    <div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="text-gray-300 flex items-center justify-center w-full h-full">
+                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                         </svg>
                                     </div>
@@ -103,78 +97,83 @@
                             </div>
                         @endfor
                     </div>
-                    <p class="text-xs text-gray-400 mt-2">
-                        <span class="inline-block w-2.5 h-2.5 rounded-sm bg-green-500 align-middle mr-1"></span>
+                    <p class="text-sm text-gray-400 mt-3 flex items-center gap-2">
+                        <span class="inline-block w-3 h-3 rounded-sm bg-green-500"></span>
                         = foto baru, belum disimpan (klik "Simpan Perubahan" untuk menyimpan)
                     </p>
                 </div>
 
                 <!-- KOLOM KANAN: INPUT INFORMASI -->
-                <div class="space-y-5">
+                <div class="space-y-6">
                     <!-- Nama Aula -->
                     <div>
-                        <label for="nama_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Nama Aula</label>
-                        <input type="text" id="nama_{{ $item->id }}" name="nama" value="{{ old('nama', $item->nama) }}" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" required>
+                        <label for="nama_{{ $item->id }}" class="block text-base font-bold text-gray-800 mb-2">Nama Aula</label>
+                        <input type="text" id="nama_{{ $item->id }}" name="nama" value="{{ old('nama', $item->nama) }}" 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-base" required>
                         @error('nama')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            <p class="text-sm text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Kapasitas -->
                     <div>
-                        <label for="kapasitas_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Kapasitas</label>
+                        <label for="kapasitas_{{ $item->id }}" class="block text-base font-bold text-gray-800 mb-2">Kapasitas</label>
                         <div class="relative">
-                            <input type="number" id="kapasitas_{{ $item->id }}" name="kapasitas" value="{{ old('kapasitas', $item->kapasitas) }}" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm pr-16" min="1" required>
-                            <span class="absolute right-4 top-2.5 text-xs text-gray-400 font-medium">Orang</span>
+                            <input type="number" id="kapasitas_{{ $item->id }}" name="kapasitas" value="{{ old('kapasitas', $item->kapasitas) }}" 
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-base pr-20" min="1" required>
+                            <span class="absolute right-4 top-3.5 text-sm text-gray-400 font-medium">Orang</span>
                         </div>
                         @error('kapasitas')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            <p class="text-sm text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Deskripsi -->
                     <div>
-                        <label for="deskripsi_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Deskripsi</label>
-                        <textarea id="deskripsi_{{ $item->id }}" name="deskripsi" rows="3" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('deskripsi', $item->deskripsi) }}</textarea>
+                        <label for="deskripsi_{{ $item->id }}" class="block text-base font-bold text-gray-800 mb-2">Deskripsi</label>
+                        <textarea id="deskripsi_{{ $item->id }}" name="deskripsi" rows="4" 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-base leading-relaxed">{{ old('deskripsi', $item->deskripsi) }}</textarea>
                         @error('deskripsi')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            <p class="text-sm text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Informasi Tambahan -->
                     <div>
-                        <label for="informasi_tambahan_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Informasi Tambahan</label>
-                        <textarea id="informasi_tambahan_{{ $item->id }}" name="informasi_tambahan" rows="4" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">{{ old('informasi_tambahan', $item->informasi_tambahan) }}</textarea>
-                        <p class="text-xs text-gray-400 mt-1">Contoh: Tersedia parkir VIP, Wi-Fi, dll. (pisahkan dengan enter)</p>
+                        <label for="informasi_tambahan_{{ $item->id }}" class="block text-base font-bold text-gray-800 mb-2">Informasi Tambahan</label>
+                        <textarea id="informasi_tambahan_{{ $item->id }}" name="informasi_tambahan" rows="5" 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-base leading-relaxed">{{ old('informasi_tambahan', $item->informasi_tambahan) }}</textarea>
+                        <p class="text-sm text-gray-400 mt-2">Contoh: Tersedia parkir VIP, Wi-Fi, dll. (pisahkan dengan enter)</p>
                         @error('informasi_tambahan')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            <p class="text-sm text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Lokasi -->
                     <div>
-                        <label for="lokasi_{{ $item->id }}" class="block text-sm font-bold text-gray-800 mb-1">Lokasi</label>
+                        <label for="lokasi_{{ $item->id }}" class="block text-base font-bold text-gray-800 mb-2">Lokasi</label>
                         <input type="text" id="lokasi_{{ $item->id }}" name="lokasi" value="{{ old('lokasi', $item->lokasi) }}" 
-                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none text-base" 
                             placeholder="Contoh: Gedung A, Lantai 2">
                         @error('lokasi')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            <p class="text-sm text-red-500 mt-1.5">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Fasilitas (Tags Input AlpineJS) -->
                     <div x-data="facilityManager({{ json_encode(is_array($item->fasilitas) ? $item->fasilitas : []) }})">
-                        <label class="block text-sm font-bold text-gray-800 mb-1">Fasilitas</label>
-                        <div class="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-lg bg-white min-h-[46px] items-center">
+                        <label class="block text-base font-bold text-gray-800 mb-2">Fasilitas</label>
+                        <div class="flex flex-wrap gap-2.5 p-3 border border-gray-300 rounded-lg bg-white min-h-[54px] items-center">
                             <template x-for="(fac, fIndex) in facilities" :key="fIndex">
-                                <span class="inline-flex items-center bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-100">
+                                <span class="inline-flex items-center bg-indigo-50 text-indigo-700 text-sm font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
                                     <span x-text="fac"></span>
-                                    <button type="button" @click="removeFacility(fIndex)" class="ml-1.5 text-indigo-400 hover:text-indigo-600">&times;</button>
+                                    <button type="button" @click="removeFacility(fIndex)" class="ml-2 text-indigo-400 hover:text-indigo-600 text-lg leading-none">&times;</button>
                                 </span>
                             </template>
-                            <input type="text" @keydown.enter.prevent="addFacility($event)" placeholder="Tambah fasilitas..." class="flex-1 min-w-[120px] text-xs outline-none px-1 py-1">
+                            <input type="text" @keydown.enter.prevent="addFacility($event)" 
+                                placeholder="Tambah fasilitas lalu tekan Enter..." 
+                                class="flex-1 min-w-[160px] text-base outline-none px-1.5 py-1.5">
                         </div>
-                        <!-- Hidden Input untuk dikirim ke Controller -->
                         <input type="hidden" name="fasilitas" :value="JSON.stringify(facilities)">
                     </div>
 
@@ -182,37 +181,47 @@
             </div>
 
             <!-- FOOTER: STATUS & TOMBOL AKSI -->
-            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="mt-10 pt-7 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-5">
                 <!-- Status Toggle Switch -->
                 <div class="flex items-center space-x-3">
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" name="status_aktif" value="1" {{ $item->status_aktif ? 'checked' : '' }} class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
-                    <span class="text-sm font-medium text-gray-700">
+                    <span class="text-base font-medium text-gray-700">
                         Status: <span class="{{ $item->status_aktif ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">{{ $item->status_aktif ? 'Aktif (Bisa dibooking)' : 'Nonaktif' }}</span>
                     </span>
                 </div>
 
                 <!-- Tombol Batal & Simpan & Hapus -->
-                <div class="flex items-center space-x-3">
-                    <a href="{{ route('admin.aula.index') }}" class="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition">Batal</a>
-                    <button type="submit" class="px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">Simpan Perubahan</button>
-                    <button type="button" @click="confirmDelete({{ $item->id }}, '{{ $item->nama }}')" class="px-5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition">Hapus</button>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('admin.aula.index') }}" 
+                       class="px-6 py-3 text-base font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                        Batal
+                    </a>
+                    <button type="submit" 
+                        class="px-7 py-3 text-base font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
+                        Simpan Perubahan
+                    </button>
+                    <button type="button" @click="confirmDelete({{ $item->id }}, '{{ $item->nama }}')" 
+                        class="px-6 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg transition">
+                        Hapus
+                    </button>
                 </div>
             </div>
 
         </form>
     </div>
     @empty
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
+        <svg class="w-20 h-20 text-gray-300 mx-auto mb-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
         </svg>
-        <h3 class="text-lg font-semibold text-gray-700 mb-2">Belum Ada Data Aula</h3>
-        <p class="text-sm text-gray-500 mb-4">Mulai dengan menambahkan aula baru untuk dikelola.</p>
-        <a href="{{ route('admin.aula.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <h3 class="text-2xl font-semibold text-gray-700 mb-2">Belum Ada Data Aula</h3>
+        <p class="text-base text-gray-500 mb-6">Mulai dengan menambahkan aula baru untuk dikelola.</p>
+        <a href="{{ route('admin.aula.create') }}" 
+           class="inline-flex items-center gap-2 px-7 py-3 bg-indigo-600 text-white text-base font-semibold rounded-lg hover:bg-indigo-700 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             Tambah Aula Baru
@@ -228,6 +237,7 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     function aulaManager() {
         return {
@@ -269,27 +279,22 @@
         }
     }
 
-    // ============================================================
-    // FOTO: dropzone besar = preview foto baru pertama (hijau = belum
-    // disimpan), overflow foto baru turun ke slot bawah, dan hapus
-    // foto tersimpan dilakukan satu per satu lewat AJAX.
-    // ============================================================
     document.addEventListener('DOMContentLoaded', function () {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const fotoData = {}; // { index: DataTransfer } -> semua file baru per tab
+        const fotoData = {};
 
-        const emptySlotHtml = `<div class="text-gray-300 text-xl font-bold flex items-center justify-center w-full h-full">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        const emptySlotHtml = `<div class="text-gray-300 flex items-center justify-center w-full h-full">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
         </div>`;
 
         const defaultDropzoneHtml = `
-            <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-14 h-14 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
             </svg>
-            <p class="text-sm font-medium text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
-            <p class="text-xs text-gray-400 mt-1">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
+            <p class="text-base font-semibold text-gray-700">Drag & drop foto aula atau klik untuk upload</p>
+            <p class="text-sm text-gray-400 mt-2">Format: JPG, PNG, WEBP (Maks. 5MB, total maks 3 foto)</p>
         `;
 
         document.querySelectorAll('input[id^="foto-input-"]').forEach(function (input) {
@@ -327,7 +332,7 @@
                 }
 
                 filesToAdd.forEach(file => fotoData[index].items.add(file));
-                input.files = fotoData[index].files; // akumulasi, bukan replace
+                input.files = fotoData[index].files;
 
                 renderAll(index, input, existingCount);
             });
@@ -338,7 +343,6 @@
             const dropContent = document.getElementById('dropzone-content-' + index);
             const newFiles = Array.from(fotoData[index].files);
 
-            // ---- 1. Dropzone besar = preview foto baru PERTAMA ----
             if (newFiles.length > 0) {
                 dropzone.classList.remove('border-gray-300', 'border-dashed');
                 dropzone.classList.add('border-green-500', 'border-solid');
@@ -347,9 +351,9 @@
                 reader.onload = function (e) {
                     dropContent.innerHTML = `
                         <img src="${e.target.result}" class="absolute inset-0 w-full h-full object-cover">
-                        <span class="absolute top-2 left-2 bg-green-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full z-20">Belum disimpan</span>
-                        <button type="button" class="btn-remove-big absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white text-xs w-6 h-6 rounded-full leading-6 z-20">&times;</button>
-                        <span class="absolute bottom-2 left-2 right-2 text-center text-[11px] bg-black/50 text-white rounded px-2 py-1 z-20">Klik untuk tambah foto lagi</span>
+                        <span class="absolute top-3 left-3 bg-green-600 text-white text-sm font-semibold px-3 py-1 rounded-full z-20">Belum disimpan</span>
+                        <button type="button" class="btn-remove-big absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white text-base w-8 h-8 rounded-full leading-8 font-bold z-20">&times;</button>
+                        <span class="absolute bottom-3 left-3 right-3 text-center text-sm bg-black/60 text-white rounded-lg px-3 py-2 z-20">Klik untuk tambah foto lagi</span>
                     `;
                     dropContent.classList.remove('pointer-events-none');
                     dropContent.querySelector('.btn-remove-big').addEventListener('click', function (ev) {
@@ -365,16 +369,12 @@
                 dropContent.innerHTML = defaultDropzoneHtml;
             }
 
-            // ---- 2. Slot bawah: existing dulu, sisanya overflow foto baru ----
-            const overflow = newFiles.slice(1); // foto baru ke-2 & ke-3
+            const overflow = newFiles.slice(1);
             for (let i = 0; i < 3; i++) {
                 const slot = document.getElementById('slot-' + index + '-' + i);
                 if (!slot) continue;
 
-                if (i < existingCount) {
-                    // slot existing tetap seperti render awal dari server, jangan diutak-atik
-                    continue;
-                }
+                if (i < existingCount) continue;
 
                 const overflowIdx = i - existingCount;
                 slot.classList.remove('border-gray-200');
@@ -385,8 +385,8 @@
                     reader.onload = function (e) {
                         slot.innerHTML = `
                             <img src="${e.target.result}" class="w-full h-full object-cover">
-                            <span class="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-[9px] text-center font-semibold py-0.5">Baru</span>
-                            <button type="button" class="btn-remove-overflow absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-xs w-5 h-5 rounded-bl leading-5" data-overflow-index="${overflowIdx}">&times;</button>
+                            <span class="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-xs text-center font-semibold py-1">Baru</span>
+                            <button type="button" class="btn-remove-overflow absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-sm w-7 h-7 rounded-bl-lg leading-7 font-bold" data-overflow-index="${overflowIdx}">&times;</button>
                         `;
                         slot.querySelector('.btn-remove-overflow').addEventListener('click', function () {
                             removeNewFile(index, overflowIdx + 1, input, existingCount);
@@ -410,7 +410,6 @@
             renderAll(index, input, existingCount);
         }
 
-        // ---- Hapus foto TERSIMPAN satu per satu (AJAX) ----
         document.querySelectorAll('.btn-delete-existing').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const aulaId = this.getAttribute('data-aula-id');
@@ -457,13 +456,7 @@
 
 <style>
     [x-cloak] { display: none !important; }
-
     .dropzone-box { transition: border-color .15s ease; }
-
-    .foto-slot img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+    .foto-slot img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 @endsection

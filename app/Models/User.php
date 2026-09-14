@@ -11,10 +11,15 @@ use Illuminate\Notifications\Notifiable;
  * 
  * @property int $id
  * @property string $name
+ * @property string|null $username
  * @property string $email
+ * @property string|null $nip
+ * @property string|null $whatsapp
  * @property string $password
  * @property string|null $role
- * @property bool|null $is_admin
+ * @property string|null $bidang
+ * @property bool $is_admin
+ * @property string $status
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -30,10 +35,15 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
+        'nip',
+        'whatsapp',
         'password',
         'role',
+        'bidang',
         'is_admin',
+        'status',
     ];
 
     /**
@@ -75,5 +85,25 @@ class User extends Authenticatable
     public function bookings()
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Relasi ke absensi detail (kehadiran user ini di semua sesi)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function absensiDetails()
+    {
+        return $this->hasMany(AbsensiDetail::class, 'user_id');
+    }
+
+    /**
+     * Relasi ke sesi absensi yang dibuat oleh user ini (khusus admin)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function absensiSesiDibuat()
+    {
+        return $this->hasMany(AbsensiSesi::class, 'created_by');
     }
 }

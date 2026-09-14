@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AdminBookingController extends Controller
 {
@@ -59,6 +60,7 @@ class AdminBookingController extends Controller
                 ->with('success', 'Booking berhasil disetujui!');
 
         } catch (\Exception $e) {
+            Log::error('Approve booking error: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal menyetujui booking: ' . $e->getMessage());
         }
@@ -89,6 +91,7 @@ class AdminBookingController extends Controller
                 ->with('success', 'Booking berhasil ditolak!');
 
         } catch (\Exception $e) {
+            Log::error('Reject booking error: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal menolak booking: ' . $e->getMessage());
         }
@@ -114,8 +117,37 @@ class AdminBookingController extends Controller
                 ->with('success', 'Booking berhasil diselesaikan!');
 
         } catch (\Exception $e) {
+            Log::error('Complete booking error: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal menyelesaikan booking: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin: Update status booking (manual)
+     */
+    public function update(Request $request, int $id)
+    {
+        try {
+            $booking = Booking::findOrFail($id);
+            
+            if ($request->filled('status')) {
+                $booking->status = $request->status;
+            }
+            
+            if ($request->filled('catatan')) {
+                $booking->catatan = $request->catatan;
+            }
+            
+            $booking->save();
+
+            return redirect()->back()
+                ->with('success', 'Status booking berhasil diubah!');
+
+        } catch (\Exception $e) {
+            Log::error('Update booking error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Gagal mengubah status: ' . $e->getMessage());
         }
     }
 
@@ -132,6 +164,7 @@ class AdminBookingController extends Controller
                 ->with('success', 'Booking berhasil dihapus!');
 
         } catch (\Exception $e) {
+            Log::error('Destroy booking error: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal menghapus booking: ' . $e->getMessage());
         }
