@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
@@ -24,6 +25,19 @@ class LoginController extends Controller
     {
         $credentials = $this->getCredentials($request);
 
+        // ⭐ CEK STATUS USER SEBELUM LOGIN
+        // Kalau user dengan kredensial ini statusnya 'nonaktif' → tolak login
+        $user = User::where(array_key_first($credentials), $credentials[array_key_first($credentials)])->first();
+
+        if ($user && $user->status === 'nonaktif') {
+            return back()
+                ->withErrors([
+                    'login' => 'Akun Anda telah dinonaktifkan. Silakan hubungi admin untuk informasi lebih lanjut.',
+                ])
+                ->onlyInput('login');
+        }
+
+        // Proses login normal
         if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
 

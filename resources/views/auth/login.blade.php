@@ -83,19 +83,7 @@
         </div>
     </div>
 
-    <!-- SweetAlert2 untuk notifikasi berhasil log out -->
+    <!-- SweetAlert2 (masih dipakai di navbar, bukan di sini) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    @if(session('success'))
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil',
-            text: "{{ session('success') }}",
-            timer: 3000,
-            showConfirmButton: false
-        });
-    </script>
-    @endif
 </body>
 </html>

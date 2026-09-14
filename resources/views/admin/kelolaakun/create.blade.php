@@ -86,7 +86,7 @@
                     <label class="block text-base font-medium text-gray-700 mb-2">NIP</label>
                     <input type="text" name="nip" 
                            value="{{ old('nip', $user->nip ?? '') }}" 
-                           placeholder="Nomor Induk Pegawai"
+                           placeholder="Nomor Induk Pegawai (tidak harus )"
                            class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
                     @error('nip') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                 </div>
@@ -127,7 +127,7 @@
                     </label>
                     <input type="text" name="bidang" 
                            value="{{ old('bidang', $user->bidang ?? '') }}" 
-                           placeholder="Contoh: Keuangan, IT, HRD, Umum..."
+                           placeholder="masukan bidang pegawai"
                            class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
                     @error('bidang') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                 </div>

@@ -25,6 +25,9 @@
                 <a href="{{ route('surat.index') }}" class="text-gray-700 hover:text-indigo-600 font-medium {{ request()->routeIs('surat.*') ? 'text-indigo-600 border-b-2 border-indigo-600' : '' }}">
                     Ambil Surat
                 </a>
+                 <a href="{{ route('presensi.index') }}" class="text-gray-700 hover:text-indigo-600 font-medium {{ request()->routeIs('presensi.*') ? 'text-indigo-600 border-b-2 border-indigo-600' : '' }}">
+                    Presensi
+                </a>
             </div>
             
             <!-- KANAN: Dropdown Profil -->
@@ -69,7 +72,6 @@
                             @if($isAdmin)
                                 <div class="px-4 pt-2 pb-1 text-xs font-semibold text-indigo-600 tracking-wider">MENU ADMIN</div>
                                 
-                                <!-- Kelola Aula -->
                                 <a href="{{ route('admin.aula.index') }}" 
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.aula.*') 
@@ -81,7 +83,6 @@
                                     Kelola Aula
                                 </a>
                                 
-                                <!-- Kelola Booking -->
                                 <a href="{{ route('admin.kelolabooking.index') }}" 
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.kelolabooking.*') 
@@ -93,7 +94,6 @@
                                     Kelola Booking
                                 </a>
                                 
-                                <!-- Kelola Surat -->
                                 <a href="{{ route('admin.kelolasurat.index') }}" 
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.kelolasurat.*') 
@@ -105,7 +105,6 @@
                                     Kelola Surat
                                 </a>
                                 
-                                <!-- Kelola Akun -->
                                 <a href="{{ route('admin.kelolaakun.index') }}" 
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.kelolaakun.*') 
@@ -117,7 +116,6 @@
                                     Kelola Akun
                                 </a>
 
-                                <!-- ⭐ Kelola Absensi (route yang benar) -->
                                 <a href="{{ route('admin.absensi.index') }}" 
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.absensi.*') 
@@ -166,6 +164,18 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                 </svg>
                                 Ambil Surat
+                            </a>
+
+           
+                            <a href="{{ route('presensi.index') }}" 
+                               class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                      {{ request()->routeIs('presensi.*') 
+                                          ? 'bg-emerald-50 text-emerald-600 border-emerald-600 font-semibold' 
+                                          : 'text-gray-700 border-transparent hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-600' }}">
+                                <svg class="w-4 h-4 transition-colors {{ request()->routeIs('presensi.*') ? 'text-emerald-600' : 'text-gray-400 group-hover:text-emerald-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Presensi Saya
                             </a>
 
                             @if(!$isAdmin)

@@ -12,6 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+    $middleware->alias([
+        'cek.status' => \App\Http\Middleware\CekStatusAktif::class,
+    ]);
+})
+    ->withMiddleware(function (Middleware $middleware) {
         // Daftarkan middleware alias
         $middleware->alias([
             'admin' => AdminMiddleware::class,

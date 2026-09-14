@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminSuratController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\SuratController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,13 @@ Route::get('/', function () {
     return redirect()->route('booking.index');
 });
 
+// ========== ⭐ HALAMAN AKUN NONAKTIF ==========
+// Di luar grup auth — harus bisa diakses tanpa login
+// (middleware cek.status akan redirect user nonaktif ke sini)
+Route::get('/akun-nonaktif', function () {
+    return view('auth.akun-nonaktif');
+})->name('akun.nonaktif');
+
 // ========== AUTH ROUTES ==========
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -24,8 +32,9 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-// ========== ROUTE USER (BOOKING, RIWAYAT, SURAT) ==========
-Route::middleware(['auth'])->group(function () {
+// ========== ROUTE USER (BOOKING, RIWAYAT, SURAT, PRESENSI) ==========
+// ⭐ Middleware 'cek.status' → auto-logout user yang statusnya 'nonaktif'
+Route::middleware(['auth', 'cek.status'])->group(function () {
     
     // ===== BOOKING USER =====
     Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
@@ -46,7 +55,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/surat/{id}', [SuratController::class, 'show'])->name('surat.show');
     Route::get('/surat/{id}/download', [SuratController::class, 'download'])->name('surat.download');
     
+    // ===== ⭐ PRESENSI SAYA (USER) =====
+    Route::get('/presensi', [PresensiController::class, 'index'])->name('presensi.index');
+    
     // ========== ROUTE ADMIN ==========
+    // Admin juga kena middleware cek.status (karena nested dalam grup auth)
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         
         // ===== KELOLA AULA =====
@@ -76,10 +89,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/kelolasurat/{id}', [AdminSuratController::class, 'destroy'])->name('kelolasurat.destroy');
 
         // ===== KELOLA AKUN (ADMIN) =====
-        // View: resources/views/admin/kelolaakun/
-        //   - index.blade.php  → tabel daftar akun
-        //   - create.blade.php → form tambah & edit
-        // Controller: app/Http/Controllers/Admin/UserController.php
         Route::get('/kelolaakun', [UserController::class, 'index'])->name('kelolaakun.index');
         Route::get('/kelolaakun/create', [UserController::class, 'create'])->name('kelolaakun.create');
         Route::post('/kelolaakun', [UserController::class, 'store'])->name('kelolaakun.store');
@@ -88,20 +97,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/kelolaakun/{id}', [UserController::class, 'destroy'])->name('kelolaakun.destroy');
 
         // ===== KELOLA PEGAWAI (ADMIN) =====
-        // View: resources/views/admin/absensi/pegawai.blade.php
-        // Controller: app/Http/Controllers/Admin/AbsensiController.php
         Route::get('/pegawai', [AbsensiController::class, 'pegawai'])->name('pegawai.index');
 
         // ===== KELOLA ABSENSI (ADMIN) =====
-        // View: resources/views/admin/absensi/
-        //   - index.blade.php  → daftar sesi absensi
-        //   - create.blade.php → form buat sesi baru
-        //   - show.blade.php   → form isi kehadiran peserta
-        // Controller: app/Http/Controllers/Admin/AbsensiController.php
-        //
         // ⚠️ PENTING: Route statis (create, export, export-rekap) harus DI ATAS '{id}'
-        // biar tidak dibaca sebagai ID.
-        
         Route::get('/absensi', [AbsensiController::class, 'index'])->name('absensi.index');
         Route::get('/absensi/create', [AbsensiController::class, 'create'])->name('absensi.create');
         Route::post('/absensi', [AbsensiController::class, 'store'])->name('absensi.store');
@@ -109,10 +108,10 @@ Route::middleware(['auth'])->group(function () {
         // ⭐ Export Rekap per periode (mingguan/bulanan/tahunan) — HARUS DI ATAS '{id}'
         Route::get('/absensi/export-rekap', [AbsensiController::class, 'exportRekap'])->name('absensi.export-rekap');
         
-        // Export per sesi (ada '{id}/export' — ini aman karena ada segmen '/export' di belakang)
+        // Export per sesi
         Route::get('/absensi/{id}/export', [AbsensiController::class, 'exportSesi'])->name('absensi.export');
         
-        // Route dinamis (taruh paling bawah biar tidak bentrok dengan route statis di atas)
+        // Route dinamis
         Route::get('/absensi/{id}', [AbsensiController::class, 'show'])->name('absensi.show');
         Route::post('/absensi/{id}/kehadiran', [AbsensiController::class, 'updateKehadiran'])->name('absensi.update-kehadiran');
         Route::post('/absensi/{id}/lock', [AbsensiController::class, 'lock'])->name('absensi.lock');
