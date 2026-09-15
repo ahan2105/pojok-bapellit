@@ -11,15 +11,48 @@
 @section('content')
 <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8">
 
-    <!-- Header -->
-    <div class="mb-6 sm:mb-8">
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Presensi Saya</h1>
-        <p class="text-sm sm:text-base text-gray-600 mt-2">
-            Riwayat dan statistik kehadiran Anda di semua sesi absensi.
-        </p>
+    <!-- Header + Tombol Scan -->
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div class="flex-1">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Presensi Saya</h1>
+            <p class="text-sm sm:text-base text-gray-600 mt-2">
+                Riwayat dan statistik kehadiran Anda di semua sesi absensi.
+            </p>
+        </div>
+
+        {{-- ⭐ Tombol Scan Absensi --}}
+        <a href="{{ route('absensi.scan-page') }}" 
+           class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg self-start sm:self-center flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+            </svg>
+            Scan Absensi
+        </a>
     </div>
 
-    <!-- ===== Statistik Cards (3 kartu, tanpa ikon) ===== -->
+    <!-- ===== Info Card: Cara Absen (muncul kalau belum ada riwayat) ===== -->
+    @if($riwayat->total() == 0)
+        <div class="mb-8 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-base font-bold text-purple-900 mb-1">Cara Absen</h3>
+                    <ol class="text-sm text-purple-800 space-y-1 list-decimal list-inside">
+                        <li>Minta admin menampilkan <strong>QR Code</strong> sesi absensi</li>
+                        <li>Klik tombol <strong>"Scan Absensi"</strong> di atas</li>
+                        <li>Arahkan kamera ke QR Code</li>
+                        <li>Kehadiran otomatis tercatat ✅</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- ===== Statistik Cards ===== -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
         
         <!-- Hadir -->
@@ -44,7 +77,7 @@
             </div>
         </div>
 
-        <!-- Persentase Kehadiran -->
+        <!-- Persentase -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
             <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Persentase Kehadiran
@@ -55,7 +88,6 @@
             </div>
         </div>
     </div>
-
 
     <!-- ===== Toolbar: Search + Filter Status ===== -->
     <div class="bg-white rounded-t-2xl shadow-sm border border-gray-200 p-4 sm:p-5">

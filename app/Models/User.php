@@ -71,6 +71,10 @@ class User extends Authenticatable
         'is_admin' => 'boolean',
     ];
 
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
+
     /**
      * Cek apakah user adalah admin
      *
@@ -80,6 +84,34 @@ class User extends Authenticatable
     {
         return $this->role === 'admin' || $this->is_admin === true;
     }
+
+    /**
+     * ⭐ Cek apakah user adalah pegawai yang bisa diabsen
+     * Kriteria: status aktif
+     *
+     * @return bool
+     */
+    public function isPegawai(): bool
+    {
+        return $this->status === 'aktif';
+    }
+
+    /**
+     * ⭐ Cek apakah user bisa login
+     * Kriteria: punya username & password & status aktif
+     *
+     * @return bool
+     */
+    public function canLogin(): bool
+    {
+        return !empty($this->username) 
+            && !empty($this->password) 
+            && $this->status === 'aktif';
+    }
+
+    // ============================================================
+    // RELASI
+    // ============================================================
 
     /**
      * Relasi ke booking

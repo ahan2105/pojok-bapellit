@@ -97,8 +97,12 @@
                         <ul class="list-disc list-inside space-y-0.5">
                             <li>Membuat sesi absensi baru</li>
                             <li>Menambahkan semua user aktif sebagai peserta</li>
+                            <li><strong>Generate QR Code unik</strong> untuk sesi ini</li>
                             <li>Status awal semua peserta = belum diabsen</li>
                         </ul>
+                        <p class="mt-2 text-xs text-indigo-600">
+                            💡 QR Code beda tiap sesi. Bisa dipakai user untuk absen via scan.
+                        </p>
                     </div>
                 </div>
             </div>

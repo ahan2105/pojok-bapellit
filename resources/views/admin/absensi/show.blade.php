@@ -95,6 +95,18 @@
                 </svg>
                 Export Excel
             </a>
+
+            {{-- ⭐ Tombol QR Code — hanya muncul kalau sesi belum dikunci --}}
+            @if(!$sesi->is_locked)
+                <button type="button" 
+                        onclick="openQrModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                    </svg>
+                    QR Code
+                </button>
+            @endif
         </div>
     </div>
 
@@ -145,14 +157,12 @@
                             <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NAMA PESERTA</th>
                             <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ASAL BIDANG</th>
                             
-                            <!-- ⭐ STATUS KEHADIRAN + BULK TOGGLE -->
                             <th class="px-6 py-4">
                                 <div class="flex items-center gap-4">
                                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider flex-shrink-0">STATUS KEHADIRAN</span>
                                     
                                     @if(!$sesi->is_locked)
                                         <div class="flex items-center gap-5">
-                                            <!-- Hadir Semua -->
                                             <label class="inline-flex items-center gap-1.5 cursor-pointer group" title="Tandai semua HADIR">
                                                 <input type="radio" 
                                                        name="bulk_action" 
@@ -165,7 +175,6 @@
                                                 </span>
                                             </label>
 
-                                            <!-- Tidak Hadir Semua -->
                                             <label class="inline-flex items-center gap-1.5 cursor-pointer group" title="Tandai semua TIDAK HADIR">
                                                 <input type="radio" 
                                                        name="bulk_action" 
@@ -185,21 +194,16 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @php
-                            // 1. Kelompokkan peserta per bidang dengan normalisasi string
                             $groupedRaw = collect($peserta)->groupBy(function ($p) {
                                 $b = trim(strtoupper($p->bidang ?? ''));
-                                $b = preg_replace('/\s+/', ' ', $b); // Bersihkan spasi ganda
+                                $b = preg_replace('/\s+/', ' ', $b);
                                 return $b === '' ? 'TANPA BIDANG' : $b;
                             });
 
-                            // 2. Pisahkan prioritas: Kepala Badan dan Tanpa Bidang
                             $kepalaBadan = $groupedRaw->pull('KEPALA BADAN', collect());
                             $tanpaBidang = $groupedRaw->pull('TANPA BIDANG', collect());
-                            
-                            // 3. Sisa bidang lainnya diurutkan secara alfabetis agar rapi
                             $bidangLainnya = $groupedRaw->sortKeys();
 
-                            // 4. Gabungkan kembali dengan urutan: Kepala Badan -> Bidang Lainnya -> Tanpa Bidang
                             $groupedPeserta = collect();
                             
                             if ($kepalaBadan->isNotEmpty()) {
@@ -218,7 +222,6 @@
                         @endphp
 
                         @forelse($groupedPeserta as $bidang => $groupUsers)
-                            <!-- ===== HEADER BIDANG ===== -->
                             <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-y border-blue-100">
                                 <td colspan="4" class="px-6 py-3">
                                     <div class="flex items-center gap-3">
@@ -237,7 +240,6 @@
                                 </td>
                             </tr>
 
-                            <!-- ===== DAFTAR PESERTA DI BIDANG INI ===== -->
                             @foreach($groupUsers as $p)
                                 <tr class="hover:bg-gray-50 transition">
                                     <td class="px-6 py-5 text-base text-gray-600 font-medium align-top text-center">{{ $globalNo++ }}</td>
@@ -251,9 +253,7 @@
                                     <td class="px-6 py-5">
                                         <div class="flex flex-col gap-3">
                                             
-                                            <!-- Radio: Hadir / Tidak -->
                                             <div class="flex items-center gap-6">
-                                                <!-- HADIR -->
                                                 <label class="inline-flex items-center gap-2 cursor-pointer">
                                                     <input type="radio" 
                                                            name="kehadiran[{{ $p->id }}]" 
@@ -268,7 +268,6 @@
                                                     </span>
                                                 </label>
 
-                                                <!-- TIDAK HADIR -->
                                                 <label class="inline-flex items-center gap-2 cursor-pointer">
                                                     <input type="radio" 
                                                            name="kehadiran[{{ $p->id }}]" 
@@ -284,7 +283,6 @@
                                                 </label>
                                             </div>
 
-                                            <!-- Input Keterangan -->
                                             <input type="text" 
                                                    name="keterangan[{{ $p->id }}]" 
                                                    id="keterangan-{{ $p->id }}"
@@ -331,10 +329,15 @@
     @endif
 </div>
 
+{{-- ⭐ Include Modal QR — hanya kalau sesi belum dikunci --}}
+@if(!$sesi->is_locked)
+    @include('admin.absensi.partials.qr-modal')
+@endif
+
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Toggle keterangan saat radio peserta berubah
+    // ===== Toggle keterangan =====
     function toggleKeterangan(userId) {
         const radios = document.querySelectorAll(`input[name="kehadiran[${userId}]"]`);
         const keterangan = document.getElementById(`keterangan-${userId}`);
@@ -351,7 +354,7 @@
         }
     }
 
-    // ⭐ Hadirkan semua peserta (dari radio di header)
+    // ===== Bulk: Hadirkan semua =====
     function hadirkanSemua() {
         const pesertaIds = @json($peserta->pluck('id')->toArray());
 
@@ -395,7 +398,7 @@
         });
     }
 
-    // ⭐ Tidak Hadir semua peserta (dari radio di header)
+    // ===== Bulk: Tidak hadir semua =====
     function tidakHadirSemua() {
         const pesertaIds = @json($peserta->pluck('id')->toArray());
 
@@ -438,11 +441,11 @@
         });
     }
 
-    // Konfirmasi kunci absen
+    // ===== Konfirmasi kunci =====
     function confirmLock() {
         Swal.fire({
             title: 'Kunci Absensi?',
-            html: `Setelah dikunci, data absensi <strong>{{ $sesi->nama_sesi }}</strong> tidak bisa diubah lagi.`,
+            html: `Setelah dikunci, data absensi <strong>{{ $sesi->nama_sesi }}</strong> tidak bisa diubah lagi.<br><span class="text-sm text-gray-500">QR Code juga tidak akan bisa dipakai lagi.</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
@@ -461,7 +464,7 @@
         });
     }
 
-    // Reset radio bulk setelah selesai
+    // Reset radio bulk
     document.addEventListener('DOMContentLoaded', function() {
         const bulkHadir = document.getElementById('bulk-hadir');
         const bulkTidak = document.getElementById('bulk-tidak');

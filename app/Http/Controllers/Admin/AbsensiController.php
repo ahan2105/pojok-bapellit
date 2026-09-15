@@ -12,12 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AbsensiController extends Controller
 {
     /**
      * Daftar semua sesi absensi
-     * Filter: hari_ini, ice_breaking, semua
      */
     public function index(Request $request)
     {
@@ -30,7 +30,6 @@ class AbsensiController extends Controller
                 'details as jumlah_tidak' => fn($q) => $q->where('status_kehadiran', 'tidak'),
             ]);
 
-        // Filter logic
         if ($filter === 'hari_ini') {
             $query->whereDate('tanggal', today());
         } elseif ($filter === 'ice_breaking') {
@@ -62,6 +61,7 @@ class AbsensiController extends Controller
 
     /**
      * Simpan sesi baru + generate detail absensi untuk semua user aktif
+     * ⭐ Token QR langsung di-generate saat sesi dibuat
      */
     public function store(Request $request)
     {
@@ -73,13 +73,18 @@ class AbsensiController extends Controller
         ]);
 
         $sesi = AbsensiSesi::create([
-            'nama_sesi'  => $validated['nama_sesi'],
-            'tanggal'    => $validated['tanggal'],
-            'lokasi'     => $validated['lokasi'] ?? null,
-            'catatan'    => $validated['catatan'] ?? null,
-            'is_default' => false,
-            'is_locked'  => false,
-            'created_by' => Auth::id(),
+            'nama_sesi'           => $validated['nama_sesi'],
+            'tanggal'             => $validated['tanggal'],
+            'lokasi'              => $validated['lokasi'] ?? null,
+            'catatan'             => $validated['catatan'] ?? null,
+            'is_default'          => false,
+            'is_locked'           => false,
+            'created_by'          => Auth::id(),
+            // ⭐ Auto-generate token QR saat sesi dibuat
+            'token_qr'            => Str::random(48),
+            'token_generated_at'  => now(),
+            'qr_lifetime_seconds' => 0,
+            'qr_auto_refresh'     => false,
         ]);
 
         $users = User::where('status', 'aktif')->get();
@@ -98,6 +103,8 @@ class AbsensiController extends Controller
 
     /**
      * Halaman absensi 1 sesi
+     * ⭐ QR expire hanya saat sesi dikunci (tidak auto-refresh)
+     * ⭐ QR ditampilkan via modal popup di show.blade.php
      */
     public function show(Request $request, int $id)
     {
@@ -105,7 +112,6 @@ class AbsensiController extends Controller
         $search = $request->input('search');
 
         if ($sesi->is_locked) {
-            // 🔒 SESI LOCKED: ambil dari absensi_detail
             $peserta = AbsensiDetail::with('user')
                 ->where('absensi_sesi_id', $id)
                 ->when($search, function ($q, $search) {
@@ -129,7 +135,6 @@ class AbsensiController extends Controller
                 ->sortBy('name')
                 ->values();
         } else {
-            // 🔓 SESI BELUM LOCKED: hanya user aktif
             $peserta = User::leftJoin('absensi_detail', function ($join) use ($id) {
                     $join->on('users.id', '=', 'absensi_detail.user_id')
                          ->where('absensi_detail.absensi_sesi_id', '=', $id);
@@ -151,7 +156,32 @@ class AbsensiController extends Controller
                 ->get();
         }
 
-        return view('admin.absensi.show', compact('sesi', 'peserta', 'search'));
+        // ⭐ Generate token QR kalau belum ada
+        // ⭐ Jangan generate kalau sesi sudah dikunci
+        if (!$sesi->is_locked && empty($sesi->token_qr)) {
+            $sesi->token_qr = Str::random(48);
+            $sesi->token_generated_at = now();
+            $sesi->save();
+        }
+
+        // ⭐ Siapkan QR Code + URL scan
+        // Kalau sesi dikunci → null (QR tidak tampil)
+        // ⚠️ Nama route BENAR: 'absensi.scan' (bukan 'presensi.scan')
+        $scanUrl = $sesi->token_qr
+            ? route('absensi.scan', ['token' => $sesi->token_qr])
+            : null;
+
+        $qrCode = $sesi->token_qr
+            ? QrCode::size(300)->margin(2)->generate($scanUrl)
+            : null;
+
+        return view('admin.absensi.show', compact(
+            'sesi',
+            'peserta',
+            'search',
+            'scanUrl',
+            'qrCode'
+        ));
     }
 
     /**
@@ -202,7 +232,9 @@ class AbsensiController extends Controller
     }
 
     /**
-     * Kunci absensi
+     * ⭐ Kunci absensi
+     * - Set is_locked = true
+     * - Hapus token_qr → QR langsung tidak berlaku
      */
     public function lock(int $id)
     {
@@ -214,23 +246,53 @@ class AbsensiController extends Controller
                 ->with('error', 'Absensi sudah terkunci sebelumnya.');
         }
 
-        $sesi->update(['is_locked' => true]);
+        $sesi->update([
+            'is_locked'          => true,
+            'token_qr'           => null,
+            'token_generated_at' => null,
+        ]);
 
         return redirect()
             ->route('admin.absensi.show', $id)
-            ->with('success', "Absensi \"{$sesi->nama_sesi}\" berhasil dikunci.");
+            ->with('success', "Absensi \"{$sesi->nama_sesi}\" berhasil dikunci. QR Code sudah tidak berlaku.");
     }
 
     /**
-     * ⭐ Export Excel per sesi
-     * Format: DAFTAR HADIR (sesuai Excel asli)
+     * ⭐ Regenerate token manual (kalau admin mau ganti QR)
+     * Akses dari modal QR di halaman show
+     */
+    public function regenerateQr(int $id)
+    {
+        $sesi = AbsensiSesi::findOrFail($id);
+
+        // Cegah regenerate kalau sesi dikunci
+        if ($sesi->is_locked) {
+            return redirect()
+                ->route('admin.absensi.show', $id)
+                ->with('error', 'Sesi sudah dikunci. QR tidak bisa diperbarui.');
+        }
+
+        $sesi->token_qr = Str::random(48);
+        $sesi->token_generated_at = now();
+        $sesi->save();
+
+        return redirect()
+            ->route('admin.absensi.show', $id)
+            ->with('success', 'QR Code berhasil diperbarui!');
+    }
+
+    // ============================================================
+    // EXPORT METHODS
+    // ============================================================
+
+    /**
+     * Export Excel per sesi
      */
     public function exportSesi(int $id)
     {
         $sesi = AbsensiSesi::findOrFail($id);
 
-        // ⭐ Pakai Carbon::parse untuk hilangkan warning Intelephense
-        $tanggal = Carbon::parse($sesi->tanggal)->format('Y-m-d');
+        $tanggal  = Carbon::parse($sesi->tanggal)->format('Y-m-d');
         $namaSesi = Str::slug($sesi->nama_sesi, '_');
         $namaFile = "Daftar_Hadir_{$namaSesi}_{$tanggal}.xlsx";
 
@@ -238,8 +300,7 @@ class AbsensiController extends Controller
     }
 
     /**
-     * ⭐ Export Rekap Excel — berdasarkan periode (minggu/bulan/tahun)
-     * TODO: implement dengan multi-sheet export
+     * Export Rekap Excel — berdasarkan periode
      */
     public function exportRekap(Request $request)
     {
@@ -259,9 +320,6 @@ class AbsensiController extends Controller
             $end = $now->copy()->endOfMonth();
             $label = 'Bulanan (' . $now->translatedFormat('F Y') . ')';
         }
-
-        // TODO: Implementasi rekap multi-sheet
-        // return Excel::download(new RekapAbsensiExport($start, $end, $label), 'rekap-absensi.xlsx');
 
         return redirect()
             ->route('admin.absensi.index')
@@ -290,11 +348,11 @@ class AbsensiController extends Controller
     }
 
     /**
-     * ⭐ Kelola Pegawai — daftar user yang bisa diabsen
+     * Kelola Pegawai — daftar user yang bisa diabsen
      */
     public function pegawai(Request $request)
     {
-        $search = $request->input('search');
+        $search       = $request->input('search');
         $filterBidang = $request->input('bidang');
 
         $pegawai = User::where('status', 'aktif')

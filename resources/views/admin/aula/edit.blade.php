@@ -60,7 +60,7 @@
                                     @if(isset($fotos[$i]) && !empty($fotos[$i]))
                                         <img src="{{ asset('storage/' . $fotos[$i]) }}" class="w-full h-full object-cover" alt="Foto Aula {{ $i+1 }}">
                                         <button type="button" onclick="deleteSinglePhoto({{ $aula->id }}, {{ $i }})" 
-                                            class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-700 transition shadow-lg">
+                                            class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-700 transition shadow-lg z-10">
                                             ✕
                                         </button>
                                     @else
@@ -184,6 +184,7 @@
     @method('DELETE')
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Preview Foto - Support Multiple Files
     document.addEventListener('DOMContentLoaded', function() {
@@ -239,12 +240,12 @@
         }
     });
 
-    // Delete Single Photo
+    // ⭐ Delete Single Photo (VERSI DIPERBAIKI)
     function deleteSinglePhoto(aulaId, photoIndex) {
         Swal.fire({
             title: 'Hapus Foto?',
             text: 'Apakah Anda yakin ingin menghapus foto ini?',
-            icon: 'question',
+            icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6b7280',
@@ -252,25 +253,57 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Tampilkan loading agar user tahu proses berjalan
+                Swal.fire({
+                    title: 'Menghapus...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading() }
+                });
+
+                // Ambil CSRF token dengan aman (fallback ke input _token jika meta tidak ada di layout)
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                               || document.querySelector('input[name="_token"]')?.value;
+
                 fetch(`/admin/aula/${aulaId}/delete-photo`, {
-                    method: 'DELETE',
+                    method: 'POST', // Gunakan POST + spoofing agar lebih stabil di semua server
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Content-Type': 'application/json'
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest', // ⭐ INI KUNCINYA! Agar Laravel tahu ini request AJAX
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ index: photoIndex })
+                    body: JSON.stringify({ 
+                        index: photoIndex,
+                        _method: 'DELETE' // ⭐ Method spoofing untuk route DELETE
+                    })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Cek apakah respon benar-benar JSON (bukan HTML redirect error)
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        throw new TypeError("Server tidak mengembalikan JSON!");
+                    }
+                })
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Berhasil!', 'Foto berhasil dihapus', 'success');
-                        setTimeout(() => window.location.reload(), 1500);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: 'Foto berhasil dihapus',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload(); // Refresh halaman agar UI sinkron
+                        });
                     } else {
                         Swal.fire('Gagal!', data.message || 'Gagal menghapus foto', 'error');
                     }
                 })
-                .catch(() => {
-                    Swal.fire('Error!', 'Terjadi kesalahan pada server', 'error');
+                .catch(error => {
+                    console.error('Fetch error detail:', error); // Lihat di console browser jika masih error
+                    Swal.fire('Error!', 'Terjadi kesalahan pada server. Cek console untuk detail.', 'error');
                 });
             }
         });

@@ -69,7 +69,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
             'KETERANGAN',
         ];
 
-        // BARIS 9: Kosong (spacer sebelum data)
+
         $this->data[] = ['', '', '', '', '', '', '', ''];
 
         // Ambil Data Peserta

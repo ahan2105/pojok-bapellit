@@ -33,21 +33,34 @@ class UserController extends Controller
             ->when($filterJabatan, function ($q, $jabatan) {
                 return $q->where('jabatan', $jabatan);
             })
-            // ⭐ Urutkan per bidang (alphabet) lalu per nama
             ->orderBy('bidang')
             ->orderBy('name')
-            ->paginate(25)                          // ⭐ 25 per halaman
+            ->paginate(25)
             ->withQueryString();
 
-        // ⭐ Ambil daftar jabatan unik untuk dropdown filter
+        // Ambil daftar jabatan unik untuk dropdown filter
         $jabatanList = User::whereNotNull('jabatan')
             ->where('jabatan', '!=', '')
             ->distinct()
             ->orderBy('jabatan')
             ->pluck('jabatan');
 
-        // ⭐ Kirim $jabatanList ke view
-        return view('admin.kelolaakun.index', compact('users', 'search', 'jabatanList'));
+        // ⭐ Ambil daftar bidang unik untuk dropdown filter (opsional)
+        $bidangList = User::whereNotNull('bidang')
+            ->where('bidang', '!=', '')
+            ->distinct()
+            ->orderBy('bidang')
+            ->pluck('bidang');
+
+        // ⭐ Kirim SEMUA variabel yang dibutuhkan view
+        return view('admin.kelolaakun.index', compact(
+            'users',
+            'search',
+            'filterBidang',      // ⭐ BARU
+            'filterJabatan',     // ⭐ BARU
+            'jabatanList',
+            'bidangList'         // ⭐ BARU
+        ));
     }
 
     /**
