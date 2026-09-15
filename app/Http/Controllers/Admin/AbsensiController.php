@@ -61,7 +61,7 @@ class AbsensiController extends Controller
 
     /**
      * Simpan sesi baru + generate detail absensi untuk semua user aktif
-     * ⭐ Token QR langsung di-generate saat sesi dibuat
+     * Token QR langsung di-generate saat sesi dibuat
      */
     public function store(Request $request)
     {
@@ -80,7 +80,7 @@ class AbsensiController extends Controller
             'is_default'          => false,
             'is_locked'           => false,
             'created_by'          => Auth::id(),
-            // ⭐ Auto-generate token QR saat sesi dibuat
+            //  Auto-generate token QR saat sesi dibuat
             'token_qr'            => Str::random(48),
             'token_generated_at'  => now(),
             'qr_lifetime_seconds' => 0,
@@ -103,8 +103,8 @@ class AbsensiController extends Controller
 
     /**
      * Halaman absensi 1 sesi
-     * ⭐ QR expire hanya saat sesi dikunci (tidak auto-refresh)
-     * ⭐ QR ditampilkan via modal popup di show.blade.php
+     *  QR expire hanya saat sesi dikunci (tidak auto-refresh)
+     *  QR ditampilkan via modal popup di show.blade.php
      */
     public function show(Request $request, int $id)
     {

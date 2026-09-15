@@ -33,20 +33,34 @@
                 </div>
             </div>
 
-            <!-- Filter Bidang (Auto-submit saat dipilih) -->
+            <!-- ⭐ Filter Bidang (DINAMIS dari Database) -->
             <div class="w-full lg:w-64">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bidang</label>
                 <select name="bidang" 
                         onchange="this.form.submit()"
                         class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer transition-all">
                     <option value="">Semua Bidang</option>
-                    <option value="KEPALA BADAN" {{ request('bidang') == 'KEPALA BADAN' ? 'selected' : '' }}>Kepala Badan</option>
-                    <option value="SEKRETARIAT" {{ request('bidang') == 'SEKRETARIAT' ? 'selected' : '' }}>Sekretariat</option>
-                    <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM" {{ request('bidang') == 'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM' ? 'selected' : '' }}>Bidang Perekonomian dan SDA</option>
-                    <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN" {{ request('bidang') == 'BIDANG INFRASTRUKTUR DAN KEWILAYAHAN' ? 'selected' : '' }}>Bidang Infrastruktur dan Kewilayahan</option>
-                    <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA" {{ request('bidang') == 'BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA' ? 'selected' : '' }}>Bidang Pemerintahan dan SDM</option>
-                    <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI" {{ request('bidang') == 'BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI' ? 'selected' : '' }}>Bidang Perencanaan, Pengendalian dan Evaluasi</option>
-                    <option value="BIDANG PENELITIAN DAN PENGEMBANGAN" {{ request('bidang') == 'BIDANG PENELITIAN DAN PENGEMBANGAN' ? 'selected' : '' }}>Bidang Penelitian dan Pengembangan</option>
+                    
+                    @if(isset($bidangList) && count($bidangList) > 0)
+                        @foreach($bidangList as $b)
+                            @php
+                                $cleanBidang = strtoupper(trim($b));
+                                $displayBidang = ucwords(strtolower(str_replace('_', ' ', $cleanBidang)));
+                            @endphp
+                            <option value="{{ $cleanBidang }}" {{ request('bidang') == $cleanBidang ? 'selected' : '' }}>
+                                {{ $displayBidang }}
+                            </option>
+                        @endforeach
+                    @else
+                        <!-- Fallback: Opsi default jika controller belum diupdate (agar tidak error) -->
+                        <option value="KEPALA BADAN" {{ request('bidang') == 'KEPALA BADAN' ? 'selected' : '' }}>Kepala Badan</option>
+                        <option value="SEKRETARIAT" {{ request('bidang') == 'SEKRETARIAT' ? 'selected' : '' }}>Sekretariat</option>
+                        <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM" {{ request('bidang') == 'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM' ? 'selected' : '' }}>Bidang Perekonomian dan SDA</option>
+                        <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN" {{ request('bidang') == 'BIDANG INFRASTRUKTUR DAN KEWILAYAHAN' ? 'selected' : '' }}>Bidang Infrastruktur dan Kewilayahan</option>
+                        <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA" {{ request('bidang') == 'BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA' ? 'selected' : '' }}>Bidang Pemerintahan dan SDM</option>
+                        <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI" {{ request('bidang') == 'BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI' ? 'selected' : '' }}>Bidang Perencanaan, Pengendalian dan Evaluasi</option>
+                        <option value="BIDANG PENELITIAN DAN PENGEMBANGAN" {{ request('bidang') == 'BIDANG PENELITIAN DAN PENGEMBANGAN' ? 'selected' : '' }}>Bidang Penelitian dan Pengembangan</option>
+                    @endif
                 </select>
             </div>
 

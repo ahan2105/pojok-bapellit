@@ -84,7 +84,7 @@
                                 @if(isset($fotos[$i]) && !empty($fotos[$i]))
                                     <img src="{{ asset('storage/' . $fotos[$i]) }}" class="w-full h-full object-cover" alt="Foto Aula {{ $i+1 }}">
                                     <button type="button"
-                                        class="btn-delete-existing absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-sm w-7 h-7 rounded-bl-lg leading-7 font-bold"
+                                        class="btn-delete-existing absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white text-sm w-7 h-7 rounded-bl-lg leading-7 font-bold z-10"
                                         data-aula-id="{{ $item->id }}" data-photo-index="{{ $i }}" data-tab-index="{{ $index }}"
                                         title="Hapus foto ini">&times;</button>
                                 @else
@@ -280,7 +280,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                       || document.querySelector('input[name="_token"]')?.value;
         const fotoData = {};
 
         const emptySlotHtml = `<div class="text-gray-300 flex items-center justify-center w-full h-full">
@@ -427,26 +428,51 @@
                 }).then((result) => {
                     if (!result.isConfirmed) return;
 
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading() }
+                    });
+
                     fetch(`/admin/aula/${aulaId}/delete-photo`, {
-                        method: 'DELETE',
+                        method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
                             'Content-Type': 'application/json',
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify({ index: photoIndex })
+                        body: JSON.stringify({ 
+                            index: photoIndex,
+                            _method: 'DELETE'
+                        })
                     })
-                    .then(res => res.json())
+                    .then(response => {
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json();
+                        } else {
+                            throw new TypeError("Server tidak mengembalikan JSON!");
+                        }
+                    })
                     .then(data => {
                         if (data.success) {
-                            Swal.fire('Berhasil!', 'Foto berhasil dihapus', 'success')
-                                .then(() => window.location.reload());
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: 'Foto berhasil dihapus',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
                         } else {
                             Swal.fire('Gagal!', data.message || 'Gagal menghapus foto', 'error');
                         }
                     })
-                    .catch(() => {
-                        Swal.fire('Error!', 'Terjadi kesalahan pada server', 'error');
+                    .catch(error => {
+                        console.error('Fetch error detail:', error);
+                        Swal.fire('Error!', 'Terjadi kesalahan pada server. Cek console untuk detail.', 'error');
                     });
                 });
             });

@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Exports;
-
 use App\Models\AbsensiSesi;
 use App\Models\User;
 use Carbon\Carbon;
@@ -69,7 +68,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
             'KETERANGAN',
         ];
 
-
+        // Spacer sebelum data
         $this->data[] = ['', '', '', '', '', '', '', ''];
 
         // Ambil Data Peserta
@@ -123,7 +122,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
 
         $noGlobal = 1;
 
-        // ⭐ 5. Proses sesuai urutan dinamis yang sudah disusun
+        //  5. Proses sesuai urutan dinamis yang sudah disusun
         foreach ($groupedPeserta as $bidang => $groupPeserta) {
             $noBidang = 1;
 
