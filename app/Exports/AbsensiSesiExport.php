@@ -64,7 +64,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
             'GOL',
             'NIP/ NI PPPK/ NI PPPK PW',
             'JABATAN',
-            'TANDA TANGAN',
+            'STATUS KEHADIRAN',
             'KETERANGAN',
         ];
 

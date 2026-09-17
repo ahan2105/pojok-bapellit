@@ -5,9 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Traits\HasNotifications;
 
 /**
+ * @method \Illuminate\Database\Eloquent\Relations\HasMany customNotifications()
+ * @method \Illuminate\Database\Eloquent\Relations\HasMany customUnreadNotifications()
+ * @method \App\Models\Notification sendNotification(string $type, string $title, string $message, array $data = [], ?string $url = null)
+ * @method static void sendNotificationToAdmins(string $type, string $title, string $message, array $data = [], ?string $url = null)
+ * 
  * @method bool isAdmin()
+ * @method bool isPegawai()
+ * @method bool canLogin()
  * 
  * @property int $id
  * @property string $name
@@ -28,13 +36,8 @@ use Illuminate\Notifications\Notifiable;
  */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasNotifications;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'username',
@@ -50,21 +53,11 @@ class User extends Authenticatable
         'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -75,37 +68,20 @@ class User extends Authenticatable
     // HELPER METHODS
     // ============================================================
 
-    /**
-     * Cek apakah user adalah admin
-     *
-     * @return bool
-     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin' || $this->is_admin === true;
     }
 
-    /**
-     * ⭐ Cek apakah user adalah pegawai yang bisa diabsen
-     * Kriteria: status aktif
-     *
-     * @return bool
-     */
     public function isPegawai(): bool
     {
         return $this->status === 'aktif';
     }
 
-    /**
-     * ⭐ Cek apakah user bisa login
-     * Kriteria: punya username & password & status aktif
-     *
-     * @return bool
-     */
     public function canLogin(): bool
     {
-        return !empty($this->username) 
-            && !empty($this->password) 
+        return !empty($this->username)
+            && !empty($this->password)
             && $this->status === 'aktif';
     }
 
@@ -113,31 +89,16 @@ class User extends Authenticatable
     // RELASI
     // ============================================================
 
-    /**
-     * Relasi ke booking
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function bookings()
     {
         return $this->hasMany(Booking::class);
     }
 
-    /**
-     * Relasi ke absensi detail (kehadiran user ini di semua sesi)
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function absensiDetails()
     {
         return $this->hasMany(AbsensiDetail::class, 'user_id');
     }
 
-    /**
-     * Relasi ke sesi absensi yang dibuat oleh user ini (khusus admin)
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function absensiSesiDibuat()
     {
         return $this->hasMany(AbsensiSesi::class, 'created_by');

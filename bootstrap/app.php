@@ -9,23 +9,20 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',   // ✅ penting buat Reverb
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-    $middleware->alias([
-        'cek.status' => \App\Http\Middleware\CekStatusAktif::class,
-    ]);
-})
-    ->withMiddleware(function (Middleware $middleware) {
-        // Daftarkan middleware alias
+        // Semua alias middleware dalam SATU blok
         $middleware->alias([
-            'admin' => AdminMiddleware::class,
+            'cek.status' => \App\Http\Middleware\CekStatusAktif::class,
+            'admin'      => AdminMiddleware::class,
         ]);
+
+        // Trust proxies (buat di belakang Nginx/load balancer)
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })
-    ->withMiddleware(function (Middleware $middleware) {
-    $middleware->trustProxies(at: '*');
-})
     ->create();

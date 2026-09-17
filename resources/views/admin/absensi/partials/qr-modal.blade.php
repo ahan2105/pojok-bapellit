@@ -36,7 +36,7 @@
             <p class="text-xs font-mono text-gray-700 break-all">{{ $scanUrl }}</p>
         </div>
 
-        {{-- ⭐ TOKEN MANUAL — untuk user tanpa kamera --}}
+        {{--  TOKEN MANUAL — untuk user tanpa kamera --}}
         <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-xs font-semibold text-purple-700 uppercase tracking-wide">
@@ -58,7 +58,7 @@
                 </p>
             </div>
             <p class="text-xs text-purple-600 mt-2 leading-relaxed">
-                💡 Untuk user yang HP-nya tanpa kamera atau kamera rusak.
+                💡 Untuk user yang HP-nya tanpa kamera atau kamera gangguan.
                 Bisa <strong>masukkan token ini</strong> di halaman Scan Absensi → kolom "Token Manual".
             </p>
         </div>

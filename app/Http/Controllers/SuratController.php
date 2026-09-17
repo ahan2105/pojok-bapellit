@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PengaturanSurat;
 use App\Models\Surat;
+use App\Events\SuratSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -81,7 +82,7 @@ class SuratController extends Controller
             $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('uploads/surat', $filename, 'public');
 
-            Surat::create([
+            $surat = Surat::create([
                 'user_id' => Auth::id(),
                 'no_surat' => $nomorSurat,
                 'jenis_surat' => $request->input('jenis_surat'),
@@ -96,6 +97,9 @@ class SuratController extends Controller
             ]);
 
             $pengaturan->incrementCounter(1);
+
+            // Broadcast ke admin (realtime) — TANPA ->toOthers()
+            broadcast(new SuratSubmitted($surat));
 
             return redirect()->route('surat.index')
                 ->with('success', 'Surat berhasil diambil! Nomor surat Anda: ' . $nomorSurat);

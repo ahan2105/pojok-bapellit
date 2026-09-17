@@ -29,6 +29,98 @@
     <!-- SweetAlert Notifikasi -->
     @include('components.sweetalert')
     
+    {{-- ───────────────────────────────────────────── --}}
+    {{-- Realtime Notification Listener (User) --}}
+    {{-- ───────────────────────────────────────────── --}}
+    @auth
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.Echo) {
+                console.error('❌ Echo belum ke-load. Cek: npm run dev');
+                return;
+            }
+
+            const userId = {{ auth()->id() }};
+            console.log(`🎧 User ${userId} listening ke channel: user.${userId}`);
+
+            // Dengarkan channel privat user
+            window.Echo.private(`user.${userId}`)
+
+                // ── Booking user di-approve ──
+                .listen('.booking.approved', (e) => {
+                    console.log('✅ Booking disetujui:', e);
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Booking Disetujui!',
+                        html: `<b>${e.aula ?? '-'}</b><br><small>${e.tanggal} (${e.sesi})</small>`,
+                        showConfirmButton: false,
+                        timer: 6000,
+                        timerProgressBar: true,
+                    });
+                })
+
+                // ── Booking user di-reject ──
+                .listen('.booking.rejected', (e) => {
+                    console.log('❌ Booking ditolak:', e);
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'Booking Ditolak',
+                        html: `<b>${e.aula ?? '-'}</b><br><small>${e.alasan ?? 'Hubungi admin untuk info lebih lanjut.'}</small>`,
+                        showConfirmButton: false,
+                        timer: 6000,
+                        timerProgressBar: true,
+                    });
+                })
+
+                // ── Surat user selesai / di-approve ──
+                .listen('.surat.approved', (e) => {
+                    console.log('📩 Surat disetujui:', e);
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Surat Disetujui',
+                        html: `<b>${e.no_surat ?? '-'}</b><br><small>${e.jenis_surat ?? '-'}</small>`,
+                        showConfirmButton: false,
+                        timer: 6000,
+                        timerProgressBar: true,
+                    });
+                })
+
+                // ── Surat user di-reject ──
+                .listen('.surat.rejected', (e) => {
+                    console.log('❌ Surat ditolak:', e);
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'Surat Ditolak',
+                        html: `<b>${e.no_surat ?? '-'}</b><br><small>${e.alasan ?? 'Hubungi admin untuk info lebih lanjut.'}</small>`,
+                        showConfirmButton: false,
+                        timer: 6000,
+                        timerProgressBar: true,
+                    });
+                });
+
+            // ── Debug koneksi ──
+            window.Echo.connector.pusher.connection.bind('connected', () => {
+                console.log('✅ Echo terhubung ke Reverb');
+            });
+            window.Echo.connector.pusher.connection.bind('disconnected', () => {
+                console.warn('⚠️ Echo terputus dari Reverb');
+            });
+        });
+    </script>
+    @endauth
+
     @stack('scripts')
 </body>
 </html>

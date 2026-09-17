@@ -1,9 +1,8 @@
 @php
+    /** @var \App\Models\User|null $user */
     $user = Auth::user();
-    $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-    $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
+    $isAdmin = $user?->isAdmin() ?? false;
 @endphp
-
 @extends($layout)
 
 @section('title', 'Pengaturan Nomor Surat')

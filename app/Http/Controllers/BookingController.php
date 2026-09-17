@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Aula;
 use App\Models\Booking;
+use App\Events\BookingCreated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -74,7 +75,7 @@ class BookingController extends Controller
         }
 
         try {
-            Booking::create([
+            $booking = Booking::create([
                 'user_id' => Auth::id(),
                 'aula_id' => $request->aula_id,
                 'tanggal_booking' => $request->tanggal_booking,
@@ -85,6 +86,9 @@ class BookingController extends Controller
                 'catatan' => $request->catatan,
                 'status' => 'pending',
             ]);
+
+            // Broadcast ke admin (realtime) — HAPUS ->toOthers()
+            broadcast(new BookingCreated($booking));
 
             return redirect()->route('riwayat.index')
                 ->with('success', 'Booking berhasil! Menunggu persetujuan admin.');

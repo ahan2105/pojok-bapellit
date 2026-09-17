@@ -1,6 +1,7 @@
 @php
+    /** @var \App\Models\User|null $userAuth */
     $userAuth = Auth::user();
-    $isAdmin = $userAuth && ($userAuth->role === 'admin' || $userAuth->is_admin === true);
+    $isAdmin = $userAuth?->isAdmin() ?? false;
     $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
     
     $isEdit = $user !== null;

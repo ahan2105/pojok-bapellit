@@ -11,6 +11,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\SuratController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // ========== HALAMAN UTAMA ==========
@@ -62,6 +63,11 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
     
     // ===== ⭐ PRESENSI SAYA (USER) =====
     Route::get('/presensi', [PresensiController::class, 'index'])->name('presensi.index');
+
+    // ===== ⭐ NOTIFIKASI (USER & ADMIN) =====
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     
     // ========== ROUTE ADMIN ==========
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {

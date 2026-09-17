@@ -80,7 +80,7 @@ class AbsensiController extends Controller
             'is_default'          => false,
             'is_locked'           => false,
             'created_by'          => Auth::id(),
-            //  Auto-generate token QR saat sesi dibuat
+            // Auto-generate token QR saat sesi dibuat
             'token_qr'            => Str::random(48),
             'token_generated_at'  => now(),
             'qr_lifetime_seconds' => 0,
@@ -103,8 +103,8 @@ class AbsensiController extends Controller
 
     /**
      * Halaman absensi 1 sesi
-     *  QR expire hanya saat sesi dikunci (tidak auto-refresh)
-     *  QR ditampilkan via modal popup di show.blade.php
+     * QR expire hanya saat sesi dikunci (tidak auto-refresh)
+     * QR ditampilkan via modal popup di show.blade.php
      */
     public function show(Request $request, int $id)
     {
@@ -156,17 +156,17 @@ class AbsensiController extends Controller
                 ->get();
         }
 
-        // ⭐ Generate token QR kalau belum ada
-        // ⭐ Jangan generate kalau sesi sudah dikunci
+        // Generate token QR kalau belum ada
+        // Jangan generate kalau sesi sudah dikunci
         if (!$sesi->is_locked && empty($sesi->token_qr)) {
             $sesi->token_qr = Str::random(48);
             $sesi->token_generated_at = now();
             $sesi->save();
         }
 
-        // ⭐ Siapkan QR Code + URL scan
-        // Kalau sesi dikunci → null (QR tidak tampil)
-        // ⚠️ Nama route BENAR: 'absensi.scan' (bukan 'presensi.scan')
+        // Siapkan QR Code + URL scan
+        // Kalau sesi dikunci -> null (QR tidak tampil)
+        // Nama route BENAR: 'absensi.scan' (bukan 'presensi.scan')
         $scanUrl = $sesi->token_qr
             ? route('absensi.scan', ['token' => $sesi->token_qr])
             : null;
@@ -232,9 +232,9 @@ class AbsensiController extends Controller
     }
 
     /**
-     * ⭐ Kunci absensi
+     * Kunci absensi
      * - Set is_locked = true
-     * - Hapus token_qr → QR langsung tidak berlaku
+     * - Hapus token_qr -> QR langsung tidak berlaku
      */
     public function lock(int $id)
     {
@@ -258,7 +258,7 @@ class AbsensiController extends Controller
     }
 
     /**
-     * ⭐ Regenerate token manual (kalau admin mau ganti QR)
+     * Regenerate token manual (kalau admin mau ganti QR)
      * Akses dari modal QR di halaman show
      */
     public function regenerateQr(int $id)

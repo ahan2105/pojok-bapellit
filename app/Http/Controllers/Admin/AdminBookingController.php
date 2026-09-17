@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Events\BookingApproved;
+use App\Events\BookingRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -56,6 +58,9 @@ class AdminBookingController extends Controller
             $booking->status = 'approved';
             $booking->save();
 
+            // ⬇️ TAMBAH: broadcast ke user
+            broadcast(new BookingApproved($booking));
+
             return redirect()->back()
                 ->with('success', 'Booking berhasil disetujui!');
 
@@ -86,6 +91,9 @@ class AdminBookingController extends Controller
             }
             
             $booking->save();
+
+            // ⬇️ TAMBAH: broadcast ke user
+            broadcast(new BookingRejected($booking, $request->alasan));
 
             return redirect()->back()
                 ->with('success', 'Booking berhasil ditolak!');

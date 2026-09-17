@@ -1,4 +1,5 @@
 @php
+    /** @var \App\Models\User|null $user */
     $user = Auth::user();
     $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
 @endphp
@@ -30,9 +31,13 @@
                 </a>
             </div>
             
-            <!-- KANAN: Dropdown Profil -->
-            <div class="flex items-center">
+            <!-- KANAN: Notif + Dropdown Profil -->
+            <div class="flex items-center gap-2">
                 @auth
+
+                {{-- 🔔 Bell Notifikasi (Admin & User) --}}
+                @include('components.notification-bell')
+
                 <div class="relative" x-data="{ open: false }" @click.away="open = false">
                     
                     @if($isAdmin)

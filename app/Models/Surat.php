@@ -5,6 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string|null $no_surat
+ * @property \Illuminate\Support\Carbon|null $tanggal
+ * @property string|null $no_indek
+ * @property string|null $alamat_tujuan
+ * @property string|null $isi_surat
+ * @property int|null $banyak_lampiran
+ * @property string|null $sifat_surat
+ * @property string|null $keterangan
+ * @property string|null $jenis_surat
+ * @property string|null $asal_surat
+ * @property string|null $file_surat
+ * @property string|null $file_surat_original_name
+ * @property-read string|null $file_url
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * 
+ * @property-read \App\Models\User|null $user
+ */
 class Surat extends Model
 {
     use HasFactory;
@@ -15,14 +36,14 @@ class Surat extends Model
         'tanggal',
         'no_indek',
         'alamat_tujuan',
-        'isi_surat',           // ← ganti dari 'keperluan'
+        'isi_surat',
         'banyak_lampiran',
         'sifat_surat',
         'keterangan',
-        'jenis_surat',         // ← TAMBAH
-        'asal_surat',          // ← TAMBAH
+        'jenis_surat',
+        'asal_surat',
         'file_surat',
-            'file_surat_original_name',   // ← TAMBAH
+        'file_surat_original_name',
     ];
 
     protected $casts = [

@@ -1,6 +1,7 @@
 @php
+    /** @var \App\Models\User|null $user */
     $user = Auth::user();
-    $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
+    $isAdmin = $user?->isAdmin() ?? false;
     $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
 @endphp
 
@@ -44,8 +45,8 @@
                     <ol class="text-sm text-purple-800 space-y-1 list-decimal list-inside">
                         <li>Minta admin menampilkan <strong>QR Code</strong> sesi absensi</li>
                         <li>Klik tombol <strong>"Scan Absensi"</strong> di atas</li>
-                        <li>Arahkan kamera ke QR Code</li>
-                        <li>Kehadiran otomatis tercatat ✅</li>
+                        <li>Arahkan kamera ke QR Code atau masukkan token manual</li>
+                        <li>Kehadiran dan <strong>Waktu</strong> otomatis tercatat ✅</li>
                     </ol>
                 </div>
             </div>
@@ -155,6 +156,7 @@
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">NO</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NAMA SESI</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">TANGGAL</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">WAKTU</th> <!-- ⭐ BARU -->
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">STATUS</th>
                         <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">KETERANGAN</th>
                     </tr>
@@ -178,6 +180,13 @@
                             </td>
                             <td class="px-6 py-4 text-base text-gray-700">
                                 {{ $r->sesi->tanggal->translatedFormat('d M Y') }}
+                            </td>
+                            <td class="px-6 py-4 text-base text-gray-700 font-mono"> <!-- ⭐ BARU -->
+                                @if($r->waktu_absen)
+                                    {{ \Carbon\Carbon::parse($r->waktu_absen)->format('H:i') }}
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 @if($r->status_kehadiran === 'hadir')
@@ -203,7 +212,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-16 text-center">
+                            <td colspan="6" class="px-6 py-16 text-center"> <!-- ⭐ Diubah dari 5 ke 6 -->
                                 <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                                 </svg>
@@ -231,8 +240,12 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="text-base font-semibold text-gray-800">{{ $r->sesi->nama_sesi }}</div>
-                            <div class="text-sm text-gray-500 mt-0.5">
-                                📅 {{ $r->sesi->tanggal->translatedFormat('d M Y') }}
+                            <div class="text-sm text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                                <span>📅 {{ $r->sesi->tanggal->translatedFormat('d M Y') }}</span>
+                                @if($r->waktu_absen)
+                                    <span class="text-gray-400">•</span>
+                                    <span class="font-mono text-gray-700">🕒 {{ \Carbon\Carbon::parse($r->waktu_absen)->format('H:i') }}</span>
+                                @endif
                             </div>
                             @if($r->sesi->lokasi)
                                 <div class="text-sm text-gray-500 mt-0.5">📍 {{ $r->sesi->lokasi }}</div>
