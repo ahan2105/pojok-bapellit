@@ -25,15 +25,19 @@ class SuratSubmitted implements ShouldBroadcastNow
                 ->get();
 
             foreach ($admins as $admin) {
+                // ⭐ FIX: pakai positional parameter (bukan named)
                 $admin->sendNotification(
-                    type: 'surat',
-                    title: 'Pengajuan Surat Baru',
-                    message: "{$surat->no_surat} dari {$surat->user?->name}",
-                    data: [
-                        'surat_id' => $surat->id,
-                        'no_surat' => $surat->no_surat,
+                    'surat',
+                    'Pengajuan Surat Baru',
+                    "{$surat->no_surat} dari {$surat->user?->name}",
+                    [
+                        'surat_id'   => $surat->id,
+                        'no_surat'   => $surat->no_surat,
+                        'pengaju'    => $surat->user?->name,
+                        'jenis'      => $surat->jenis_surat,
+                        'created_at' => $surat->created_at,
                     ],
-                    url: route('admin.kelolasurat.index'),
+                    route('admin.kelolasurat.index')
                 );
             }
         } catch (\Exception $e) {

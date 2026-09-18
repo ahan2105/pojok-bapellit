@@ -29,61 +29,6 @@
     <!-- SweetAlert Notifikasi -->
     @include('components.sweetalert')
     
-    {{-- ───────────────────────────────────────────── --}}
-    {{-- Realtime Notification Listener (Reverb + Echo) --}}
-    {{-- ───────────────────────────────────────────── --}}
-    @auth
-    <script type="module">
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.Echo) {
-                console.error('❌ Echo belum ke-load. Cek: npm run dev + php artisan reverb:start');
-                return;
-            }
-
-            console.log('🎧 Admin listening ke channel: admin.notifications');
-
-            window.Echo.private('admin.notifications')
-
-                .listen('.booking.created', (e) => {
-                    console.log('🔔 Booking baru masuk:', e);
-
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'info',
-                        title: 'Booking Baru',
-                        html: `<b>${e.nama}</b><br><small>${e.keperluan} — ${e.aula ?? '-'}</small><br><small>${e.tanggal} (${e.sesi})</small>`,
-                        showConfirmButton: false,
-                        timer: 6000,
-                        timerProgressBar: true,
-                    });
-                })
-
-                .listen('.surat.submitted', (e) => {
-                    console.log('📩 Surat baru masuk:', e);
-
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Pengajuan Surat Baru',
-                        html: `<b>${e.no_surat ?? '-'}</b><br><small>${e.jenis_surat ?? '-'} — ${e.pengaju ?? '-'}</small>`,
-                        showConfirmButton: false,
-                        timer: 6000,
-                        timerProgressBar: true,
-                    });
-                });
-
-            window.Echo.connector.pusher.connection.bind('connected', () => {
-                console.log('✅ Echo terhubung ke Reverb');
-            });
-            window.Echo.connector.pusher.connection.bind('disconnected', () => {
-                console.warn('⚠️ Echo terputus dari Reverb');
-            });
-        });
-    </script>
-    @endauth
-
     @stack('scripts')
 </body>
 </html>

@@ -1,14 +1,8 @@
-/**
- * Echo — Reverb WebSocket
- * Import DULUAN biar window.Echo siap sebelum Alpine start.
- */
-import './echo';
+import NotificationStream from './notification-stream';
 
-/**
- * Alpine.js
- */
 import Alpine from 'alpinejs';
 
+window.NotificationStream = NotificationStream;
 window.Alpine = Alpine;
 
 Alpine.start();

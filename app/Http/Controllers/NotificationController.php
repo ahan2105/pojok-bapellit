@@ -2,58 +2,60 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Notification;
+use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     /**
-     * List notif user (JSON) — buat dropdown bell
+     * Ambil list notif (untuk dropdown bell)
      */
-    public function index()
+    public function index(Request $request)
     {
-        /** @var User $user */
-        $user = Auth::user();
+        $user = $request->user();
 
-        $notifs = $user->customNotifications()->take(20)->get();
+        $notifications = $user->customNotifications()
+            ->limit(20)
+            ->get()
+            ->map(function ($n) {
+                return [
+                    'id'         => $n->id,
+                    'type'       => $n->type,
+                    'title'      => $n->title,
+                    'message'    => $n->message,
+                    'data'       => $n->data,
+                    'url'        => $n->url,
+                    'is_read'    => $n->read_at !== null,
+                    'created_at' => $n->created_at?->toIso8601String(),
+                ];
+            });
 
         return response()->json([
-            'unread_count'  => $user->customUnreadNotifications()->count(),
-            'notifications' => $notifs->map(fn($n) => [
-                'id'         => $n->id,
-                'type'       => $n->type,
-                'title'      => $n->title,
-                'message'    => $n->message,
-                'url'        => $n->url,
-                'read'       => $n->isRead(),
-                'created_at' => $n->created_at->diffForHumans(),
-            ]),
+            'notifications' => $notifications,
+            'unread_count'  => $user->unreadNotificationsCount(),
         ]);
     }
 
     /**
      * Tandai 1 notif sudah dibaca
      */
-    public function markAsRead(int $id)
+public function markAsRead(Request $request, int $id)
     {
-        /** @var User $user */
-        $user = Auth::user();
+        $notification = Notification::findOrFail($id);
 
-        $notif = $user->customNotifications()->findOrFail($id);
-        $notif->update(['read_at' => now()]);
+        abort_if($notification->user_id !== $request->user()->id, 403);
+
+        $notification->update(['read_at' => now()]);
 
         return response()->json(['success' => true]);
     }
 
     /**
-     * Tandai semua sudah dibaca
+     * Tandai semua notif sudah dibaca
      */
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
-        /** @var User $user */
-        $user = Auth::user();
-
-        $user->customUnreadNotifications()->update(['read_at' => now()]);
+        $request->user()->markAllNotificationsAsRead();
 
         return response()->json(['success' => true]);
     }

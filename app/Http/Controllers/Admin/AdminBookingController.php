@@ -34,12 +34,11 @@ class AdminBookingController extends Controller
     }
 
     /**
-     * Menampilkan detail booking untuk admin
+     * Detail booking — redirect ke index karena detail pakai modal popup.
      */
     public function detail(int $id)
     {
-        $booking = Booking::with(['user', 'aula'])->findOrFail($id);
-        return view('admin.kelolabooking.detail', compact('booking'));
+        return redirect()->route('admin.kelolabooking.index');
     }
 
     /**

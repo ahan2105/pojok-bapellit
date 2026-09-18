@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Aula;
 use App\Models\Booking;
-use App\Events\BookingCreated;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -87,8 +88,8 @@ class BookingController extends Controller
                 'status' => 'pending',
             ]);
 
-            // Broadcast ke admin (realtime) — HAPUS ->toOthers()
-            broadcast(new BookingCreated($booking));
+            // ⭐ Kirim notif ke semua admin (masuk ke tabel `notifications`, SSE nangkep)
+            $this->notifyAdminsNewBooking($booking);
 
             return redirect()->route('riwayat.index')
                 ->with('success', 'Booking berhasil! Menunggu persetujuan admin.');
@@ -192,5 +193,47 @@ class BookingController extends Controller
             $q->where('sesi_waktu', $request->sesi_waktu)
               ->orWhere('sesi_waktu', 'seharian');
         })->exists();
+    }
+
+    /**
+     * ⭐ Kirim notif booking baru ke semua admin.
+     * Notif masuk ke tabel `notifications`, SSE nangkep, toast muncul realtime.
+     * created_at notif = created_at booking (biar jam-nya sama).
+     */
+    private function notifyAdminsNewBooking(Booking $booking): void
+    {
+        $admins = User::where('role', 'admin')
+            ->orWhere('is_admin', true)
+            ->get();
+
+        $tanggalFormatted = $booking->tanggal_booking
+            ? Carbon::parse($booking->tanggal_booking)->format('d M Y')
+            : '-';
+
+        $aulaNama = $booking->aula->nama ?? '-';
+        $pengaju  = $booking->user->name ?? 'User';
+
+        foreach ($admins as $admin) {
+            // Skip kalau admin sendiri yang booking
+            if ($admin->id === $booking->user_id) {
+                continue;
+            }
+
+            $admin->sendNotification(
+                'booking',
+                'Booking Baru',
+                $pengaju . ' booking Aula ' . $aulaNama,
+                [
+                    'tanggal'    => $tanggalFormatted,
+                    'sesi'       => $booking->sesi_waktu,
+                    'aula'       => $aulaNama,
+                    'pengaju'    => $pengaju,
+                    'keperluan'  => $booking->keperluan,
+                    'booking_id' => $booking->id,
+                    'created_at' => $booking->created_at,
+                ],
+                route('admin.kelolabooking.index')
+            );
+        }
     }
 }

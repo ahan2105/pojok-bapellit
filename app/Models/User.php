@@ -8,15 +8,6 @@ use Illuminate\Notifications\Notifiable;
 use App\Traits\HasNotifications;
 
 /**
- * @method \Illuminate\Database\Eloquent\Relations\HasMany customNotifications()
- * @method \Illuminate\Database\Eloquent\Relations\HasMany customUnreadNotifications()
- * @method \App\Models\Notification sendNotification(string $type, string $title, string $message, array $data = [], ?string $url = null)
- * @method static void sendNotificationToAdmins(string $type, string $title, string $message, array $data = [], ?string $url = null)
- * 
- * @method bool isAdmin()
- * @method bool isPegawai()
- * @method bool canLogin()
- * 
  * @property int $id
  * @property string $name
  * @property string|null $username
@@ -33,6 +24,11 @@ use App\Traits\HasNotifications;
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * 
+ * @method \Illuminate\Database\Eloquent\Relations\MorphMany notifications()
+ * @method \Illuminate\Database\Eloquent\Relations\MorphMany unreadNotifications()
+ * @method void markNotificationAsRead(string $id)
+ * @method void markNotificationsAsRead(array $ids)
  */
 class User extends Authenticatable
 {
