@@ -2,14 +2,16 @@
     /** @var \App\Models\User|null $user */
     $user = Auth::user();
     $isAdmin = $user?->isAdmin() ?? false;
+    $layout = $isAdmin ? 'layouts.admin' : 'layouts.user';
 @endphp
+
 @extends($layout)
 
 @section('title', 'Pengaturan Nomor Surat')
 
 @section('content')
 <div class="max-w-3xl mx-auto px-6 sm:px-8 py-8">
-    
+
     <!-- Breadcrumb -->
     <a href="{{ route('admin.kelolasurat.index') }}" class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-indigo-600 transition mb-6">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,12 +47,12 @@
                 <div>
                     <label class="block text-sm font-bold text-gray-800 mb-1">Nomor Terakhir yang Sudah Dipakai *</label>
                     <input type="number" name="nomor_terakhir" id="nomorTerakhirInput"
-                        value="{{ old('nomor_terakhir', $pengaturan->getCounter()) }}" 
+                        value="{{ old('nomor_terakhir', $pengaturan->getCounter()) }}"
                         min="0"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-lg font-semibold" 
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-lg font-semibold"
                         placeholder="Contoh: 2396" required>
                     <p class="text-xs text-gray-400 mt-2">
-                        Contoh: kalau surat terakhir bernomor <strong>2396</strong>, 
+                        Contoh: kalau surat terakhir bernomor <strong>2396</strong>,
                         maka user berikutnya akan otomatis mendapatkan nomor <strong>2397</strong>.
                     </p>
                     @error('nomor_terakhir')

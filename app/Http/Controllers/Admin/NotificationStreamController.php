@@ -8,15 +8,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NotificationStreamController extends Controller
 {
-    /**
-     * SSE Stream — kirim notif realtime ke browser
-     */
     public function stream(Request $request): StreamedResponse
     {
         $user   = $request->user();
         $lastId = (int) $request->header('Last-Event-ID', 0);
 
-        // Kalau client baru connect, ambil ID terakhir biar gak spam notif lama
         if ($lastId === 0) {
             $lastId = $user->customNotifications()->max('id') ?? 0;
         }
@@ -24,13 +20,17 @@ class NotificationStreamController extends Controller
         // ⚠️ WAJIB: release session lock biar request lain gak nunggu
         session()->save();
 
+        // ⭐ WAJIB: biar SSE gak mati di detik 30 (max_execution_time)
+        set_time_limit(0);
+        ignore_user_abort(true);
+
         return response()->stream(function () use ($user, $lastId) {
             if (ob_get_level() > 0) {
                 ob_end_clean();
             }
 
             $startTime     = time();
-            $maxDuration   = 300;   // 5 menit per koneksi
+            $maxDuration   = 300;
             $lastHeartbeat = time();
 
             while (true) {
@@ -38,7 +38,6 @@ class NotificationStreamController extends Controller
                     break;
                 }
 
-                // Sinyal reconnect ke client sebelum timeout
                 if ((time() - $startTime) > $maxDuration) {
                     echo "event: reconnect\n";
                     echo "data: {\"reason\":\"timeout\"}\n\n";
@@ -46,8 +45,10 @@ class NotificationStreamController extends Controller
                     break;
                 }
 
-                // Cari notif baru
-                $newNotifications = $user->customNotifications()
+                // ⭐ Query langsung ke model (lebih ringan dari relasi)
+                // + hanya ambil kolom yang perlu
+                $newNotifications = \App\Models\Notification::query()
+                    ->where('user_id', $user->id)
                     ->where('id', '>', $lastId)
                     ->orderBy('id')
                     ->get();
@@ -69,7 +70,6 @@ class NotificationStreamController extends Controller
                     ]) . "\n\n";
                 }
 
-                // Heartbeat tiap 15 detik
                 if ((time() - $lastHeartbeat) >= 15) {
                     echo ": heartbeat " . time() . "\n\n";
                     $lastHeartbeat = time();
@@ -83,7 +83,7 @@ class NotificationStreamController extends Controller
             'Cache-Control'     => 'no-cache, no-store, must-revalidate',
             'Connection'        => 'keep-alive',
             'X-Accel-Buffering' => 'no',
-             'Content-Encoding'  => 'identity',
+            'Content-Encoding'  => 'identity',
         ]);
     }
 }

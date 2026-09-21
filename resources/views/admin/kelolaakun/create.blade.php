@@ -303,8 +303,6 @@
     </div>
 </div>
 
-<!-- Alpine.js (kalau belum ada di layout) -->
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 <script>
     // ===== Toggle Password Visibility =====

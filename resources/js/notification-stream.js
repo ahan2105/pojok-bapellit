@@ -11,15 +11,23 @@ class NotificationStream {
         this.reconnectDelay      = 3000;
         this.maxReconnectDelay   = 30000;
         this.currentReconnectDelay = this.reconnectDelay;
+
+        // ⭐ Guard biar timer reconnect cuma 1
+        this._reconnectTimer     = null;
     }
 
     connect() {
+        // ⭐ Batalkan timer reconnect yang masih jalan
+        if (this._reconnectTimer) {
+            clearTimeout(this._reconnectTimer);
+            this._reconnectTimer = null;
+        }
+
         if (this.eventSource) {
             this.eventSource.close();
         }
 
-        // ⭐ Skip ngrok warning page (khusus ngrok free)
-       const url = this._buildUrl(this.streamUrl);
+        const url = this._buildUrl(this.streamUrl);
 
         this.eventSource = new EventSource(url, {
             withCredentials: true,
@@ -33,7 +41,6 @@ class NotificationStream {
                 this.onUnreadCountChange(this.unreadCount);
                 this.onNotification(notif);
 
-                // ⭐ Dispatch global event — biar halaman lain bisa listen
                 window.dispatchEvent(new CustomEvent('realtime:notification', {
                     detail: notif,
                 }));
@@ -44,7 +51,6 @@ class NotificationStream {
             }
         });
 
-        // ⭐ Event untuk data-changed (kalau nanti dipakai)
         this.eventSource.addEventListener('data-changed', (e) => {
             try {
                 const payload = JSON.parse(e.data);
@@ -75,14 +81,14 @@ class NotificationStream {
 
         this.eventSource.onerror = () => {
             this.connected = false;
-            this.eventSource.close();
+            if (this.eventSource) {
+                this.eventSource.close();
+                this.eventSource = null;
+            }
             this._scheduleReconnect();
         };
     }
 
-    /**
-     * Build URL + skip ngrok warning
-     */
     _buildUrl(baseUrl) {
         const param = 'ngrok-skip-browser-warning=true';
 
@@ -95,9 +101,20 @@ class NotificationStream {
             : baseUrl + '?' + param;
     }
 
+    // ⭐ Guard: cuma 1 timer reconnect + jitter
     _scheduleReconnect() {
-        console.log(`[SSE] Reconnect dalam ${this.currentReconnectDelay}ms`);
-        setTimeout(() => this.connect(), this.currentReconnectDelay);
+        if (this._reconnectTimer) return;
+
+        const jitter = Math.floor(Math.random() * 500);
+        const delay  = this.currentReconnectDelay + jitter;
+
+        console.log(`[SSE] Reconnect dalam ${delay}ms`);
+
+        this._reconnectTimer = setTimeout(() => {
+            this._reconnectTimer = null;
+            this.connect();
+        }, delay);
+
         this.currentReconnectDelay = Math.min(
             this.currentReconnectDelay * 2,
             this.maxReconnectDelay
@@ -105,10 +122,17 @@ class NotificationStream {
     }
 
     disconnect() {
+        if (this._reconnectTimer) {
+            clearTimeout(this._reconnectTimer);
+            this._reconnectTimer = null;
+        }
+
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
         }
+
+        this.connected = false;
     }
 
     setUnreadCount(count) {
