@@ -1,39 +1,149 @@
+/**
+ * NotificationStream — klien SSE untuk notifikasi realtime.
+ *
+ * - Guard duplikat berbasis ID string (bukan perbandingan objek), aman dari
+ *   Proxy milik Alpine.
+ * - Reconnect bawaan browser dibiarkan jalan (Last-Event-ID tetap terkirim);
+ *   reconnect manual hanya kalau koneksi benar-benar CLOSED.
+ * - SSE ditutup saat pindah halaman (pagehide) supaya thread server cepat lepas.
+ * - Tab di background TIDAK ditutup secara default (hiddenGraceMs = Infinity),
+ *   jadi notifikasi + suara tetap masuk saat admin sedang di jendela lain.
+ * - Resync lewat onResync / event `realtime:resync` setelah koneksi putus lama.
+ */
 class NotificationStream {
     constructor(options = {}) {
         this.streamUrl           = options.streamUrl || '/notifications/stream';
         this.onNotification      = options.onNotification || (() => {});
         this.onUnreadCountChange = options.onUnreadCountChange || (() => {});
-        this.initialUnreadCount  = options.initialUnreadCount || 0;
+        this.onDataChanged       = options.onDataChanged || null;
+        this.onResync            = options.onResync || (() => {});
+        this.onStatusChange      = options.onStatusChange || (() => {});
 
-        this.eventSource         = null;
-        this.unreadCount         = this.initialUnreadCount;
-        this.connected           = false;
-        this.reconnectDelay      = 3000;
-        this.maxReconnectDelay   = 30000;
+        // Tab tersembunyi lebih lama dari ini (ms) → SSE ditutup.
+        // Default Infinity = tidak pernah ditutup (notifikasi tetap masuk di background).
+        this.hiddenGraceMs = options.hiddenGraceMs ?? Infinity;
+        // Kalau koneksi putus lebih lama dari ini, minta UI resync saat tersambung lagi.
+        this.resyncAfterMs = options.resyncAfterMs ?? 5000;
+
+        // ID stabil untuk guard kepemilikan. Jangan bandingkan `this` langsung:
+        // Alpine membungkus objek di state reaktif dengan Proxy, sehingga `this`
+        // bisa berupa Proxy di satu tempat dan objek asli di tempat lain.
+        this._id = 'ns-' + Math.random().toString(36).slice(2);
+
+        this.unreadCount = options.initialUnreadCount || 0;
+        this.eventSource = null;
+        this.connected   = false;
+
+        this.reconnectDelay        = 3000;
+        this.maxReconnectDelay     = 30000;
         this.currentReconnectDelay = this.reconnectDelay;
 
-        // ⭐ Guard biar timer reconnect cuma 1
-        this._reconnectTimer     = null;
+        this._reconnectTimer = null;
+        this._hiddenTimer    = null;
+        this._wantConnected  = false;
+        this._lifecycleBound = false;
+        this._dropAt         = null;
+        this._needsResync    = false;
+
+        this._onVisibility = () => {
+            if (!this._wantConnected) return;
+
+            if (document.hidden) {
+                if (this._hiddenTimer || !Number.isFinite(this.hiddenGraceMs)) return;
+                this._hiddenTimer = setTimeout(() => {
+                    this._hiddenTimer = null;
+                    if (document.hidden && this.eventSource) {
+                        console.log('[SSE] Tab tersembunyi — tutup koneksi');
+                        this._needsResync = true;
+                        this._close();
+                    }
+                }, this.hiddenGraceMs);
+            } else {
+                this._clearHiddenTimer();
+                if (!this.eventSource) this._open();
+            }
+        };
+
+        this._onPageHide = () => {
+            if (!this._wantConnected) return;
+            this._needsResync = true;
+            this._close(); // lepas thread server secepat mungkin saat pindah halaman
+        };
+
+        this._onPageShow = (e) => {
+            // Halaman dipulihkan dari bfcache (tombol back/forward)
+            if (e.persisted && this._wantConnected && !document.hidden && !this.eventSource) {
+                this._open();
+            }
+        };
     }
 
+    // ------------------------------------------------------------------ API
+
     connect() {
-        // ⭐ Batalkan timer reconnect yang masih jalan
-        if (this._reconnectTimer) {
-            clearTimeout(this._reconnectTimer);
-            this._reconnectTimer = null;
+        this._wantConnected = true;
+        this._bindLifecycle();
+
+        // Tab tersembunyi: tunggu sampai terlihat baru buka koneksi.
+        if (document.hidden) return;
+
+        this._open();
+    }
+
+    disconnect() {
+        this._wantConnected = false;
+        this._unbindLifecycle();
+        this._clearHiddenTimer();
+        this._close();
+    }
+
+    setUnreadCount(count) {
+        this.unreadCount = count;
+        this.onUnreadCountChange(count);
+    }
+
+    // ------------------------------------------------------------ internals
+
+    _open() {
+        if (!this._wantConnected) return;
+
+        // Guard duplikat: instance lain di halaman ini sudah pegang SSE → skip.
+        const owner = window.__notifStreamOwner;
+        if (owner && owner !== this._id) {
+            console.warn('[SSE] Sudah ada instance aktif — skip duplikat');
+            return;
         }
 
-        if (this.eventSource) {
-            this.eventSource.close();
+        // Sudah ada koneksi yang hidup / sedang menyambung → jangan buat baru.
+        if (this.eventSource && this.eventSource.readyState !== EventSource.CLOSED) {
+            return;
         }
 
-        const url = this._buildUrl(this.streamUrl);
+        this._clearReconnectTimer();
+        if (this.eventSource) this.eventSource.close();
 
-        this.eventSource = new EventSource(url, {
-            withCredentials: true,
-        });
+        const es = new EventSource(this.streamUrl, { withCredentials: true });
+        this.eventSource = es;
+        window.__notifStreamOwner = this._id;
 
-        this.eventSource.addEventListener('notification', (e) => {
+        es.onopen = () => {
+            if (es !== this.eventSource) return;
+
+            console.log('[SSE] Connected');
+            this.connected = true;
+            this.onStatusChange(true);
+            this.currentReconnectDelay = this.reconnectDelay;
+
+            const gap = this._dropAt ? Date.now() - this._dropAt : 0;
+            if (this._needsResync || gap > this.resyncAfterMs) {
+                this._resync();
+            }
+            this._needsResync = false;
+            this._dropAt = null;
+        };
+
+        es.addEventListener('notification', (e) => {
+            if (es !== this.eventSource) return;
             try {
                 const notif = JSON.parse(e.data);
 
@@ -44,21 +154,18 @@ class NotificationStream {
                 window.dispatchEvent(new CustomEvent('realtime:notification', {
                     detail: notif,
                 }));
-
-                this.currentReconnectDelay = this.reconnectDelay;
             } catch (err) {
                 console.error('[SSE] Gagal parse notif:', err);
             }
         });
 
-        this.eventSource.addEventListener('data-changed', (e) => {
+        es.addEventListener('data-changed', (e) => {
+            if (es !== this.eventSource) return;
             try {
                 const payload = JSON.parse(e.data);
-
                 window.dispatchEvent(new CustomEvent('realtime:data-changed', {
                     detail: payload,
                 }));
-
                 if (typeof this.onDataChanged === 'function') {
                     this.onDataChanged(payload);
                 }
@@ -67,43 +174,52 @@ class NotificationStream {
             }
         });
 
-        this.eventSource.addEventListener('reconnect', () => {
-            console.log('[SSE] Server minta reconnect');
-            this.eventSource.close();
-            this._scheduleReconnect();
+        // Server menutup stream sesuai jadwal (maxDuration). Browser akan
+        // reconnect sendiri (dengan Last-Event-ID) — jangan di-close manual.
+        es.addEventListener('reconnect', () => {
+            console.log('[SSE] Server menutup stream terjadwal, browser reconnect otomatis');
         });
 
-        this.eventSource.onopen = () => {
-            console.log('[SSE] Connected');
-            this.connected = true;
-            this.currentReconnectDelay = this.reconnectDelay;
-        };
+        es.onerror = () => {
+            if (es !== this.eventSource) return; // event dari koneksi lama
 
-        this.eventSource.onerror = () => {
             this.connected = false;
-            if (this.eventSource) {
-                this.eventSource.close();
+            this.onStatusChange(false);
+            if (this._dropAt === null) this._dropAt = Date.now();
+
+            // CONNECTING → browser sedang reconnect sendiri, biarkan.
+            // CLOSED     → browser menyerah (mis. HTTP 401/419/500) → reconnect manual.
+            if (es.readyState === EventSource.CLOSED) {
                 this.eventSource = null;
+                this._releaseOwnership();
+                this._scheduleReconnect();
             }
-            this._scheduleReconnect();
         };
     }
 
-    _buildUrl(baseUrl) {
-        const param = 'ngrok-skip-browser-warning=true';
-
-        if (baseUrl.includes(param)) {
-            return baseUrl;
+    _close() {
+        this._clearReconnectTimer();
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
         }
-
-        return baseUrl.includes('?')
-            ? baseUrl + '&' + param
-            : baseUrl + '?' + param;
+        if (this.connected) {
+            this.connected = false;
+            this.onStatusChange(false);
+        }
+        this._releaseOwnership();
     }
 
-    // ⭐ Guard: cuma 1 timer reconnect + jitter
+    _releaseOwnership() {
+        if (window.__notifStreamOwner === this._id) {
+            window.__notifStreamOwner = null;
+        }
+    }
+
     _scheduleReconnect() {
-        if (this._reconnectTimer) return;
+        if (this._reconnectTimer || !this._wantConnected) return;
+        // Tab tersembunyi: tunggu sampai terlihat (ditangani _onVisibility).
+        if (document.hidden) return;
 
         const jitter = Math.floor(Math.random() * 500);
         const delay  = this.currentReconnectDelay + jitter;
@@ -112,7 +228,7 @@ class NotificationStream {
 
         this._reconnectTimer = setTimeout(() => {
             this._reconnectTimer = null;
-            this.connect();
+            this._open();
         }, delay);
 
         this.currentReconnectDelay = Math.min(
@@ -121,23 +237,43 @@ class NotificationStream {
         );
     }
 
-    disconnect() {
+    _resync() {
+        try {
+            this.onResync();
+        } catch (err) {
+            console.error('[SSE] onResync error:', err);
+        }
+        window.dispatchEvent(new CustomEvent('realtime:resync'));
+    }
+
+    _clearReconnectTimer() {
         if (this._reconnectTimer) {
             clearTimeout(this._reconnectTimer);
             this._reconnectTimer = null;
         }
-
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
-        }
-
-        this.connected = false;
     }
 
-    setUnreadCount(count) {
-        this.unreadCount = count;
-        this.onUnreadCountChange(count);
+    _clearHiddenTimer() {
+        if (this._hiddenTimer) {
+            clearTimeout(this._hiddenTimer);
+            this._hiddenTimer = null;
+        }
+    }
+
+    _bindLifecycle() {
+        if (this._lifecycleBound) return;
+        document.addEventListener('visibilitychange', this._onVisibility);
+        window.addEventListener('pagehide', this._onPageHide);
+        window.addEventListener('pageshow', this._onPageShow);
+        this._lifecycleBound = true;
+    }
+
+    _unbindLifecycle() {
+        if (!this._lifecycleBound) return;
+        document.removeEventListener('visibilitychange', this._onVisibility);
+        window.removeEventListener('pagehide', this._onPageHide);
+        window.removeEventListener('pageshow', this._onPageShow);
+        this._lifecycleBound = false;
     }
 }
 

@@ -129,18 +129,27 @@
 {{-- ═══════════════════════════════════════════════════════════ --}}
 <script>
 function notifBell() {
+    // Disimpan di luar state reaktif Alpine (supaya tidak dibungkus Proxy)
+    let audio = null;
+    let lastFetch = 0;
+    let stream = null;
+
     return {
         open: false,
         notifications: [],
         unreadCount: {{ auth()->user()->unreadNotificationsCount() ?? 0 }},
-        stream: null,
         connected: false,
         soundEnabled: true,
-        audioUnlocked: false,
+        soundBlocked: false,   // true = browser menolak play() (belum ada interaksi di halaman ini)
         audioUrl: '/sounds/notif.mp3',
-        lastFetchTime: 0,   // ⭐ buat throttle fetch
+        _initialized: false,
 
+        // Alpine 3 memanggil init() otomatis, dan x-init="init()" memanggilnya lagi.
+        // Guard ini membuat pemanggilan kedua tidak melakukan apa-apa.
         init() {
+            if (this._initialized) return;
+            this._initialized = true;
+
             this.setupAudio();
             this.fetchNotifs();
 
@@ -149,94 +158,104 @@ function notifBell() {
                 return;
             }
 
-            this.stream = new window.NotificationStream({
+            stream = new window.NotificationStream({
                 streamUrl: '{{ route('notifications.stream') }}',
-                initialUnreadCount: this.unreadCount,
+
+                // Bell adalah satu-satunya pemilik unreadCount.
                 onNotification: (notif) => {
                     console.log('🔔 Notif SSE masuk:', notif);
 
                     this.notifications.unshift(notif);
                     this.unreadCount++;
 
-                    if (this.soundEnabled) {
-                        this.playSound();
-                    }
-
+                    if (this.soundEnabled) this.playSound();
                     this.showToast(notif);
-                    this.connected = true;
                 },
-                onUnreadCountChange: (count) => {
-                    this.unreadCount = count;
-                },
+                onStatusChange: (ok) => { this.connected = ok; },
+                onResync: () => this.resync(),
             });
 
-            this.stream.connect();
-            this.connected = true;
+            stream.connect();
         },
+
+        destroy() {
+            if (stream) {
+                stream.disconnect();
+                stream = null;
+            }
+        },
+
+        // ------------------------------------------------------------ Suara
 
         setupAudio() {
             const saved = localStorage.getItem('notification_sound_enabled');
-            if (saved !== null) {
-                this.soundEnabled = saved === 'true';
-            }
+            if (saved !== null) this.soundEnabled = saved === 'true';
 
-            const self = this;
+            // Satu elemen Audio dipakai berulang. Penting untuk Safari/iOS: yang
+            // di-"unlock" saat klik harus elemen yang sama dengan yang nanti di-play.
+            audio = new Audio(this.audioUrl);
+            audio.preload = 'auto';
+            audio.volume = 0.7;
 
-            const unlock = function() {
-                if (self.audioUnlocked) return;
+            const events = ['click', 'keydown', 'touchstart'];
 
-                const audio = new Audio(self.audioUrl);
+            const unlock = () => {
                 audio.volume = 0.01;
                 audio.play().then(() => {
                     audio.pause();
-                    self.audioUnlocked = true;
+                    audio.currentTime = 0;
+                    audio.volume = 0.7;
+                    events.forEach(ev => document.removeEventListener(ev, unlock));
                     console.log('[Sound] Audio unlocked');
-                    document.removeEventListener('click', unlock);
-                    document.removeEventListener('keydown', unlock);
-                    document.removeEventListener('touchstart', unlock);
+
+                    // Ada notif yang tadi ditolak browser? Bunyikan sekarang.
+                    if (this.soundBlocked) {
+                        this.soundBlocked = false;
+                        if (this.soundEnabled) this.playSound();
+                    }
                 }).catch((err) => {
+                    audio.volume = 0.7;
                     console.warn('[Sound] Unlock gagal:', err.message);
                 });
             };
 
-            document.addEventListener('click', unlock);
-            document.addEventListener('keydown', unlock);
-            document.addEventListener('touchstart', unlock);
+            events.forEach(ev => document.addEventListener(ev, unlock));
         },
 
         playSound() {
-            if (!this.audioUnlocked) {
-                console.warn('[Sound] Belum di-unlock. Klik halaman dulu.');
-                return;
-            }
+            if (!audio) return;
 
-            try {
-                const sound = new Audio(this.audioUrl);
-                sound.volume = 0.7;
-                sound.play()
-                    .then(() => console.log('[Sound] 🔊 Bunyi'))
-                    .catch((err) => console.warn('[Sound] Gagal play:', err.message));
-            } catch (err) {
-                console.error('[Sound] Error:', err);
-            }
+            audio.currentTime = 0;
+            audio.volume = 0.7;
+            audio.play()
+                .then(() => {
+                    this.soundBlocked = false;
+                    console.log('[Sound] 🔊 Bunyi');
+                })
+                .catch((err) => {
+                    if (err.name === 'NotAllowedError') {
+                        // Halaman baru di-load & belum ada klik/tombol → browser blokir.
+                        // Ditandai, dan dibunyikan otomatis pada interaksi berikutnya.
+                        this.soundBlocked = true;
+                        console.warn('[Sound] Diblokir browser, menunggu interaksi (klik sekali di halaman)');
+                    } else {
+                        console.warn('[Sound] Gagal play:', err.message);
+                    }
+                });
         },
 
         toggleSound() {
             this.soundEnabled = !this.soundEnabled;
             localStorage.setItem('notification_sound_enabled', this.soundEnabled);
-
-            if (this.soundEnabled && this.audioUnlocked) {
-                this.playSound();
-            }
+            if (this.soundEnabled) this.playSound();
         },
+
+        // ------------------------------------------------------------ Toast
 
         showToast(notif) {
             if (!window.Swal) return;
 
-            const icon = {
-                'booking': 'info',
-                'surat': 'success',
-            }[notif.type] || 'info';
+            const icon = { booking: 'info', surat: 'success' }[notif.type] || 'info';
 
             Swal.fire({
                 toast: true,
@@ -250,27 +269,34 @@ function notifBell() {
             });
         },
 
-        async fetchNotifs() {
-            // ⭐ Throttle: minimal 2 detik antar fetch
+        // ------------------------------------------------------------ Data
+
+        async fetchNotifs(force = false) {
+            // Throttle 2 detik, kecuali dipaksa (mis. dari resync)
             const now = Date.now();
-            if (now - this.lastFetchTime < 2000) {
-                return;
-            }
-            this.lastFetchTime = now;
+            if (!force && now - lastFetch < 2000) return;
+            lastFetch = now;
 
             try {
                 const res = await fetch('{{ route('notifications.index') }}', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'ngrok-skip-browser-warning': 'true',
-                    }
+                    headers: { 'Accept': 'application/json' },
                 });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+
                 const data = await res.json();
                 this.notifications = data.notifications;
                 this.unreadCount = data.unread_count;
             } catch (e) {
                 console.error('❌ Gagal fetch notif:', e);
+            }
+        },
+
+        // Dipanggil stream setelah koneksi putus lama / halaman dipulihkan
+        async resync() {
+            const before = this.unreadCount;
+            await this.fetchNotifs(true);
+            if (this.unreadCount > before && this.soundEnabled) {
+                this.playSound();
             }
         },
 
@@ -281,31 +307,41 @@ function notifBell() {
 
         async openNotif(n) {
             if (!n.is_read) {
-                await fetch(`/notifications/${n.id}/read`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'ngrok-skip-browser-warning': 'true',
+                try {
+                    const res = await fetch(`/notifications/${n.id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        },
+                    });
+                    if (res.ok) {
+                        n.is_read = true;
+                        this.unreadCount = Math.max(0, this.unreadCount - 1);
                     }
-                });
-                n.is_read = true;
-                this.unreadCount = Math.max(0, this.unreadCount - 1);
+                } catch (e) {
+                    console.error('❌ Gagal tandai baca:', e);
+                }
             }
             if (n.url) window.location.href = n.url;
         },
 
         async markAllRead() {
-            await fetch('{{ route('notifications.read-all') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'ngrok-skip-browser-warning': 'true',
+            try {
+                const res = await fetch('{{ route('notifications.read-all') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                });
+                if (res.ok) {
+                    this.notifications.forEach(n => n.is_read = true);
+                    this.unreadCount = 0;
                 }
-            });
-            this.notifications.forEach(n => n.is_read = true);
-            this.unreadCount = 0;
+            } catch (e) {
+                console.error('❌ Gagal tandai semua:', e);
+            }
         },
 
         formatTime(iso) {
