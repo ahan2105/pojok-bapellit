@@ -34,7 +34,7 @@
                 </div>
             </div>
 
-            <!-- ⭐ Filter Bidang (DINAMIS dari Database) -->
+            <!-- Filter Bidang -->
             <div class="w-full lg:w-64">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bidang</label>
                 <select name="bidang" 
@@ -53,7 +53,6 @@
                             </option>
                         @endforeach
                     @else
-                        <!-- Fallback: Opsi default jika controller belum diupdate (agar tidak error) -->
                         <option value="KEPALA BADAN" {{ request('bidang') == 'KEPALA BADAN' ? 'selected' : '' }}>Kepala Badan</option>
                         <option value="SEKRETARIAT" {{ request('bidang') == 'SEKRETARIAT' ? 'selected' : '' }}>Sekretariat</option>
                         <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM" {{ request('bidang') == 'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM' ? 'selected' : '' }}>Bidang Perekonomian dan SDA</option>
@@ -65,7 +64,7 @@
                 </select>
             </div>
 
-            <!-- Filter Jabatan (Auto-submit saat dipilih) -->
+            <!-- Filter Jabatan -->
             <div class="w-full lg:w-64">
                 <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jabatan</label>
                 <select name="jabatan" 
@@ -104,32 +103,30 @@
     <!-- ===== TABEL PENGGUNA ===== -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse min-w-[1100px]">
                 <thead>
                     <tr class="text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
-                        <th class="px-6 py-4 w-16 text-center">No</th>
+                        <th class="px-4 py-4 w-16 text-center">No</th>
+                        <th class="px-4 py-4 w-20 text-center">Foto</th>
                         <th class="px-6 py-4">Nama Pengguna</th>
                         <th class="px-6 py-4">NIP / PPPK</th>
                         <th class="px-6 py-4">Jabatan</th>
-                        <th class="px-6 py-4 text-center">Gol</th>
-                        <th class="px-6 py-4 text-center">Peran</th>
-                        <th class="px-6 py-4 text-center">Status</th>
-                        <th class="px-6 py-4 text-center">Aksi</th>
+                        <th class="px-4 py-4 text-center">Gol</th>
+                        <th class="px-4 py-4 text-center">Peran</th>
+                        <th class="px-4 py-4 text-center">Status</th>
+                        <th class="px-4 py-4 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @php
-                        // 1. Kelompokkan user per bidang dengan normalisasi string
                         $groupedRaw = $users->getCollection()->groupBy(function ($u) {
                             $b = trim(strtoupper($u->bidang ?? ''));
-                            $b = preg_replace('/\s+/', ' ', $b); // Bersihkan spasi ganda
+                            $b = preg_replace('/\s+/', ' ', $b);
                             return $b === '' ? 'TANPA BIDANG' : $b;
                         });
 
-                        // 2. Ambil semua bidang unik dari data (dinamis dari database)
                         $semuaBidang = $groupedRaw->keys()->toArray();
                         
-                        // 3. Pisahkan prioritas
                         $kepalaBadan = null;
                         $sekretariat = null;
                         $tanpaBidang = null;
@@ -147,23 +144,20 @@
                             }
                         }
 
-                        // 4. Susun urutan: Kepala Badan -> Sekretariat -> Bidang Lainnya (dinamis) -> Tanpa Bidang
                         $urutanBidang = [];
                         if ($kepalaBadan) $urutanBidang[] = $kepalaBadan;
                         if ($sekretariat) $urutanBidang[] = $sekretariat;
                         
-                        // Tambahkan bidang lainnya (urut sesuai data/database)
                         foreach ($bidangLainnya as $b) {
                             $urutanBidang[] = $b;
                         }
                         
                         if ($tanpaBidang) $urutanBidang[] = $tanpaBidang;
 
-                        // 5. Susun ulang collection berdasarkan urutan yang sudah ditentukan
                         $grouped = collect($urutanBidang)->mapWithKeys(function ($bidang) use ($groupedRaw) {
                             return [$bidang => $groupedRaw->get($bidang, collect())];
                         })->filter(function ($items) {
-                            return $items->isNotEmpty(); // Hanya tampilkan grup yang ada isinya
+                            return $items->isNotEmpty();
                         });
 
                         $globalNo = $users->firstItem() ?? 1;
@@ -171,7 +165,7 @@
 
                     @forelse($grouped as $bidang => $groupUsers)
                         <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-y border-blue-100">
-                            <td colspan="8" class="px-6 py-3">
+                            <td colspan="9" class="px-6 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-2 h-2 rounded-full bg-blue-600"></div>
                                     <span class="text-sm font-bold text-blue-900 tracking-wide">
@@ -190,8 +184,29 @@
 
                         @foreach($groupUsers as $u)
                         <tr class="hover:bg-blue-50/30 transition-colors group">
-                            <td class="px-6 py-4 text-sm font-semibold text-gray-500 text-center">
+                            <td class="px-4 py-4 text-sm font-semibold text-gray-500 text-center">
                                 {{ $globalNo++ }}
+                            </td>
+
+                            {{-- KOLOM FOTO PROFIL (KLIK UNTUK PREVIEW) --}}
+                            <td class="px-4 py-4 text-center">
+                                <div class="flex justify-center">
+                                    @if($u->profile_photo)
+                                        <button type="button"
+                                                onclick="previewPhoto('{{ asset('storage/' . $u->profile_photo) }}', '{{ addslashes($u->name) }}')"
+                                                class="rounded-full overflow-hidden ring-2 ring-transparent hover:ring-indigo-400 hover:scale-105 transition-all cursor-zoom-in focus:outline-none focus:ring-indigo-500">
+                                            <img src="{{ asset('storage/' . $u->profile_photo) }}"
+                                                 alt="Foto {{ $u->name }}"
+                                                 class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md ring-1 ring-gray-200">
+                                        </button>
+                                    @else
+                                        <button type="button"
+                                                onclick="previewInitial('{{ addslashes($u->name) }}')"
+                                                class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-gray-200 hover:scale-105 transition-all cursor-zoom-in focus:outline-none">
+                                            {{ strtoupper(substr($u->name, 0, 1)) }}
+                                        </button>
+                                    @endif
+                                </div>
                             </td>
 
                             <td class="px-6 py-4">
@@ -210,7 +225,7 @@
                                 {{ $u->jabatan ?: '-' }}
                             </td>
 
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 @if($u->golongan)
                                     <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
                                         {{ $u->golongan }}
@@ -220,7 +235,7 @@
                                 @endif
                             </td>
 
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 @if($u->role === 'admin')
                                     <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">
                                         Admin
@@ -232,7 +247,7 @@
                                 @endif
                             </td>
 
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 @if($u->status === 'aktif')
                                     <span class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -246,7 +261,7 @@
                                 @endif
                             </td>
 
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-4">
                                 <div class="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                     <a href="{{ route('admin.kelolaakun.edit', $u->id) }}" 
                                        class="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
@@ -273,7 +288,7 @@
                         @endforeach
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-16 text-center">
+                        <td colspan="9" class="px-6 py-16 text-center">
                             <div class="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
                                 <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -331,9 +346,84 @@
     </div>
 </div>
 
+<!-- ===== MODAL PREVIEW FOTO ===== -->
+<div id="photoModal" 
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+     onclick="if(event.target === this) closePhoto()">
+    
+    {{-- Tombol X --}}
+    <button type="button"
+            onclick="closePhoto()"
+            class="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors backdrop-blur-md border border-white/20 z-10"
+            aria-label="Tutup">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+
+    {{-- Konten Preview --}}
+    <div class="max-w-3xl max-h-[85vh] flex flex-col items-center" onclick="event.stopPropagation()">
+        <img id="previewImg" 
+             src="" 
+             alt="Preview"
+             class="max-w-full max-h-[70vh] rounded-2xl shadow-2xl object-contain bg-white">
+        <p id="previewName" class="mt-4 text-white text-lg font-semibold drop-shadow-lg"></p>
+    </div>
+</div>
+
 <!-- ===== SWEETALERT2 ===== -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    // ===== PREVIEW FOTO =====
+    function previewPhoto(url, name) {
+        const modal = document.getElementById('photoModal');
+        const img = document.getElementById('previewImg');
+        const nameEl = document.getElementById('previewName');
+
+        img.src = url;
+        img.style.display = 'block';
+        nameEl.textContent = name;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function previewInitial(name) {
+        const modal = document.getElementById('photoModal');
+        const img = document.getElementById('previewImg');
+        const nameEl = document.getElementById('previewName');
+
+        // Sembunyikan gambar, tampilkan nama + inisial saja
+        img.style.display = 'none';
+        nameEl.innerHTML = `
+            <div class="flex flex-col items-center">
+                <div class="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-5xl shadow-2xl">
+                    ${name.charAt(0).toUpperCase()}
+                </div>
+                <p class="mt-4 text-white text-lg font-semibold drop-shadow-lg">${name}</p>
+                <p class="mt-1 text-white/60 text-sm">Belum mengunggah foto profil</p>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePhoto() {
+        const modal = document.getElementById('photoModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    // Tutup dengan tombol ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closePhoto();
+    });
+
+    // ===== KONFIRMASI HAPUS =====
     function confirmDelete(id, name) {
         Swal.fire({
             title: 'Hapus Akun?',

@@ -9,6 +9,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -18,27 +19,36 @@ class SuratSubmitted implements ShouldBroadcastNow
 
     public function __construct(public Surat $surat)
     {
+        // ⭐ OPTIMASI: Load relasi user di awal
+        $this->surat->loadMissing('user');
+
         // Simpan notif ke database SEMUA ADMIN
         try {
-            $admins = User::where('role', 'admin')
-                ->orWhere('is_admin', true)
-                ->get();
+            // ⭐ OPTIMASI: Gunakan cache untuk daftar ID admin (sama seperti BookingCreated)
+            $adminIds = Cache::remember('admin_user_ids', 3600, function () {
+                return User::where('role', 'admin')
+                    ->orWhere('is_admin', true)
+                    ->pluck('id')
+                    ->toArray();
+            });
 
-            foreach ($admins as $admin) {
-                // ⭐ FIX: pakai positional parameter (bukan named)
-                $admin->sendNotification(
-                    'surat',
-                    'Pengajuan Surat Baru',
-                    "{$surat->no_surat} dari {$surat->user?->name}",
-                    [
-                        'surat_id'   => $surat->id,
-                        'no_surat'   => $surat->no_surat,
-                        'pengaju'    => $surat->user?->name,
-                        'jenis'      => $surat->jenis_surat,
-                        'created_at' => $surat->created_at,
-                    ],
-                    route('admin.kelolasurat.index')
-                );
+            foreach ($adminIds as $adminId) {
+                $admin = User::find($adminId);
+                if ($admin) {
+                    $admin->sendNotification(
+                        'surat',
+                        'Pengajuan Surat Baru',
+                        "{$this->surat->no_surat} dari {$this->surat->user?->name}",
+                        [
+                            'surat_id'   => $this->surat->id,
+                            'no_surat'   => $this->surat->no_surat,
+                            'pengaju'    => $this->surat->user?->name,
+                            'jenis'      => $this->surat->jenis_surat,
+                            'created_at' => $this->surat->created_at,
+                        ],
+                        route('admin.kelolasurat.index')
+                    );
+                }
             }
         } catch (\Exception $e) {
             Log::warning('Gagal simpan notif surat: ' . $e->getMessage());

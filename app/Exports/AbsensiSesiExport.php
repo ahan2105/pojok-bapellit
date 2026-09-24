@@ -71,41 +71,36 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         // Spacer sebelum data
         $this->data[] = ['', '', '', '', '', '', '', ''];
 
-        // Ambil Data Peserta
-        if ($sesi->is_locked) {
-            $peserta = User::join('absensi_detail', function ($join) use ($sesi) {
-                    $join->on('users.id', '=', 'absensi_detail.user_id')
-                         ->where('absensi_detail.absensi_sesi_id', '=', $sesi->id);
-                })
-                ->select('users.*', 'absensi_detail.status_kehadiran', 'absensi_detail.keterangan')
-                ->orderBy('users.name')
-                ->get();
-        } else {
-            $peserta = User::leftJoin('absensi_detail', function ($join) use ($sesi) {
-                    $join->on('users.id', '=', 'absensi_detail.user_id')
-                         ->where('absensi_detail.absensi_sesi_id', '=', $sesi->id);
-                })
-                ->where('users.status', 'aktif')
-                ->select('users.*', 'absensi_detail.status_kehadiran', 'absensi_detail.keterangan')
-                ->orderBy('users.name')
-                ->get();
-        }
+        // ⭐========================================================
+        // ⭐ Ambil HANYA peserta yang terdaftar di sesi ini
+        // ⭐========================================================
+        $peserta = User::join('absensi_detail', function ($join) use ($sesi) {
+                $join->on('users.id', '=', 'absensi_detail.user_id')
+                     ->where('absensi_detail.absensi_sesi_id', '=', $sesi->id);
+            })
+            ->select(
+                'users.*',
+                'absensi_detail.status_kehadiran',
+                'absensi_detail.keterangan'
+            )
+            ->orderBy('users.name')
+            ->get();
 
         // ⭐ 1. Group per Bidang dengan normalisasi string yang KUAT
         $groupedRaw = $peserta->groupBy(function ($p) {
             $b = trim(strtoupper($p->bidang ?? ''));
-            $b = preg_replace('/\s+/', ' ', $b); // Bersihkan spasi ganda
+            $b = preg_replace('/\s+/', ' ', $b);
             return $b === '' ? 'TANPA BIDANG' : $b;
         });
 
-        // ⭐ 2. Pisahkan prioritas: Kepala Badan dan Tanpa Bidang
+        // ⭐ 2. Pisahkan prioritas
         $kepalaBadan = $groupedRaw->pull('KEPALA BADAN', collect());
         $tanpaBidang = $groupedRaw->pull('TANPA BIDANG', collect());
         
-        // ⭐ 3. Sisa bidang lainnya diurutkan secara alfabetis agar rapi (DINAMIS, tidak ada yang hilang)
+        // ⭐ 3. Sisa bidang
         $bidangLainnya = $groupedRaw->sortKeys();
 
-        // ⭐ 4. Gabungkan kembali dengan urutan: Kepala Badan -> Bidang Lainnya -> Tanpa Bidang
+        // ⭐ 4. Gabungkan kembali
         $groupedPeserta = collect();
         
         if ($kepalaBadan->isNotEmpty()) {
@@ -122,11 +117,10 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
 
         $noGlobal = 1;
 
-        //  5. Proses sesuai urutan dinamis yang sudah disusun
+        // ⭐ 5. Proses data peserta
         foreach ($groupedPeserta as $bidang => $groupPeserta) {
             $noBidang = 1;
 
-            // Tampilkan header bidang KECUALI untuk KEPALA BADAN
             if ($bidang !== 'KEPALA BADAN') {
                 $this->data[] = [strtoupper($bidang), '', '', '', '', '', '', ''];
                 $this->groupHeaderRows[] = count($this->data);
@@ -156,16 +150,37 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
             }
         }
 
-        // ⭐ AMBIL DATA KEPALA BADAN SECARA DINAMIS UNTUK TTD
-        $namaKepala = $kepalaBadan->isNotEmpty() ? $kepalaBadan->first()->name : '........................................';
-        $nipKepala = $kepalaBadan->isNotEmpty() ? 'NIP. ' . $kepalaBadan->first()->nip : 'NIP. ................................';
+        // ⭐========================================================
+        // ⭐ AMBIL DATA KEPALA BADAN LANGSUNG DARI DATABASE
+        // ⭐ (meskipun Kepala Badan tidak ikut jadi peserta sesi ini)
+        // ⭐========================================================
+        $kepalaUser = User::where('status', 'aktif')
+            ->where(function ($q) {
+                $q->where('bidang', 'KEPALA BADAN')
+                  ->orWhere('bidang', 'like', 'KEPALA BADAN%');
+            })
+            ->orderBy('id')
+            ->first();
+
+        // Fallback: cari via jabatan kalau via bidang tidak ketemu
+        if (!$kepalaUser) {
+            $kepalaUser = User::where('status', 'aktif')
+                ->where('jabatan', 'like', '%Kepala Badan%')
+                ->orderBy('id')
+                ->first();
+        }
+
+        $namaKepala = $kepalaUser->name ?? '........................................';
+        $nipKepala  = $kepalaUser && $kepalaUser->nip
+            ? 'NIP. ' . $kepalaUser->nip
+            : 'NIP. ................................';
 
         // FOOTER - Tambah spacer
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
         
-        // Tanggal dan TTD (Nama & NIP sekarang dinamis)
+        // Tanggal dan TTD
         $currentDate = Carbon::now()->translatedFormat('d F Y');
         $this->data[] = ['', '', '', '', 'Singaparna, ' . $currentDate, '', '', ''];
         $this->data[] = ['', '', '', '', 'Mengetahui', '', '', ''];
@@ -174,7 +189,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
-        $this->data[] = ['', '', '', '', $namaKepala, '', '', ''];  // ⭐ Baris nama (akan di-underline)
+        $this->data[] = ['', '', '', '', $namaKepala, '', '', ''];
         $this->data[] = ['', '', '', '', $nipKepala, '', '', ''];
     }
 
@@ -247,7 +262,7 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
                 $sheet->getRowDimension(5)->setRowHeight(20);
                 $sheet->getRowDimension(8)->setRowHeight(25);
 
-                // Style Group Headers (SEKRETARIAT, BIDANG X, TANPA BIDANG)
+                // Style Group Headers
                 foreach ($this->groupHeaderRows as $rowIndex) {
                     $sheet->mergeCells("A{$rowIndex}:H{$rowIndex}");
                     $sheet->getStyle("A{$rowIndex}")->applyFromArray([
@@ -305,12 +320,23 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
                     }
                 }
 
-                // ⭐ BOLD + UNDERLINE untuk nama pejabat (baris ke-2 dari bawah)
+                // ⭐ BOLD + UNDERLINE HANYA untuk nama pejabat
+                // ⭐ NIP sengaja TIDAK di-underline
                 $namaRow = $highestRow - 1;
+                $nipRow  = $highestRow;
+
                 if ($namaRow > 0) {
+                    // Nama: bold + underline
                     $sheet->getStyle("E{$namaRow}")->getFont()
                         ->setBold(true)
                         ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_SINGLE);
+                }
+
+                if ($nipRow > 0) {
+                    // NIP: bold tanpa underline (explicitly clear)
+                    $sheet->getStyle("E{$nipRow}")->getFont()
+                        ->setBold(true)
+                        ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_NONE);
                 }
             },
         ];

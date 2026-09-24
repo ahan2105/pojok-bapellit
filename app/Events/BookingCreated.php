@@ -9,6 +9,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class BookingCreated implements ShouldBroadcastNow
@@ -17,26 +18,38 @@ class BookingCreated implements ShouldBroadcastNow
 
     public function __construct(public Booking $booking)
     {
-        // Simpan notif ke database SEMUA ADMIN
-        // biar lonceng admin nambah + tersimpan (gak hilang pas refresh)
-        try {
-            $admins = User::where('role', 'admin')
-                ->orWhere('is_admin', true)
-                ->get();
+        // ⭐ OPTIMASI: Load relasi sekali di awal untuk menghindari N+1 di dalam loop
+        $this->booking->loadMissing(['user', 'aula']);
 
-            foreach ($admins as $admin) {
-                $admin->sendNotification(
-                    type: 'booking',
-                    title: 'Booking Baru',
-                    message: "{$booking->nama_penanggung_jawab} booking {$booking->aula?->nama}",
-                    data: [
-                        'booking_id' => $booking->id,
-                        'aula'       => $booking->aula?->nama,
-                        'tanggal'    => $booking->tanggal_booking,
-                        'sesi'       => $booking->sesi_waktu,
-                    ],
-                    url: route('admin.kelolabooking.index'),
-                );
+        // Simpan notif ke database SEMUA ADMIN
+        try {
+            // ⭐ OPTIMASI: Cache daftar ID admin selama 1 jam agar tidak query user terus-menerus
+            $adminIds = Cache::remember('admin_user_ids', 3600, function () {
+                return User::where('role', 'admin')
+                    ->orWhere('is_admin', true)
+                    ->pluck('id')
+                    ->toArray();
+            });
+
+            foreach ($adminIds as $adminId) {
+                // Gunakan findOrFail atau first untuk mendapatkan instance user jika method sendNotification butuh object
+                // Atau jika sendNotification bisa menerima ID, itu lebih cepat. 
+                // Asumsi sendNotification adalah method di model User:
+                $admin = User::find($adminId);
+                if ($admin) {
+                    $admin->sendNotification(
+                        type: 'booking',
+                        title: 'Booking Baru',
+                        message: "{$this->booking->nama_penanggung_jawab} booking {$this->booking->aula?->nama}",
+                        data: [
+                            'booking_id' => $this->booking->id,
+                            'aula'       => $this->booking->aula?->nama,
+                            'tanggal'    => $this->booking->tanggal_booking,
+                            'sesi'       => $this->booking->sesi_waktu,
+                        ],
+                        url: route('admin.kelolabooking.index'),
+                    );
+                }
             }
         } catch (\Exception $e) {
             // Kalau gagal simpan notif, jangan bikin booking gagal

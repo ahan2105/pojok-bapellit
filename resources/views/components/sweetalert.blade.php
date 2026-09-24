@@ -1,10 +1,12 @@
+{{-- ================= SWEETALERT GLOBAL ================= --}}
+
 @if(session('success'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil!',
-                text: {!! json_encode(session('success')) !!},
+                text: @json(session('success')),
                 timer: 3000,
                 showConfirmButton: true,
                 confirmButtonColor: '#4f46e5',
@@ -20,7 +22,7 @@
             Swal.fire({
                 icon: 'error',
                 title: '❌ Gagal!',
-                text: {!! json_encode(session('error')) !!},
+                text: @json(session('error')),
                 timer: 4000,
                 showConfirmButton: true,
                 confirmButtonColor: '#d33',
@@ -36,7 +38,7 @@
             Swal.fire({
                 icon: 'info',
                 title: 'ℹ️ Informasi',
-                text: {!! json_encode(session('info')) !!},
+                text: @json(session('info')),
                 timer: 3000,
                 showConfirmButton: true,
                 confirmButtonColor: '#4f46e5',
@@ -52,7 +54,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: '⚠️ Peringatan',
-                text: {!! json_encode(session('warning')) !!},
+                text: @json(session('warning')),
                 timer: 3000,
                 showConfirmButton: true,
                 confirmButtonColor: '#f59e0b',
@@ -62,17 +64,18 @@
     </script>
 @endif
 
-@if($errors->any())
+@if(isset($errors) && $errors->any())
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            let errorMessages = '';
-            @foreach($errors->all() as $error)
-                errorMessages += '• {!! json_encode($error) !!}\n';
-            @endforeach
+            const errorMessages = @json($errors->all());
             Swal.fire({
                 icon: 'error',
                 title: '⚠️ Validasi Gagal!',
-                text: errorMessages,
+                html: '<ul style="text-align:left;margin:0;padding-left:1.25rem;">' +
+                      errorMessages.map(function(msg) {
+                          return '<li>' + msg + '</li>';
+                      }).join('') +
+                      '</ul>',
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'OK'
             });

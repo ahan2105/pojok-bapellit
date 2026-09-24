@@ -9,7 +9,6 @@ trait HasNotifications
 {
     /**
      * Relasi ke notif custom (tabel notifications)
-     * NOTE: Rename dari notifications() biar gak bentrok dengan Notifiable
      */
     public function customNotifications()
     {
@@ -36,33 +35,38 @@ trait HasNotifications
 
     /**
      * Kirim notif custom.
-     * Support 2 signature:
-     *  1. sendNotification($type, $title, $message, $data = [], $url = null)
-     *  2. sendNotification($title, $message, $options = []) — legacy
+     * Support named argument: type, title, message, data, url
+     * Support positional argument: sendNotification($type, $title, $message, $data, $url)
      */
     public function sendNotification(
-        string $typeOrTitle,
-        string $titleOrMessage,
-        $messageOrOptions = null,
+        string $type = 'info',
+        string $title = '',
+        ?string $message = null,
         array $data = [],
         ?string $url = null
     ): Notification {
-        if (is_array($messageOrOptions)) {
-            // Signature legacy: sendNotification($title, $message, $options)
-            $options = $messageOrOptions;
+        // Handle legacy: sendNotification($title, $message, $options)
+        if ($message === null) {
+            $message = $title;
+            $title   = $type;
+            $type    = 'info';
+        }
+
+        // Handle legacy: sendNotification($title, $message, $optionsArray)
+        if (is_array($message)) {
+            $options = $message;
             $payload = [
                 'type'    => $options['type'] ?? 'info',
-                'title'   => $typeOrTitle,
-                'message' => $titleOrMessage,
+                'title'   => $title,
+                'message' => $type,  // di legacy, $type sebenarnya berisi message
                 'data'    => $options['data'] ?? [],
                 'url'     => $options['url'] ?? null,
             ];
         } else {
-            // Signature baru: sendNotification($type, $title, $message, $data, $url)
             $payload = [
-                'type'    => $typeOrTitle,
-                'title'   => $titleOrMessage,
-                'message' => $messageOrOptions,
+                'type'    => $type,
+                'title'   => $title,
+                'message' => $message,
                 'data'    => $data,
                 'url'     => $url,
             ];
@@ -128,7 +132,6 @@ trait HasNotifications
             if (isset($options['except_user_id']) && $user->id === $options['except_user_id']) {
                 continue;
             }
-            // Pakai signature positional biar konsisten
             $user->sendNotification(
                 $options['type'] ?? 'info',
                 $title,

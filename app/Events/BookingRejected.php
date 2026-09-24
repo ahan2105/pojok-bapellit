@@ -16,18 +16,23 @@ class BookingRejected implements ShouldBroadcastNow
 
     public function __construct(public Booking $booking, public ?string $alasan = null)
     {
+        // ⭐ OPTIMASI: Pastikan relasi sudah dimuat untuk menghindari query tambahan
+        $this->booking->loadMissing(['user', 'aula']);
+
         try {
-            $booking->user?->sendNotification(
-                type: 'booking',
-                title: 'Booking Ditolak',
-                message: "Booking aula {$booking->aula?->nama} tanggal {$booking->tanggal_booking} ditolak." . ($alasan ? " Alasan: {$alasan}" : ''),
-                data: [
-                    'booking_id' => $booking->id,
-                    'status'     => 'rejected',
-                    'alasan'     => $alasan,
-                ],
-                url: route('riwayat.index', $booking->id),
-            );
+            if ($this->booking->user) {
+                $this->booking->user->sendNotification(
+                    type: 'booking',
+                    title: 'Booking Ditolak',
+                    message: "Booking aula {$this->booking->aula?->nama} tanggal {$this->booking->tanggal_booking} ditolak." . ($this->alasan ? " Alasan: {$this->alasan}" : ''),
+                    data: [
+                        'booking_id' => $this->booking->id,
+                        'status'     => 'rejected',
+                        'alasan'     => $this->alasan,
+                    ],
+                    url: route('riwayat.index', $this->booking->id),
+                );
+            }
         } catch (\Exception $e) {
             Log::warning('Gagal kirim notif rejected: ' . $e->getMessage());
         }

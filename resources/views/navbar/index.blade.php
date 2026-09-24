@@ -194,15 +194,22 @@
                                 Scan Absensi
                             </a>
 
-                            @if(!$isAdmin)
-                                <a href="#"
-                                   class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 border-transparent text-gray-700 hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-600 transition-all">
-                                    <svg class="w-4 h-4 text-gray-400 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    Profile
-                                </a>
-                            @endif
+                            {{-- AKUN --}}
+                            <a href="{{ route('akun.edit') }}"
+                               class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                      {{ request()->routeIs('akun.*')
+                                          ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold'
+                                          : 'text-gray-700 border-transparent hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-600' }}">
+                                <svg class="w-4 h-4 transition-colors
+                                            {{ request()->routeIs('akun.*')
+                                                ? 'text-indigo-600'
+                                                : 'text-gray-400 group-hover:text-indigo-600' }}"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Akun Profil
+                            </a>
 
                             <div class="border-t my-1"></div>
 

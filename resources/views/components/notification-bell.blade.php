@@ -32,9 +32,9 @@
          x-transition:enter="transition ease-out duration-150"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
-         class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-[9999] overflow-hidden">
+         class="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 sm:max-w-none bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-[9999] overflow-hidden">
 
-        <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+        <div class="flex items-center justify-between px-3 sm:px-4 py-3 border-b bg-gray-50">
             <div class="flex items-center gap-2">
                 <span class="font-semibold text-gray-800">Notifikasi</span>
                 <span x-show="unreadCount > 0"
@@ -66,13 +66,13 @@
             </div>
         </div>
 
-        <div class="max-h-96 overflow-y-auto divide-y divide-gray-100">
+        <div class="max-h-[70vh] sm:max-h-96 overflow-y-auto divide-y divide-gray-100">
             <template x-for="n in notifications" :key="n.id">
                 <a :href="n.url || '#'"
                    @click.prevent="openNotif(n)"
-                   class="block px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                   class="block px-3 sm:px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
                    :class="!n.is_read ? 'bg-blue-50/50' : ''">
-                    <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-2.5 sm:gap-3">
                         <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                              :class="{
                                  'bg-blue-100 text-blue-600': n.type === 'booking',
@@ -115,7 +115,7 @@
             </div>
         </div>
 
-        <div class="px-4 py-2 border-t bg-gray-50 text-center flex items-center justify-center gap-2">
+        <div class="px-3 sm:px-4 py-2 border-t bg-gray-50 text-center flex items-center justify-center gap-2">
             <span class="inline-block w-2 h-2 rounded-full"
                   :class="connected ? 'bg-green-500' : 'bg-gray-300'"></span>
             <span class="text-xs text-gray-500"

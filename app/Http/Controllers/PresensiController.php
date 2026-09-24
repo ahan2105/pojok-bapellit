@@ -18,7 +18,7 @@ class PresensiController extends Controller
         $filterStatus = $request->input('status'); // hadir / tidak / kosong
 
         // Ambil semua detail absensi user ini + info sesinya
-        $query = AbsensiDetail::with('sesi')
+        $query = AbsensiDetail::with(['sesi:id,nama_sesi,tanggal'])
             ->where('user_id', $user->id)
             ->whereHas('sesi') // pastikan sesi-nya masih ada (tidak dihapus)
             ->when($search, function ($q, $search) {
@@ -35,43 +35,30 @@ class PresensiController extends Controller
                          ->paginate(15)
                          ->withQueryString();
 
-        // Statistik kehadiran
-        $totalSesi = AbsensiDetail::where('user_id', $user->id)
-            ->whereHas('sesi')
-            ->count();
+        // ⭐ OPTIMASI: Hitung statistik dalam 1 query saja menggunakan conditional aggregation
+        $baseQuery = AbsensiDetail::where('user_id', $user->id)
+                                  ->whereHas('sesi');
 
-        $totalHadir = AbsensiDetail::where('user_id', $user->id)
-            ->whereHas('sesi')
-            ->where('status_kehadiran', 'hadir')
-            ->count();
+        // Gunakan select raw untuk menghitung semuanya sekaligus
+        $stats = $baseQuery->selectRaw("
+            COUNT(*) as total_sesi,
+            SUM(CASE WHEN status_kehadiran = 'hadir' THEN 1 ELSE 0 END) as total_hadir,
+            SUM(CASE WHEN status_kehadiran = 'tidak' THEN 1 ELSE 0 END) as total_tidak,
+            SUM(CASE WHEN status_kehadiran IS NULL THEN 1 ELSE 0 END) as total_belum,
+            SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? AND status_kehadiran = 'hadir' THEN 1 ELSE 0 END) as hadir_bulan_ini
+        ", [now()->month, now()->year])->first();
 
-        $totalTidak = AbsensiDetail::where('user_id', $user->id)
-            ->whereHas('sesi')
-            ->where('status_kehadiran', 'tidak')
-            ->count();
+        $totalSesi = $stats->total_sesi ?? 0;
+        $totalHadir = $stats->total_hadir ?? 0;
+        $totalTidak = $stats->total_tidak ?? 0;
+        $totalBelumDiabsen = $stats->total_belum ?? 0;
+        $hadirBulanIni = $stats->hadir_bulan_ini ?? 0;
 
-        $totalBelumDiabsen = AbsensiDetail::where('user_id', $user->id)
-            ->whereHas('sesi')
-            ->whereNull('status_kehadiran')
-            ->count();
-
-        // Persentase kehadiran (dari sesi yang sudah diabsen, tidak termasuk yang belum)
+        // Persentase kehadiran
         $totalDiabsen = $totalHadir + $totalTidak;
         $persentaseHadir = $totalDiabsen > 0
             ? round(($totalHadir / $totalDiabsen) * 100, 1)
             : 0;
-
-        // Statistik bulan ini
-        $bulanIni = now()->month;
-        $tahunIni = now()->year;
-
-        $hadirBulanIni = AbsensiDetail::where('user_id', $user->id)
-            ->whereHas('sesi', function ($q) use ($bulanIni, $tahunIni) {
-                $q->whereMonth('tanggal', $bulanIni)
-                  ->whereYear('tanggal', $tahunIni);
-            })
-            ->where('status_kehadiran', 'hadir')
-            ->count();
 
         return view('presensi.index', compact(
             'riwayat',
@@ -85,4 +72,4 @@ class PresensiController extends Controller
             'hadirBulanIni'
         ));
     }
-}   
+}

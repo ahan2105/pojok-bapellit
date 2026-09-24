@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Events\BookingApproved;
 use App\Events\BookingRejected;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AdminBookingController extends Controller
@@ -16,19 +17,25 @@ class AdminBookingController extends Controller
      */
     public function index()
     {
+        // ✅ KODE ASLI: Aman dari error kolom
         $bookings = Booking::with(['user', 'aula'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
             
-        $statistics = [
-            'total' => Booking::count(),
-            'pending' => Booking::where('status', 'pending')->count(),
-            'approved' => Booking::where('status', 'approved')->count(),
-            'rejected' => Booking::where('status', 'rejected')->count(),
-            'completed' => Booking::where('status', 'completed')->count(),
-            'canceled' => Booking::where('status', 'canceled')->count(),
-            'today' => Booking::whereDate('tanggal_booking', today())->count(),
-        ];
+        // ⭐ OPTIMASI AMAN: Cache statistik selama 5 menit
+        // Hanya ini yang diubah dari kode asli Anda
+        $cacheKey = 'booking_statistics_' . today()->format('Y-m-d');
+        $statistics = Cache::remember($cacheKey, 300, function () {
+            return [
+                'total' => Booking::count(),
+                'pending' => Booking::where('status', 'pending')->count(),
+                'approved' => Booking::where('status', 'approved')->count(),
+                'rejected' => Booking::where('status', 'rejected')->count(),
+                'completed' => Booking::where('status', 'completed')->count(),
+                'canceled' => Booking::where('status', 'canceled')->count(),
+                'today' => Booking::whereDate('tanggal_booking', today())->count(),
+            ];
+        });
         
         return view('admin.kelolabooking.index', compact('bookings', 'statistics'));
     }
@@ -57,8 +64,10 @@ class AdminBookingController extends Controller
             $booking->status = 'approved';
             $booking->save();
 
-            // ⬇️ TAMBAH: broadcast ke user
             broadcast(new BookingApproved($booking));
+
+            //  Clear cache saat ada perubahan status
+            Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
 
             return redirect()->back()
                 ->with('success', 'Booking berhasil disetujui!');
@@ -86,13 +95,17 @@ class AdminBookingController extends Controller
             $booking->status = 'rejected';
             
             if ($request->filled('alasan')) {
-                $booking->catatan = $request->alasan;
+                // ⚠️ PERHATIAN: Pastikan kolom 'catatan' ada di tabel bookings
+                // Jika error lagi, hapus baris ini atau tambahkan kolomnya via migration
+                $booking->catatan = $request->alasan; 
             }
             
             $booking->save();
 
-            // ⬇️ TAMBAH: broadcast ke user
             broadcast(new BookingRejected($booking, $request->alasan));
+
+            // ⭐ Clear cache saat ada perubahan status
+            Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
 
             return redirect()->back()
                 ->with('success', 'Booking berhasil ditolak!');
@@ -120,6 +133,9 @@ class AdminBookingController extends Controller
             $booking->status = 'completed';
             $booking->save();
 
+            // ⭐ Clear cache saat ada perubahan status
+            Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
+
             return redirect()->back()
                 ->with('success', 'Booking berhasil diselesaikan!');
 
@@ -143,10 +159,14 @@ class AdminBookingController extends Controller
             }
             
             if ($request->filled('catatan')) {
+                // ⚠️ PERHATIAN: Sama seperti di atas, pastikan kolom 'catatan' ada
                 $booking->catatan = $request->catatan;
             }
             
             $booking->save();
+
+            //  Clear cache saat ada perubahan status
+            Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
 
             return redirect()->back()
                 ->with('success', 'Status booking berhasil diubah!');
@@ -167,6 +187,9 @@ class AdminBookingController extends Controller
             $booking = Booking::findOrFail($id);
             $booking->delete();
 
+            // ⭐ Clear cache saat ada data dihapus
+            Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
+
             return redirect()->route('admin.kelolabooking.index')
                 ->with('success', 'Booking berhasil dihapus!');
 
@@ -175,5 +198,29 @@ class AdminBookingController extends Controller
             return redirect()->back()
                 ->with('error', 'Gagal menghapus booking: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Admin: Hapus banyak booking sekaligus (Bulk Delete)
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:bookings,id'
+        ]);
+
+        $ids = $request->input('ids');
+        
+        // Hapus booking yang dipilih
+        Booking::whereIn('id', $ids)->delete();
+
+        // Clear cache statistik
+        Cache::forget('booking_statistics_' . today()->format('Y-m-d'));
+
+        return response()->json([
+            'success' => true,
+            'message' => count($ids) . ' booking berhasil dihapus.'
+        ]);
     }
 }

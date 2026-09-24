@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Aula;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -16,7 +17,8 @@ class AulaController extends Controller
      */
     public function index()
     {
-        $aulas = Aula::orderBy('created_at', 'desc')->get();
+        // ⭐ OPTIMASI: Gunakan paginate agar tidak memuat semua data sekaligus
+        $aulas = Aula::orderBy('created_at', 'desc')->paginate(10);
         return view('admin.aula.index', compact('aulas'));
     }
 
@@ -60,10 +62,6 @@ class AulaController extends Controller
 
     /**
      * Handle upload foto (TAMBAH ke yang sudah ada, bukan replace)
-     *
-     * @param array $files
-     * @param array $existingFoto
-     * @return array|null
      */
     private function handleFoto(array $files, array $existingFoto = []): ?array
     {
@@ -91,9 +89,6 @@ class AulaController extends Controller
 
     /**
      * Handle fasilitas dari JSON string
-     *
-     * @param Request $request
-     * @return array
      */
     private function handleFasilitas(Request $request): array
     {
@@ -144,6 +139,9 @@ class AulaController extends Controller
             $aula->fasilitas = $this->handleFasilitas($request);
             $aula->save();
 
+            // ⭐ Clear cache daftar aula setelah tambah data
+            Cache::forget('active_aulas_list');
+
             return redirect()->route('admin.aula.index')
                 ->with('success', 'Data aula "' . $aula->nama . '" berhasil ditambahkan!');
 
@@ -164,7 +162,7 @@ class AulaController extends Controller
     }
 
     /**
-     * Mengupdate data aula yang sudah ada (TAMBAH foto, bukan replace)
+     * Mengupdate data aula yang sudah ada
      */
     public function update(Request $request, int $id)
     {
@@ -186,10 +184,7 @@ class AulaController extends Controller
             $aula->status_aktif = $request->has('status_aktif');
 
             if ($request->hasFile('foto')) {
-                // Ambil foto yang sudah ada
                 $existingFoto = $aula->foto ?? [];
-
-                // Handle foto baru (TAMBAH ke yang sudah ada)
                 $fotoPaths = $this->handleFoto($request->file('foto'), $existingFoto);
 
                 if ($fotoPaths === null) {
@@ -200,10 +195,12 @@ class AulaController extends Controller
 
                 $aula->foto = $fotoPaths;
             }
-            // Jika TIDAK ada upload foto baru, foto lama TETAP dipertahankan
 
             $aula->fasilitas = $this->handleFasilitas($request);
             $aula->save();
+
+            // ⭐ Clear cache daftar aula setelah update data
+            Cache::forget('active_aulas_list');
 
             return redirect()->route('admin.aula.index')
                 ->with('success', 'Data aula "' . $aula->nama . '" berhasil diperbarui!');
@@ -233,6 +230,9 @@ class AulaController extends Controller
             }
 
             $aula->delete();
+
+            // ⭐ Clear cache daftar aula setelah hapus data
+            Cache::forget('active_aulas_list');
 
             return redirect()->route('admin.aula.index')
                 ->with('success', 'Data aula "' . $namaAula . '" berhasil dihapus!');
@@ -284,6 +284,9 @@ class AulaController extends Controller
 
             $status = $aula->status_aktif ? 'diaktifkan' : 'dinonaktifkan';
 
+            // ⭐ Clear cache daftar aula setelah perubahan status
+            Cache::forget('active_aulas_list');
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -324,6 +327,9 @@ class AulaController extends Controller
                 }
                 $aula->foto = [];
                 $aula->save();
+
+                // ⭐ Clear cache daftar aula setelah perubahan foto
+                Cache::forget('active_aulas_list');
 
                 if (request()->ajax()) {
                     return response()->json([
@@ -378,6 +384,9 @@ class AulaController extends Controller
                 $aula->foto = array_values($fotos);
                 $aula->save();
 
+                // ⭐ Clear cache daftar aula setelah perubahan foto
+                Cache::forget('active_aulas_list');
+
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => true,
@@ -418,19 +427,23 @@ class AulaController extends Controller
     public function getAulasForBooking()
     {
         try {
-            $aulas = Aula::where('status_aktif', true)
-                ->select('id', 'nama', 'kapasitas', 'deskripsi', 'foto')
-                ->get()
-                ->map(function ($aula) {
-                    return [
-                        'id' => $aula->id,
-                        'nama' => $aula->nama,
-                        'kapasitas' => $aula->kapasitas,
-                        'deskripsi' => $aula->deskripsi,
-                        'foto_urls' => $aula->foto_urls,
-                        'fasilitas' => $aula->fasilitas
-                    ];
-                });
+            // ⭐ OPTIMASI: Cache daftar aula aktif selama 1 jam
+            // Karena data aula jarang berubah, ini sangat meringankan beban database
+            $aulas = Cache::remember('active_aulas_list', 3600, function () {
+                return Aula::where('status_aktif', true)
+                    ->select('id', 'nama', 'kapasitas', 'deskripsi', 'foto', 'fasilitas')
+                    ->get()
+                    ->map(function ($aula) {
+                        return [
+                            'id' => $aula->id,
+                            'nama' => $aula->nama,
+                            'kapasitas' => $aula->kapasitas,
+                            'deskripsi' => $aula->deskripsi,
+                            'foto_urls' => $aula->foto_urls,
+                            'fasilitas' => $aula->fasilitas
+                        ];
+                    });
+            });
 
             return response()->json([
                 'success' => true,

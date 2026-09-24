@@ -13,6 +13,9 @@ use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\SuratController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AkunController;
+use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ========== HALAMAN UTAMA ==========
@@ -36,6 +39,35 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 // ========== ROUTE USER ==========
 Route::middleware(['auth', 'cek.status'])->group(function () {
 
+    // ===== AKUN USER =====
+    Route::get('/akun', [AkunController::class, 'edit'])->name('akun.edit');
+    Route::patch('/akun', [AkunController::class, 'update'])->name('akun.update');
+    Route::put('/akun/password', [AkunController::class, 'updatePassword'])->name('password.update');
+    Route::post('/akun/photo', [AkunController::class, 'updatePhoto'])
+        ->name('akun.photo.update');
+
+    // ===== COMPATIBILITY ROUTE PROFILE LAMA =====
+    Route::get('/profile', [AkunController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [AkunController::class, 'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
+
+
+    // ===== EMAIL VERIFICATION =====
+    Route::post('/email/verification-notification', function (Request $request) {
+        if ($request->user()->hasVerifiedEmail()) {
+            return back()->with('status', 'verification-link-already-sent');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', 'verification-link-sent');
+    })->middleware('throttle:6,1')->name('verification.send');
+
     // ===== ⭐ SCAN ABSENSI (USER) =====
     Route::get('/absensi/scan', [AbsensiScanController::class, 'showScan'])->name('absensi.scan-page');
     Route::get('/absensi/scan/{token}', [AbsensiScanController::class, 'scanViaToken'])->name('absensi.scan');
@@ -57,6 +89,10 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
     // ===== AMBIL SURAT (USER) =====
     Route::get('/surat', [SuratController::class, 'index'])->name('surat.index');
     Route::post('/surat', [SuratController::class, 'store'])->name('surat.store');
+    
+    // ⭐ BARU: Route Update Surat User
+    Route::put('/surat/{id}', [SuratController::class, 'update'])->name('surat.update');
+    
     Route::get('/surat/{id}', [SuratController::class, 'show'])->name('surat.show');
     Route::get('/surat/{id}/download', [SuratController::class, 'download'])->name('surat.download');
 
@@ -94,6 +130,7 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         Route::post('/kelolabooking/{id}/reject', [AdminBookingController::class, 'reject'])->name('kelolabooking.reject');
         Route::post('/kelolabooking/{id}/complete', [AdminBookingController::class, 'complete'])->name('kelolabooking.complete');
         Route::put('/kelolabooking/{id}', [AdminBookingController::class, 'update'])->name('kelolabooking.update');
+        Route::post('/kelolabooking/bulk-destroy', [AdminBookingController::class, 'bulkDestroy'])->name('kelolabooking.bulk-destroy');
         Route::delete('/kelolabooking/{id}', [AdminBookingController::class, 'destroy'])->name('kelolabooking.destroy');
 
         // ===== KELOLA SURAT (ADMIN) =====
@@ -103,6 +140,10 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         Route::get('/kelolasurat/{id}/download', [AdminSuratController::class, 'downloadFile'])->name('kelolasurat.download-file');
         Route::get('/kelolasurat/{id}/edit', [AdminSuratController::class, 'edit'])->name('kelolasurat.edit');
         Route::put('/kelolasurat/{id}', [AdminSuratController::class, 'update'])->name('kelolasurat.update');
+        
+        //  BARU: Bulk Delete Surat Admin
+        Route::post('/kelolasurat/bulk-destroy', [AdminSuratController::class, 'bulkDestroy'])->name('kelolasurat.bulk-destroy');
+        
         Route::delete('/kelolasurat/{id}', [AdminSuratController::class, 'destroy'])->name('kelolasurat.destroy');
 
         // ===== KELOLA AKUN (ADMIN) =====
@@ -120,6 +161,10 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         Route::get('/absensi', [AbsensiController::class, 'index'])->name('absensi.index');
         Route::get('/absensi/create', [AbsensiController::class, 'create'])->name('absensi.create');
         Route::post('/absensi', [AbsensiController::class, 'store'])->name('absensi.store');
+        
+        // Bulk Delete Absensi (BARU)
+        Route::post('/absensi/bulk-destroy', [AbsensiController::class, 'bulkDestroy'])->name('absensi.bulk-destroy');
+        
         Route::get('/absensi/export-rekap', [AbsensiController::class, 'exportRekap'])->name('absensi.export-rekap');
         Route::get('/absensi/{id}/qr', [AbsensiController::class, 'qrCode'])->name('absensi.qr');
         Route::post('/absensi/{id}/qr/regenerate', [AbsensiController::class, 'regenerateQr'])->name('absensi.qr-regenerate');

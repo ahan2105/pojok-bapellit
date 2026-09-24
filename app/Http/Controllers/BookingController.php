@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Aula;
 use App\Models\Booking;
-use App\Models\User;
+use App\Events\BookingCreated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -14,11 +14,66 @@ class BookingController extends Controller
 {
     /**
      * Halaman utama booking (USER & ADMIN)
-     * Menampilkan daftar aula yang tersedia untuk booking
      */
     public function index()
     {
-        $aulas = Aula::where('status_aktif', true)->get();
+        $aulas = Aula::all();
+
+        $bulanIni = now()->month;
+        $tahunIni = now()->year;
+
+        foreach ($aulas as $aula) {
+            // ============================================
+            // 1. TANGGAL TERPAKAI BULAN INI (mini calendar)
+            // ============================================
+            $aula->tanggal_terpakai = Booking::where('aula_id', $aula->id)
+                ->whereMonth('tanggal_booking', $bulanIni)
+                ->whereYear('tanggal_booking', $tahunIni)
+                ->whereIn('status', ['pending', 'approved'])
+                ->pluck('tanggal_booking')
+                ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // ============================================
+            // 2. DETAIL BOOKING PER TANGGAL (untuk tooltip)
+            // ============================================
+            $aula->booking_map = Booking::where('aula_id', $aula->id)
+                ->whereMonth('tanggal_booking', $bulanIni)
+                ->whereYear('tanggal_booking', $tahunIni)
+                ->whereIn('status', ['pending', 'approved'])
+                ->get(['tanggal_booking', 'nama_penanggung_jawab', 'sesi_waktu'])
+                ->groupBy(fn($b) => Carbon::parse($b->tanggal_booking)->format('Y-m-d'))
+                ->map(function ($items) {
+                    return $items->map(function ($b) {
+                        return [
+                            'nama' => $b->nama_penanggung_jawab ?? 'Tanpa Nama',
+                            'sesi' => ucfirst($b->sesi_waktu ?? '-'),
+                        ];
+                    })->values()->toArray();
+                })
+                ->toArray();
+
+            // ============================================
+            // 3. DAFTAR BOOKING TERBARU (list booking)
+            // ============================================
+            $aula->booking_list = Booking::where('aula_id', $aula->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->where('tanggal_booking', '>=', now()->toDateString())
+                ->orderBy('tanggal_booking', 'asc')
+                ->take(5)
+                ->get()
+                ->map(function ($b) {
+                    return [
+                        'nama' => $b->nama_penanggung_jawab ?? 'Tanpa Nama',
+                        'tanggal' => Carbon::parse($b->tanggal_booking)->translatedFormat('d M'),
+                        'sesi' => ucfirst($b->sesi_waktu ?? '-'),
+                    ];
+                })
+                ->toArray();
+        }
+
         return view('booking.index', compact('aulas'));
     }
 
@@ -29,9 +84,9 @@ class BookingController extends Controller
     {
         $aula = Aula::findOrFail($id);
         $user = Auth::user();
-        
+
         $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-        
+
         if (!$aula->status_aktif && !$isAdmin) {
             return redirect()->route('booking.index')->with('error', 'Aula tidak tersedia.');
         }
@@ -88,8 +143,8 @@ class BookingController extends Controller
                 'status' => 'pending',
             ]);
 
-            // ⭐ Kirim notif ke semua admin (masuk ke tabel `notifications`, SSE nangkep)
-            $this->notifyAdminsNewBooking($booking);
+            // Broadcast event untuk notifikasi
+            BookingCreated::dispatch($booking);
 
             return redirect()->route('riwayat.index')
                 ->with('success', 'Booking berhasil! Menunggu persetujuan admin.');
@@ -112,7 +167,7 @@ class BookingController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -133,10 +188,9 @@ class BookingController extends Controller
     {
         $user = Auth::user();
         $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-        
-        $query = Booking::with(['user', 'aula']);
-        
-        // Jika bukan admin, hanya bisa lihat booking sendiri
+
+        $query = Booking::with(['user:id,name,email', 'aula:id,nama']);
+
         if (!$isAdmin) {
             $query->where('user_id', Auth::id());
         }
@@ -146,21 +200,20 @@ class BookingController extends Controller
     }
 
     /**
-     * User: Cancel booking sendiri / Admin: Cancel semua
+     * Cancel booking
      */
     public function cancel(int $id)
     {
         try {
             $user = Auth::user();
             $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-            
+
             $query = Booking::where('status', 'pending');
-            
-            // Jika bukan admin, hanya bisa batalkan booking sendiri
+
             if (!$isAdmin) {
                 $query->where('user_id', Auth::id());
             }
-            
+
             $booking = $query->findOrFail($id);
             $booking->status = 'canceled';
             $booking->save();
@@ -174,7 +227,7 @@ class BookingController extends Controller
         }
     }
 
-    // ============ PRIVATE HELPER METHODS ============
+    // ============ PRIVATE HELPER ============
 
     /**
      * Cek ketersediaan booking (helper)
@@ -189,51 +242,9 @@ class BookingController extends Controller
             return !$query->exists();
         }
 
-        return !$query->where(function($q) use ($request) {
+        return !$query->where(function ($q) use ($request) {
             $q->where('sesi_waktu', $request->sesi_waktu)
               ->orWhere('sesi_waktu', 'seharian');
         })->exists();
-    }
-
-    /**
-     * ⭐ Kirim notif booking baru ke semua admin.
-     * Notif masuk ke tabel `notifications`, SSE nangkep, toast muncul realtime.
-     * created_at notif = created_at booking (biar jam-nya sama).
-     */
-    private function notifyAdminsNewBooking(Booking $booking): void
-    {
-        $admins = User::where('role', 'admin')
-            ->orWhere('is_admin', true)
-            ->get();
-
-        $tanggalFormatted = $booking->tanggal_booking
-            ? Carbon::parse($booking->tanggal_booking)->format('d M Y')
-            : '-';
-
-        $aulaNama = $booking->aula->nama ?? '-';
-        $pengaju  = $booking->user->name ?? 'User';
-
-        foreach ($admins as $admin) {
-            // Skip kalau admin sendiri yang booking
-            if ($admin->id === $booking->user_id) {
-                continue;
-            }
-
-            $admin->sendNotification(
-                'booking',
-                'Booking Baru',
-                $pengaju . ' booking Aula ' . $aulaNama,
-                [
-                    'tanggal'    => $tanggalFormatted,
-                    'sesi'       => $booking->sesi_waktu,
-                    'aula'       => $aulaNama,
-                    'pengaju'    => $pengaju,
-                    'keperluan'  => $booking->keperluan,
-                    'booking_id' => $booking->id,
-                    'created_at' => $booking->created_at,
-                ],
-                route('admin.kelolabooking.index')
-            );
-        }
     }
 }

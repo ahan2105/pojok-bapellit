@@ -1,6 +1,5 @@
 {{-- ============================================================ --}}
 {{-- MODAL QR CODE --}}
-{{-- Include dari show.blade.php dengan: @include('admin.absensi.partials.qr-modal') --}}
 {{-- ============================================================ --}}
 
 <div id="qrModal" class="fixed inset-0 z-50 hidden items-start justify-center p-4 overflow-y-auto" style="background-color: rgba(0,0,0,0.5);">
@@ -23,6 +22,16 @@
             </p>
         </div>
 
+        {{-- ⭐ INFO: QR cuma bisa dipakai peserta sesi ini --}}
+        <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <p class="text-xs text-amber-700 leading-relaxed">
+                <strong>Hanya peserta yang terdaftar</strong> di sesi ini yang bisa absen dengan QR. User lain akan ditolak.
+            </p>
+        </div>
+
         <!-- QR Code -->
         <div id="qr-wrapper" class="flex justify-center mb-4">
             <div class="p-4 bg-white border-2 border-dashed border-purple-200 rounded-xl inline-block">
@@ -36,7 +45,7 @@
             <p class="text-xs font-mono text-gray-700 break-all">{{ $scanUrl }}</p>
         </div>
 
-        {{--  TOKEN MANUAL — untuk user tanpa kamera --}}
+        {{-- TOKEN MANUAL — untuk user tanpa kamera --}}
         <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-xs font-semibold text-purple-700 uppercase tracking-wide">
@@ -87,7 +96,7 @@
             </button>
         </div>
 
-        {{-- ⭐ TOMBOL TUTUP (biar gampang di HP) --}}
+        {{-- ⭐ TOMBOL TUTUP --}}
         <button type="button" 
                 onclick="closeQrModal()"
                 class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition">
@@ -125,12 +134,10 @@
 </style>
 
 <script>
-    // ===== MODAL QR =====
     function openQrModal() {
         const modal = document.getElementById('qrModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        // Cegah body di-scroll saat modal terbuka (opsional)
         document.body.style.overflow = 'hidden';
     }
 
@@ -141,12 +148,10 @@
         document.body.style.overflow = '';
     }
 
-    // Close modal kalau klik backdrop
     document.getElementById('qrModal')?.addEventListener('click', function(e) {
         if (e.target === this) closeQrModal();
     });
 
-    // ESC untuk close
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeQrModal();
     });
@@ -155,7 +160,6 @@
         window.print();
     }
 
-    // ===== ⭐ COPY TOKEN =====
     function copyToken() {
         const tokenText = document.getElementById('token-text');
         const btn = document.getElementById('copy-token-btn');
