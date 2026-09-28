@@ -15,6 +15,7 @@ use App\Http\Controllers\SuratController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AkunController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ChatbotController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -112,6 +113,21 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
 
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
+
+    // ===== 🤖 CHATBOT AI (USER & ADMIN) =====
+    // Menu cepat (template) — 0 token
+    Route::get('/chatbot/menus', [ChatbotController::class, 'menus'])
+        ->name('chatbot.menus');
+
+    // Ambil jawaban template by ID
+    Route::post('/chatbot/template', [ChatbotController::class, 'template'])
+        ->middleware('throttle:30,1')
+        ->name('chatbot.template');
+
+    // Chat utama (template match dulu, fallback ke Groq)
+    Route::post('/chatbot', [ChatbotController::class, 'chat'])
+        ->middleware('throttle:30,1')
+        ->name('chatbot.chat');
 
     // ========== ROUTE ADMIN ==========
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {

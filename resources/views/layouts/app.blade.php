@@ -11,6 +11,10 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+    // Set cookie buat skip ngrok warning page
+    document.cookie = "ngrok-skip-browser-warning=true; path=/; max-age=31536000; SameSite=Lax";
+</script>
 </head>
 <body class="font-sans antialiased bg-gray-100">
     <div class="min-h-screen">
@@ -33,5 +37,6 @@
             {{ $slot }}
         </main>
     </div>
+    
 </body>
 </html>
