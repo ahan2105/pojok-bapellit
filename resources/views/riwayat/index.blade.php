@@ -7,7 +7,7 @@
 
 @extends($layout)
 
-@section('title', 'Riwayat Booking Saya')
+@section('title', 'Riwayat Booking aula')
 
 @section('content')
 <div class="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-8" x-data="riwayatManager()">

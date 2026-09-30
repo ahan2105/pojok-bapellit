@@ -22,6 +22,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
     protected Collection $sesiList;
     protected Carbon $tanggalDari;
     protected Carbon $tanggalKe;
+    protected array $excludeIds; // Tambahan: ID sesi yang dikecualikan
 
     protected array $data = [];
     protected array $groupHeaderRows = [];
@@ -38,11 +39,13 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
     protected int $kolomMulaiSesi = 7; // Kolom G
     protected int $jumlahSesi = 0;
 
-    public function __construct(Collection $sesiList, Carbon $tanggalDari, Carbon $tanggalKe)
+    // PERBAIKAN CONSTRUCTOR: Menerima excludeIds
+    public function __construct(Collection $sesiList, Carbon $tanggalDari, Carbon $tanggalKe, array $excludeIds = [])
     {
         $this->sesiList    = $sesiList;
         $this->tanggalDari = $tanggalDari;
         $this->tanggalKe   = $tanggalKe;
+        $this->excludeIds  = $excludeIds;
         $this->buildData();
     }
 
@@ -50,6 +53,12 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
     {
         // Urutkan sesi berdasarkan tanggal
         $sesiList = $this->sesiList = $this->sesiList->sortBy(fn($s) => $s->tanggal)->values();
+        
+        // PERBAIKAN LOGIKA: Filter sesi yang ada di excludeIds
+        if (!empty($this->excludeIds)) {
+            $sesiList = $sesiList->filter(fn($s) => !in_array($s->id, $this->excludeIds))->values();
+        }
+
         $this->jumlahSesi = $sesiList->count();
 
         // Total kolom = 6 (statis) + N (sesi) + 1 (keterangan) + 2 (rekap hadir/tidak)
@@ -137,33 +146,32 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         $this->data[] = array_fill(0, $this->totalKolom, '');
 
         // ===================================================================
-        // LOGIKA PENGAMBILAN PESERTA YANG BENAR (UNION BASED)
+        // LOGIKA PENGAMBILAN PESERTA (FIXED: SEMUA USER AKTIF MUNCUL)
         // ===================================================================
         $sesiIds = $sesiList->pluck('id');
         
-        // 1. Ambil semua ID user yang TERDAFTAR di salah satu sesi ini
-        //    (Ini mencakup user yang dipilih via Bidang/Jabatan/Nama saat buat sesi)
-        $registeredUserIds = DB::table('absensi_detail')
-            ->whereIn('absensi_sesi_id', $sesiIds)
-            ->distinct()
-            ->pluck('user_id');
-
-        // 2. Ambil data lengkap user tersebut dari tabel users
-        //    PENTING: Kita ambil dari 'users', bukan dari join detail, 
-        //    agar user yang belum absen tetap muncul dengan data Bidangnya.
-        $peserta = User::whereIn('id', $registeredUserIds)
+        // 1. Ambil SEMUA USER AKTIF sebagai basis data utama
+        $allUsers = User::where('status', 'aktif')
             ->orderBy('name')
             ->get(['id', 'name', 'golongan', 'nip', 'jabatan', 'bidang']);
-        
-        // 3. Map absensi per user per sesi (untuk mengisi tanda ✓//-)
+
+        // 2. Map absensi per user per sesi
         $absensiMap = DB::table('absensi_detail')
             ->whereIn('absensi_sesi_id', $sesiIds)
             ->get()
             ->groupBy('user_id')
             ->map(fn($items) => $items->keyBy('absensi_sesi_id'));
 
+        // 3. Map target peserta per sesi (Untuk membedakan '-' dan 'o')
+        $targetSesiMap = DB::table('absensi_detail')
+            ->whereIn('absensi_sesi_id', $sesiIds)
+            ->select('absensi_sesi_id', 'user_id')
+            ->get()
+            ->groupBy('absensi_sesi_id')
+            ->map(fn($items) => $items->pluck('user_id')->flip());
+
         // Grouping Bidang (DINAMIS & OTOMATIS)
-        $groupedRaw = $peserta->groupBy(function ($p) {
+        $groupedRaw = $allUsers->groupBy(function ($p) {
             $b = trim(strtoupper($p->bidang ?? ''));
             $b = preg_replace('/\s+/', ' ', $b);
             return $b === '' ? 'TANPA BIDANG' : $b;
@@ -204,15 +212,26 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 // Variabel penghitung kehadiran
                 $countHadir = 0;
                 $countTidak = 0;
+                $hasSesiInPeriod = false;
 
                 foreach ($sesiList as $sesi) {
+                    // Cek apakah user ini termasuk target peserta di sesi ini
+                    $isTarget = isset($targetSesiMap[$sesi->id][$p->id]);
+                    
+                    if (!$isTarget) {
+                        // User TIDAK ADA di sesi ini → beri tanda 'o'
+                        $row[] = 'o';
+                        continue;
+                    }
+
+                    $hasSesiInPeriod = true;
+                    
                     // Cek apakah user ini punya record absen di sesi ini
                     $detail = $absensiMap[$p->id][$sesi->id] ?? null;
                     
                     if (!$detail) {
-                        // User terdaftar di sesi ini TAPI belum isi absen / tidak hadir
-                        // DIGANTI DARI '-' MENJADI 'o' KECIL
-                        $row[] = 'o';
+                        // User terdaftar di sesi ini TAPI belum isi absen → beri tanda '-'
+                        $row[] = '-';
                     } elseif ($detail->status_kehadiran === 'hadir') {
                         $row[] = '✓';
                         $countHadir++;
@@ -227,8 +246,13 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                         }
                     } else {
                         // Status lain dianggap belum absen
-                        $row[] = 'o';
+                        $row[] = '-';
                     }
+                }
+
+                // SKIP: Jika user tidak punya sesi sama sekali di periode ini, lewati
+                if (!$hasSesiInPeriod) {
+                    continue;
                 }
 
                 // Tambahkan kolom keterangan terlebih dahulu
@@ -457,30 +481,27 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                     $sheet->getStyle("B{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("D{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                    // Styling tanda kehadiran (✓ / ✗ / o)
+                    // Styling tanda kehadiran (✓ / ✗ / - / o) - TANPA WARNA
                     for ($i = 0; $i < $this->jumlahSesi; $i++) {
                         $colLetter = Coordinate::stringFromColumnIndex($this->kolomMulaiSesi + $i);
                         $cell = "{$colLetter}{$rowIndex}";
                         $value = $sheet->getCell($cell)->getValue();
 
                         $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                        if ($value === '✓') {
+                        
+                        // Semua tanda menggunakan font default (Hitam), Bold untuk simbol utama
+                        if ($value === '✓' || $value === '✗') {
                             $sheet->getStyle($cell)->getFont()
-                                ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('10B981')) // Hijau
                                 ->setBold(true)
                                 ->setSize(12);
-                        } elseif ($value === '✗') {
+                        } elseif ($value === '-') {
                             $sheet->getStyle($cell)->getFont()
-                                ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('DC2626')) // Merah
                                 ->setBold(true)
-                                ->setSize(12);
-                        } elseif ($value === 'o') {
-                            // Styling khusus untuk 'o' (belum absen/tidak hadir tanpa keterangan)
-                            $sheet->getStyle($cell)->getFont()
-                                ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('9CA3AF')) // Abu-abu muda
-                                ->setBold(false)
                                 ->setSize(11);
+                        } elseif ($value === 'o') {
+                            $sheet->getStyle($cell)->getFont()
+                                ->setBold(false)
+                                ->setSize(10);
                         }
                     }
 

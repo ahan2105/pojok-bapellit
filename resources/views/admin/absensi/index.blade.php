@@ -144,7 +144,7 @@
                            class="px-3 py-2.5 border border-emerald-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
                 </div>
 
-                <a href="#"
+                <button type="button"
                    id="btn-export-rekap"
                    onclick="exportRekap(event)"
                    class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">
@@ -152,7 +152,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Export Rekap
-                </a>
+                </button>
             </div>
         </div>
 
@@ -175,7 +175,7 @@
             $totalBelumPreview  = max(0, $totalSemuaDetail - $totalHadirPreview - $totalTidakPreview);
         @endphp
 
-        <div class="mb-8 bg-white rounded-2xl shadow-sm border border-emerald-200 overflow-hidden">
+        <div class="mb-8 bg-white rounded-2xl shadow-sm border border-emerald-200 overflow-hidden" id="preview-container">
 
             <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 border-b border-emerald-200">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
@@ -190,37 +190,40 @@
                                 Preview Sesi yang Akan Di-rekap
                             </h3>
                             <p class="text-xs text-emerald-700">
-                                {{ $sesiRekap->count() }} sesi ditemukan dalam rentang ini
+                                <span id="sesi-count">{{ $sesiRekap->count() }}</span> sesi ditemukan dalam rentang ini
                             </p>
                         </div>
                     </div>
 
-                    <a href="{{ route('admin.absensi.index', ['filter' => $filter]) }}"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 transition">
+                    <!-- Tombol Hapus Sesi Terpilih dari Preview -->
+                    <button type="button"
+                            id="btn-remove-from-preview"
+                            onclick="removeSelectedFromPreview()"
+                            class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition shadow-sm">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
-                        Tutup Preview
-                    </a>
+                        Hapus Terpilih dari Export (<span id="preview-selected-count">0</span>)
+                    </button>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
                 <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-green-600">{{ $totalHadirPreview }}</div>
+                    <div class="text-2xl font-extrabold text-green-600" id="preview-total-hadir">{{ $totalHadirPreview }}</div>
                     <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Hadir</div>
                 </div>
                 <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-red-600">{{ $totalTidakPreview }}</div>
+                    <div class="text-2xl font-extrabold text-red-600" id="preview-total-tidak">{{ $totalTidakPreview }}</div>
                     <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Tidak Hadir</div>
                 </div>
                 <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-amber-600">{{ $totalBelumPreview }}</div>
+                    <div class="text-2xl font-extrabold text-amber-600" id="preview-total-belum">{{ $totalBelumPreview }}</div>
                     <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Belum Absen</div>
                 </div>
             </div>
 
-            <div class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            <div class="divide-y divide-gray-100 max-h-96 overflow-y-auto" id="preview-list">
                 @foreach($sesiRekap as $sr)
                     @php
                         $hadir  = $sr->details->where('status_kehadiran', 'hadir')->count();
@@ -228,8 +231,17 @@
                         $total  = $sr->details->count();
                         $belum  = max(0, $total - $hadir - $tidak);
                     @endphp
-                    <div class="px-5 py-3.5 hover:bg-emerald-50/30 transition">
+                    <div class="px-5 py-3.5 hover:bg-emerald-50/30 transition preview-item" data-id="{{ $sr->id }}" data-hadir="{{ $hadir }}" data-tidak="{{ $tidak }}" data-belum="{{ $belum }}">
                         <div class="flex items-center justify-between gap-4 flex-wrap">
+                            
+                            <!-- Checkbox untuk pilih sesi yang mau dihapus dari export -->
+                            <div class="flex-shrink-0">
+                                <input type="checkbox" 
+                                       class="preview-checkbox w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer" 
+                                       value="{{ $sr->id }}"
+                                       onchange="updatePreviewSelectedCount()">
+                            </div>
+
                             <div class="flex items-center gap-3 min-w-0 flex-1">
                                 <div class="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white shadow-sm">
                                     <span class="text-[10px] font-bold uppercase leading-none opacity-90">
@@ -527,7 +539,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // --- Logic Bulk Delete ---
+    // --- Logic Bulk Delete (untuk daftar sesi utama) ---
     let selectedIds = new Set();
 
     function updateSelectedCount() {
@@ -574,10 +586,8 @@
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                // Convert Set to Array
                 const ids = Array.from(selectedIds);
                 
-                // Show loading
                 Swal.fire({
                     title: 'Sedang Menghapus...',
                     text: 'Mohon tunggu sebentar',
@@ -587,12 +597,6 @@
                     }
                 });
 
-                // Send AJAX request to a new bulk delete route or loop individual deletes
-                // For simplicity and safety, let's assume we have a bulk route or we handle it via standard form submission logic
-                // Since standard Laravel doesn't have bulk delete by default in this context, 
-                // we will redirect to a custom endpoint or use fetch.
-                
-                // Option: Use fetch to call a bulk delete endpoint
                 fetch('{{ route("admin.absensi.bulk-destroy") }}', {
                     method: 'POST',
                     headers: {
@@ -627,6 +631,107 @@
                 });
             }
         });
+    }
+
+    // --- Logic Preview: Hapus Sesi dari Export ---
+    let previewSelectedIds = new Set();
+
+    function updatePreviewSelectedCount() {
+        const checkboxes = document.querySelectorAll('.preview-checkbox:checked');
+        previewSelectedIds.clear();
+        
+        checkboxes.forEach(cb => {
+            previewSelectedIds.add(cb.value);
+        });
+
+        const count = previewSelectedIds.size;
+        const btn = document.getElementById('btn-remove-from-preview');
+        const countSpan = document.getElementById('preview-selected-count');
+        
+        countSpan.textContent = count;
+        
+        if (count > 0) {
+            btn.classList.remove('hidden');
+        } else {
+            btn.classList.add('hidden');
+        }
+    }
+
+    function removeSelectedFromPreview() {
+        if (previewSelectedIds.size === 0) return;
+
+        Swal.fire({
+            title: 'Hapus Sesi dari Export?',
+            html: `<strong>${previewSelectedIds.size} sesi</strong> akan dihapus dari preview export.<br><span class="text-sm text-gray-500">Sesi tetap ada di database, hanya tidak ikut di-export.</span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus dari Export!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Hapus elemen dari DOM
+                previewSelectedIds.forEach(id => {
+                    const item = document.querySelector(`.preview-item[data-id="${id}"]`);
+                    if (item) {
+                        // Ambil data statistik sebelum hapus
+                        const hadir = parseInt(item.dataset.hadir) || 0;
+                        const tidak = parseInt(item.dataset.tidak) || 0;
+                        const belum = parseInt(item.dataset.belum) || 0;
+
+                        // Update total statistik
+                        updatePreviewTotals(-hadir, -tidak, -belum);
+
+                        // Hapus elemen dengan animasi
+                        item.style.transition = 'all 0.3s ease';
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(-20px)';
+                        setTimeout(() => item.remove(), 300);
+                    }
+                });
+
+                // Update counter sesi
+                const remainingItems = document.querySelectorAll('.preview-item').length - previewSelectedIds.size;
+                document.getElementById('sesi-count').textContent = Math.max(0, remainingItems);
+
+                // Reset checkbox
+                previewSelectedIds.clear();
+                document.querySelectorAll('.preview-checkbox').forEach(cb => cb.checked = false);
+                document.getElementById('btn-remove-from-preview').classList.add('hidden');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Sesi terpilih telah dihapus dari preview export.',
+                    confirmButtonColor: '#10b981',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+    }
+
+    function updatePreviewTotals(hadirChange, tidakChange, belumChange) {
+        const totalHadirEl = document.getElementById('preview-total-hadir');
+        const totalTidakEl = document.getElementById('preview-total-tidak');
+        const totalBelumEl = document.getElementById('preview-total-belum');
+
+        if (totalHadirEl) {
+            const current = parseInt(totalHadirEl.textContent) || 0;
+            totalHadirEl.textContent = Math.max(0, current + hadirChange);
+        }
+
+        if (totalTidakEl) {
+            const current = parseInt(totalTidakEl.textContent) || 0;
+            totalTidakEl.textContent = Math.max(0, current + tidakChange);
+        }
+
+        if (totalBelumEl) {
+            const current = parseInt(totalBelumEl.textContent) || 0;
+            totalBelumEl.textContent = Math.max(0, current + belumChange);
+        }
     }
 
     // --- Existing Logic ---
@@ -695,6 +800,23 @@
             return;
         }
 
+        // STRATEGI BARU: Kirim ID yang TERSISA (yang masih ada di DOM)
+        // Ini lebih aman daripada mengirim ID yang dihapus karena sesi yang dihapus sudah tidak ada di DOM
+        const includeIds = [];
+        document.querySelectorAll('.preview-item').forEach(item => {
+            includeIds.push(item.dataset.id);
+        });
+
+        if (includeIds.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tidak Ada Sesi',
+                text: 'Semua sesi telah dihapus dari preview. Silakan reset filter untuk memilih ulang.',
+                confirmButtonColor: '#10b981'
+            });
+            return;
+        }
+
         const d1 = new Date(dari).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
         const d2 = new Date(ke).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -703,7 +825,7 @@
             html: `
                 <p class="text-base text-gray-700 mb-2">Data yang akan di-export:</p>
                 <p class="text-lg font-bold text-emerald-600">${d1} — ${d2}</p>
-                <p class="text-sm text-gray-500 mt-3">File Excel akan otomatis ter-download.</p>
+                <p class="text-sm text-gray-500 mt-3"><strong>${includeIds.length} sesi</strong> akan di-export.</p>
             `,
             icon: 'question',
             showCancelButton: true,
@@ -713,7 +835,17 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = `{{ route('admin.absensi.export-rekap') }}?tanggal_dari=${dari}&tanggal_ke=${ke}`;
+                // Gunakan format array Laravel: ids[]=1&ids[]=2
+                const params = new URLSearchParams({
+                    tanggal_dari: dari,
+                    tanggal_ke: ke
+                });
+                
+                includeIds.forEach(id => {
+                    params.append('ids[]', id);
+                });
+
+                window.location.href = `{{ route('admin.absensi.export-rekap') }}?${params.toString()}`;
             }
         });
     }

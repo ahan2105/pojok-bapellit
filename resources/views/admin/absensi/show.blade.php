@@ -53,7 +53,7 @@
             <p class="text-base text-gray-600 mt-2 flex items-center flex-wrap gap-x-2 gap-y-1">
                 <span>📅 {{ \Carbon\Carbon::parse($sesi->tanggal)->translatedFormat('d F Y') }}</span>
                 @if($sesi->lokasi)
-                    <span>· 📍 {{ $sesi->lokasi }}</span>
+                    <span>·  {{ $sesi->lokasi }}</span>
                 @endif
                 @if($sesi->is_default)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
@@ -62,7 +62,7 @@
                 @endif
                 @if($sesi->is_locked)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                        🔒 Terkunci
+                         Terkunci
                     </span>
                 @endif
             </p>
@@ -113,25 +113,6 @@
 
     <!-- Toolbar: Tab + Search -->
     <div class="bg-white rounded-t-2xl shadow-sm border border-gray-200 p-5 flex flex-col md:flex-row md:items-center gap-4">
-        
-        <!-- Tab Hari Ini / Sebelumnya -->
-        <div class="flex items-center gap-2 flex-shrink-0">
-            <a href="{{ route('admin.absensi.show', ['id' => $sesi->id, 'filter' => 'hari_ini']) }}" 
-               class="px-5 py-2.5 rounded-lg text-sm font-semibold transition
-                      {{ request('filter', 'hari_ini') === 'hari_ini' 
-                          ? 'bg-blue-600 text-white shadow-sm' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                Hari Ini
-            </a>
-            <a href="{{ route('admin.absensi.show', ['id' => $sesi->id, 'filter' => 'sebelumnya']) }}" 
-               class="px-5 py-2.5 rounded-lg text-sm font-semibold transition
-                      {{ request('filter') === 'sebelumnya' 
-                          ? 'bg-blue-600 text-white shadow-sm' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                Sebelumnya
-            </a>
-        </div>
-
         <!-- Search -->
         <form method="GET" action="{{ route('admin.absensi.show', $sesi->id) }}" class="flex-1 md:max-w-md md:ml-auto">
             <div class="relative">
@@ -191,6 +172,9 @@
                                     @endif
                                 </div>
                             </th>
+
+                            <!-- KOLOM BARU: WAKTU ABSEN -->
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-48">WAKTU ABSEN</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -224,7 +208,7 @@
 
                         @forelse($groupedPeserta as $bidang => $groupUsers)
                             <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-y border-blue-100">
-                                <td colspan="4" class="px-6 py-3">
+                                <td colspan="5" class="px-6 py-3">
                                     <div class="flex items-center gap-3">
                                         <div class="w-2 h-2 rounded-full bg-blue-600"></div>
                                         <span class="text-sm font-bold text-blue-900 tracking-wide">
@@ -293,11 +277,21 @@
                                                    class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400">
                                         </div>
                                     </td>
+
+                                    <!-- KOLOM BARU: INPUT WAKTU ABSEN -->
+                                    <td class="px-6 py-5 align-top">
+                                        <input type="time" 
+                                               name="waktu_absen[{{ $p->id }}]" 
+                                               id="waktu-{{ $p->id }}"
+                                             value="{{ isset($p->waktu_absen) && $p->waktu_absen ? \Carbon\Carbon::parse($p->waktu_absen)->format('H:i') : '' }}"
+                                               {{ !$sesi->is_locked ? '' : 'disabled' }}
+                                               class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400">
+                                    </td>
                                 </tr>
                             @endforeach
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-16 text-center">
+                                <td colspan="5" class="px-6 py-16 text-center">
                                     <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
@@ -338,20 +332,36 @@
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // ===== Toggle keterangan =====
+    // ===== Toggle keterangan & JAM OTOMATIS =====
     function toggleKeterangan(userId) {
         const radios = document.querySelectorAll(`input[name="kehadiran[${userId}]"]`);
         const keterangan = document.getElementById(`keterangan-${userId}`);
+        const waktuInput = document.getElementById(`waktu-${userId}`);
         
         let selected = null;
         radios.forEach(r => { if (r.checked) selected = r.value; });
 
         if (selected === 'tidak') {
+            // Jika Tidak Hadir: Aktifkan keterangan, kosongkan jam
             keterangan.disabled = false;
             keterangan.focus();
-        } else {
+            if(waktuInput) waktuInput.value = '';
+        } else if (selected === 'hadir') {
+            // Jika Hadir: Nonaktifkan keterangan, isi jam sekarang
             keterangan.disabled = true;
             keterangan.value = '';
+            
+            if(waktuInput && !waktuInput.value) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                waktuInput.value = `${hours}:${minutes}`;
+            }
+        } else {
+            // Jika belum dipilih: Kosongkan semua
+            keterangan.disabled = true;
+            keterangan.value = '';
+            if(waktuInput) waktuInput.value = '';
         }
     }
 
@@ -361,7 +371,7 @@
 
         Swal.fire({
             title: 'Hadirkan Semua Peserta?',
-            html: `Semua <strong>${pesertaIds.length} peserta</strong> akan ditandai <strong class="text-green-600">Hadir</strong>.<br><span class="text-sm text-gray-500">Anda masih bisa mengubahnya secara manual sebelum simpan.</span>`,
+            html: `Semua <strong>${pesertaIds.length} peserta</strong> akan ditandai <strong class="text-green-600">Hadir</strong>.<br><span class="text-sm text-gray-500">Jam absen akan diisi otomatis dengan waktu saat ini.</span>`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
@@ -370,10 +380,16 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTime = `${hours}:${minutes}`;
+
                 pesertaIds.forEach(id => {
                     const radioHadir = document.getElementById(`hadir-${id}`);
                     const radioTidak = document.getElementById(`tidak-${id}`);
                     const keterangan = document.getElementById(`keterangan-${id}`);
+                    const waktuInput = document.getElementById(`waktu-${id}`);
 
                     if (radioHadir) {
                         radioHadir.checked = true;
@@ -382,6 +398,9 @@
                     if (keterangan) {
                         keterangan.disabled = true;
                         keterangan.value = '';
+                    }
+                    if (waktuInput && !waktuInput.value) {
+                        waktuInput.value = currentTime;
                     }
                     if (radioTidak) radioTidak.checked = false;
                 });
@@ -418,6 +437,7 @@
                     const radioHadir = document.getElementById(`hadir-${id}`);
                     const radioTidak = document.getElementById(`tidak-${id}`);
                     const keterangan = document.getElementById(`keterangan-${id}`);
+                    const waktuInput = document.getElementById(`waktu-${id}`);
 
                     if (radioTidak) {
                         radioTidak.checked = true;
@@ -425,6 +445,9 @@
                     }
                     if (keterangan) {
                         keterangan.disabled = false;
+                    }
+                    if (waktuInput) {
+                        waktuInput.value = '';
                     }
                     if (radioHadir) radioHadir.checked = false;
                 });

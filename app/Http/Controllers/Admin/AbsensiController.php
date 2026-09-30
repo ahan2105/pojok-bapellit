@@ -289,58 +289,38 @@ class AbsensiController extends Controller
     /**
      * Halaman absensi 1 sesi
      */
+      /**
+     * Halaman absensi 1 sesi
+     */
     public function show(Request $request, int $id)
     {
         $sesi = AbsensiSesi::with('creator')->findOrFail($id);
         $search = $request->input('search');
 
-        if ($sesi->is_locked) {
-            $peserta = AbsensiDetail::with('user:id,name,bidang,status')
-                ->where('absensi_sesi_id', $id)
-                ->when($search, function ($q, $search) {
-                    return $q->whereHas('user', function ($sub) use ($search) {
-                        $sub->where('name', 'like', "%{$search}%");
-                    });
-                })
-                ->whereHas('user')
-                ->get()
-                ->map(function ($detail) {
-                    return (object) [
-                        'id'               => $detail->user->id,
-                        'name'             => $detail->user->name,
-                        'bidang'           => $detail->user->bidang,
-                        'status'           => $detail->user->status,
-                        'detail_id'        => $detail->id,
-                        'status_kehadiran' => $detail->status_kehadiran,
-                        'keterangan'       => $detail->keterangan,
-                    ];
-                })
-                ->sortBy('name')
-                ->values();
-        } else {
-            $peserta = AbsensiDetail::with('user:id,name,bidang,status')
-                ->where('absensi_sesi_id', $id)
-                ->when($search, function ($q, $search) {
-                    return $q->whereHas('user', function ($sub) use ($search) {
-                        $sub->where('name', 'like', "%{$search}%");
-                    });
-                })
-                ->whereHas('user')
-                ->get()
-                ->map(function ($detail) {
-                    return (object) [
-                        'id'               => $detail->user->id,
-                        'name'             => $detail->user->name,
-                        'bidang'           => $detail->user->bidang,
-                        'status'           => $detail->user->status,
-                        'detail_id'        => $detail->id,
-                        'status_kehadiran' => $detail->status_kehadiran,
-                        'keterangan'       => $detail->keterangan,
-                    ];
-                })
-                ->sortBy('name')
-                ->values();
-        }
+        // PERBAIKAN: Gabungkan query agar konsisten & tidak ada duplikasi logika
+        $peserta = AbsensiDetail::with('user:id,name,bidang,status')
+            ->where('absensi_sesi_id', $id)
+            ->when($search, function ($q, $search) {
+                return $q->whereHas('user', function ($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                });
+            })
+            ->whereHas('user')
+            ->get()
+            ->map(function ($detail) {
+                return (object) [
+                    'id'               => $detail->user->id,
+                    'name'             => $detail->user->name,
+                    'bidang'           => $detail->user->bidang,
+                    'status'           => $detail->user->status,
+                    'detail_id'        => $detail->id,
+                    'status_kehadiran' => $detail->status_kehadiran,
+                    'keterangan'       => $detail->keterangan,
+                    'waktu_absen'      => $detail->waktu_absen, // ✅ PASTIKAN ADA DI SINI
+                ];
+            })
+            ->sortBy('name')
+            ->values();
 
         // Generate token QR kalau belum ada & sesi belum dikunci
         if (!$sesi->is_locked && empty($sesi->token_qr)) {
@@ -484,7 +464,7 @@ class AbsensiController extends Controller
         return Excel::download(new AbsensiSesiExport($sesi), $namaFile);
     }
 
-    /**
+     /**
      * Export Rekap Excel berdasarkan rentang tanggal
      */
     public function exportRekap(Request $request)
@@ -492,36 +472,49 @@ class AbsensiController extends Controller
         $request->validate([
             'tanggal_dari' => 'required|date',
             'tanggal_ke'   => 'required|date|after_or_equal:tanggal_dari',
+            'ids'          => 'nullable|array', // Validasi untuk array ID yang dikirim frontend
+            'ids.*'        => 'integer|exists:absensi_sesi,id',
         ], [
             'tanggal_dari.required'     => 'Tanggal "dari" wajib diisi.',
             'tanggal_ke.required'       => 'Tanggal "ke" wajib diisi.',
             'tanggal_ke.after_or_equal' => 'Tanggal "ke" harus sama atau setelah tanggal "dari".',
+            'ids.*.exists'              => 'Terdapat sesi yang tidak valid atau sudah dihapus.',
         ]);
 
         $tanggalDari = Carbon::parse($request->tanggal_dari)->startOfDay();
         $tanggalKe   = Carbon::parse($request->tanggal_ke)->endOfDay();
 
-        // Ambil semua sesi di rentang + relasi details (untuk hitung hadir/tidak)
+        // Ambil ID sesi yang dikirim dari preview (Whitelist)
+        $includeIds = $request->input('ids', []);
+
+        // Jika tidak ada ID yang tersisa (user menghapus semua dari preview), batalkan export
+        if (empty($includeIds)) {
+            return redirect()
+                ->route('admin.absensi.index')
+                ->with('error', "Tidak ada sesi yang dipilih untuk di-export. Silakan reset filter atau pilih ulang sesi.");
+        }
+
+        // Query hanya sesi yang ID-nya ada dalam daftar includeIds DAN berada dalam rentang tanggal
         $sesiList = AbsensiSesi::with('details')
             ->whereBetween('tanggal', [$tanggalDari, $tanggalKe])
+            ->whereIn('id', $includeIds)
             ->orderBy('tanggal')
             ->get();
 
+        // Double check jika ternyata data tidak ditemukan (misal sesi sudah dihapus orang lain saat proses)
         if ($sesiList->isEmpty()) {
             return redirect()
                 ->route('admin.absensi.index')
-                ->with('error', "Tidak ada sesi absensi di rentang "
-                    . $tanggalDari->translatedFormat('d F Y') . " — "
-                    . $tanggalKe->translatedFormat('d F Y') . ".");
+                ->with('error', "Data sesi yang Anda pilih tidak ditemukan di rentang tanggal tersebut.");
         }
 
         $labelDari = $tanggalDari->format('Y-m-d');
         $labelKe   = $tanggalKe->format('Y-m-d');
         $namaFile  = "Rekap_Absensi_{$labelDari}_sd_{$labelKe}.xlsx";
 
-        // Pakai class AbsensiRekapExport (rekap multi-sesi)
+        // Kirim array kosong ke Exclude karena kita sudah memfilter via Query Builder (Include)
         return Excel::download(
-            new AbsensiRekapExport($sesiList, $tanggalDari, $tanggalKe),
+            new AbsensiRekapExport($sesiList, $tanggalDari, $tanggalKe, []), 
             $namaFile
         );
     }

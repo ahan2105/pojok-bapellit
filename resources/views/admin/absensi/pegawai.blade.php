@@ -51,7 +51,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <div class="text-sm sm:text-base text-blue-800">
-            <p class="font-semibold mb-1">Pegawai yang tampil di sini otomatis ikut absensi.</p>
+            <p class="font-semibold mb-1">Pegawai yang tampil di sini bisa ikut absensi.</p>
             <p class="text-blue-700">Kriteria: user dengan <strong>status "aktif"</strong>. Untuk menambah/menghapus pegawai, buka halaman <strong>Kelola Akun</strong>.</p>
         </div>
     </div>
