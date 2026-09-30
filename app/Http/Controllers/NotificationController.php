@@ -77,4 +77,27 @@ class NotificationController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Hapus satu notifikasi milik pengguna yang sedang login.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $notification = Notification::findOrFail($id);
+
+        // Pastikan pengguna hanya dapat menghapus notifikasinya sendiri.
+        abort_if($notification->user_id !== $request->user()->id, 403);
+
+        $userId = $notification->user_id;
+
+        $notification->delete();
+
+        // Perbarui cache jumlah notifikasi belum dibaca.
+        Cache::forget("user_{$userId}_unread_count");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifikasi berhasil dihapus.',
+        ]);
+    }
 }
