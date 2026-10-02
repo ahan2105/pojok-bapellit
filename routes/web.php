@@ -103,12 +103,27 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         ->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
         ->name('notifications.destroy');
     Route::delete('/notifications', [NotificationController::class, 'destroyAll'])
         ->name('notifications.destroy-all');
+
+    // ===== HAPUS OTOMATIS NOTIFIKASI LEBIH DARI SATU BULAN =====
+    Route::post('/notifications/cleanup-old', function (Request $request) {
+        $deleted = $request->user()
+            ->notifications()
+            ->where('created_at', '<', now()->subMonth())
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted' => $deleted,
+        ]);
+    })->name('notifications.cleanup-old');
 
     // ===== CHATBOT AI (USER & ADMIN) =====
     Route::get('/chatbot/menus', [ChatbotController::class, 'menus'])
