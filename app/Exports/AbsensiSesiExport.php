@@ -1,24 +1,30 @@
 <?php
 
 namespace App\Exports;
+
 use App\Models\AbsensiSesi;
 use App\Models\User;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, WithEvents
+class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, WithStyles
 {
     protected AbsensiSesi $sesi;
+
     protected array $data = [];
+
     protected array $groupHeaderRows = [];
+
     protected array $dataRows = [];
 
     public function __construct(AbsensiSesi $sesi)
@@ -36,11 +42,11 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
 
         // BARIS 1: Judul Utama dengan tahun dinamis (merge A-H)
         $this->data[] = ["DAFTAR HADIR PEGAWAI ASN BAPPELITBANGDA {$tahun}"];
-        
+
         // BARIS 2: Nama Sesi (merge A-H)
         $sessionTitle = $sesi->is_default ? 'ICE BREAKING' : strtoupper($sesi->nama_sesi);
         $this->data[] = [$sessionTitle];
-        
+
         // BARIS 3: Kosong
         $this->data[] = ['', '', '', '', '', '', '', ''];
 
@@ -75,9 +81,9 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         // ⭐ Ambil HANYA peserta yang terdaftar di sesi ini
         // ⭐========================================================
         $peserta = User::join('absensi_detail', function ($join) use ($sesi) {
-                $join->on('users.id', '=', 'absensi_detail.user_id')
-                     ->where('absensi_detail.absensi_sesi_id', '=', $sesi->id);
-            })
+            $join->on('users.id', '=', 'absensi_detail.user_id')
+                ->where('absensi_detail.absensi_sesi_id', '=', $sesi->id);
+        })
             ->select(
                 'users.*',
                 'absensi_detail.status_kehadiran',
@@ -90,27 +96,28 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         $groupedRaw = $peserta->groupBy(function ($p) {
             $b = trim(strtoupper($p->bidang ?? ''));
             $b = preg_replace('/\s+/', ' ', $b);
+
             return $b === '' ? 'TANPA BIDANG' : $b;
         });
 
         // ⭐ 2. Pisahkan prioritas
         $kepalaBadan = $groupedRaw->pull('KEPALA BADAN', collect());
         $tanpaBidang = $groupedRaw->pull('TANPA BIDANG', collect());
-        
+
         // ⭐ 3. Sisa bidang
         $bidangLainnya = $groupedRaw->sortKeys();
 
         // ⭐ 4. Gabungkan kembali
         $groupedPeserta = collect();
-        
+
         if ($kepalaBadan->isNotEmpty()) {
             $groupedPeserta->put('KEPALA BADAN', $kepalaBadan);
         }
-        
+
         foreach ($bidangLainnya as $bidang => $users) {
             $groupedPeserta->put($bidang, $users);
         }
-        
+
         if ($tanpaBidang->isNotEmpty()) {
             $groupedPeserta->put('TANPA BIDANG', $tanpaBidang);
         }
@@ -157,13 +164,13 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         $kepalaUser = User::where('status', 'aktif')
             ->where(function ($q) {
                 $q->where('bidang', 'KEPALA BADAN')
-                  ->orWhere('bidang', 'like', 'KEPALA BADAN%');
+                    ->orWhere('bidang', 'like', 'KEPALA BADAN%');
             })
             ->orderBy('id')
             ->first();
 
         // Fallback: cari via jabatan kalau via bidang tidak ketemu
-        if (!$kepalaUser) {
+        if (! $kepalaUser) {
             $kepalaUser = User::where('status', 'aktif')
                 ->where('jabatan', 'like', '%Kepala Badan%')
                 ->orderBy('id')
@@ -171,18 +178,18 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
         }
 
         $namaKepala = $kepalaUser->name ?? '........................................';
-        $nipKepala  = $kepalaUser && $kepalaUser->nip
-            ? 'NIP. ' . $kepalaUser->nip
+        $nipKepala = $kepalaUser && $kepalaUser->nip
+            ? 'NIP. '.$kepalaUser->nip
             : 'NIP. ................................';
 
         // FOOTER - Tambah spacer
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
         $this->data[] = ['', '', '', '', '', '', '', ''];
-        
+
         // Tanggal dan TTD
         $currentDate = Carbon::now()->translatedFormat('d F Y');
-        $this->data[] = ['', '', '', '', 'Singaparna, ' . $currentDate, '', '', ''];
+        $this->data[] = ['', '', '', '', 'Singaparna, '.$currentDate, '', '', ''];
         $this->data[] = ['', '', '', '', 'Mengetahui', '', '', ''];
         $this->data[] = ['', '', '', '', 'Kepala Badan Perencanaan Pembangunan,', '', '', ''];
         $this->data[] = ['', '', '', '', 'Penelitian dan Pengembangan Daerah Kabupaten Tasikmalaya', '', '', ''];
@@ -290,23 +297,23 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
                         ],
                         'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
                     ]);
-                    
+
                     $sheet->getStyle("A{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("B{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("D{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("G{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    
+
                     $sheet->getRowDimension($rowIndex)->setRowHeight(25);
 
                     // Warna conditional berdasarkan data DB asli
                     $statusValue = $sheet->getCell("G{$rowIndex}")->getValue();
                     if ($statusValue === 'Hadir') {
                         $sheet->getStyle("G{$rowIndex}")->getFont()
-                            ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('10B981'))
+                            ->setColor(new Color('10B981'))
                             ->setBold(true);
                     } elseif ($statusValue === 'Tidak Hadir') {
                         $sheet->getStyle("G{$rowIndex}")->getFont()
-                            ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('DC2626'))
+                            ->setColor(new Color('DC2626'))
                             ->setBold(true);
                     }
                 }
@@ -320,23 +327,21 @@ class AbsensiSesiExport implements FromArray, WithStyles, WithColumnWidths, With
                     }
                 }
 
-                // ⭐ BOLD + UNDERLINE HANYA untuk nama pejabat
-                // ⭐ NIP sengaja TIDAK di-underline
                 $namaRow = $highestRow - 1;
-                $nipRow  = $highestRow;
+                $nipRow = $highestRow;
 
                 if ($namaRow > 0) {
                     // Nama: bold + underline
                     $sheet->getStyle("E{$namaRow}")->getFont()
                         ->setBold(true)
-                        ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_SINGLE);
+                        ->setUnderline(Font::UNDERLINE_SINGLE);
                 }
 
                 if ($nipRow > 0) {
                     // NIP: bold tanpa underline (explicitly clear)
                     $sheet->getStyle("E{$nipRow}")->getFont()
                         ->setBold(true)
-                        ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_NONE);
+                        ->setUnderline(Font::UNDERLINE_NONE);
                 }
             },
         ];

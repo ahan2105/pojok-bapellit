@@ -6,11 +6,12 @@
 
     // Deteksi halaman aktif
     $isSoundPage = request()->routeIs('admin.settings.sound');
+    $isSessionsPage = request()->routeIs('admin.settings.sessions');
 @endphp
 
 @extends($layout)
 
-@section('title', $isSoundPage ? 'Suara Notifikasi' : 'Template Chatbot')
+@section('title', $isSessionsPage ? 'Sesi & Perangkat' : ($isSoundPage ? 'Suara Notifikasi' : 'Template Chatbot'))
 
 @section('content')
 @php
@@ -43,11 +44,11 @@
         : collect();
 @endphp
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
     {{-- Header --}}
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900">Pengaturan Sistem</h1>
+    <div class="mb-6 sm:mb-8">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Pengaturan Sistem</h1>
         <p class="mt-1 text-sm text-gray-500">Kelola template chatbot dan preferensi notifikasi.</p>
     </div>
 
@@ -77,7 +78,13 @@
 
         {{-- Konten dinamis --}}
         <div class="min-w-0 flex-1">
-            @if($isSoundPage)
+            @if($isSessionsPage)
+                @include('admin.settings.sessions', [
+                    'histories' => $histories,
+                    'activeSessions' => $activeSessions,
+                    'stats' => $stats,
+                ])
+            @elseif($isSoundPage)
                 @include('admin.settings.sound', [
                     'soundType' => $soundType,
                     'soundFile' => $soundFile,
@@ -89,7 +96,7 @@
     </div>
 </div>
 
-@if(!$isSoundPage)
+@if(!$isSoundPage && !$isSessionsPage)
     @include('admin.settings.scripts', ['templateData' => $templateData])
 @endif
 @endsection

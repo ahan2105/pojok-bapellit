@@ -31,9 +31,23 @@
                 </a>
             </div>
 
-            <!-- KANAN: Notif + Dropdown Profil -->
+            <!-- KANAN: Theme Toggle + Notif + Dropdown Profil -->
             <div class="flex items-center gap-2">
                 @auth
+
+                {{-- 🌙 Theme Toggle (Light/Dark) --}}
+                <button @click="toggleTheme(); isDark = !isDark" 
+                        x-data="{ isDark: localStorage.getItem('theme') === 'dark' }"
+                        @storage.window="isDark = localStorage.getItem('theme') === 'dark'"
+                        class="inline-flex items-center justify-center p-2 rounded-full text-gray-600 hover:text-indigo-600 hover:bg-gray-100 focus:outline-none transition-colors"
+                        title="Toggle tema">
+                    <svg x-show="!isDark" x-cloak class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg x-show="isDark" x-cloak class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
 
                 {{-- 🔔 Bell Notifikasi (Admin & User) --}}
                 @include('components.notification-bell')
@@ -76,6 +90,17 @@
                             <!-- MENU ADMIN -->
                             @if($isAdmin)
                                 <div class="px-4 pt-2 pb-1 text-xs font-semibold text-indigo-600 tracking-wider">MENU ADMIN</div>
+
+                                <a href="{{ route('admin.dashboard.index') }}"
+                                   class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                          {{ request()->routeIs('admin.dashboard.*')
+                                              ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold'
+                                              : 'text-gray-700 border-transparent hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-600' }}">
+                                    <svg class="w-4 h-4 transition-colors {{ request()->routeIs('admin.dashboard.*') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 16l4-4m0 0l4 4m-4-4V5"></path>
+                                    </svg>
+                                    Dashboard
+                                </a>
 
                                 <a href="{{ route('admin.aula.index') }}"
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
@@ -133,6 +158,32 @@
                                 </a>
 
                                 {{-- ⭐ MENU PENGATURAN SISTEM --}}
+                                <a href="{{ route('admin.settings.index') }}"
+                                   class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                          {{ request()->routeIs('admin.settings.*')
+                                              ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold'
+                                              : 'text-gray-700 border-transparent hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-600' }}">
+                                    <svg class="w-4 h-4 transition-colors {{ request()->routeIs('admin.settings.*') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Pengaturan Sistem
+                                </a>
+
+                                <!-- ADMIN MENU FOOTER -->
+                                <div class="border-t mt-2 pt-2"></div>
+                                
+                                <a href="{{ route('admin.dashboard.index') }}"
+                                   class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                          {{ request()->routeIs('admin.dashboard.*')
+                                              ? 'bg-indigo-50 text-indigo-600 border-indigo-600 font-semibold'
+                                              : 'text-gray-700 border-transparent hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-600' }}">
+                                    <svg class="w-4 h-4 transition-colors {{ request()->routeIs('admin.dashboard.*') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 16l4-4m0 0l4 4m-4-4V5"></path>
+                                    </svg>
+                                    Dashboard
+                                </a>
+
                                 <a href="{{ route('admin.settings.index') }}"
                                    class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                           {{ request()->routeIs('admin.settings.*')
@@ -251,6 +302,17 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+    function toggleTheme() {
+        const isDark = localStorage.getItem('theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        
+        localStorage.setItem('theme', newTheme);
+        document.documentElement.classList.toggle('dark', newTheme === 'dark');
+        
+        // Trigger Alpine re-render
+        window.dispatchEvent(new Event('storage'));
+    }
+
     function confirmLogout() {
         Swal.fire({
             title: 'Yakin ingin log out?',
@@ -267,4 +329,10 @@
             }
         })
     }
+
+    // Apply saved theme on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+    });
 </script>

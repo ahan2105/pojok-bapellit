@@ -21,7 +21,7 @@ class AkunController extends Controller
 
         $validated = $request->validate([
             'email' => [
-                'required',
+                'nullable',
                 'string',
                 'lowercase',
                 'email',
@@ -35,7 +35,6 @@ class AkunController extends Controller
             'bidang'   => ['nullable', 'string', 'max:255'],
         ], [
             // Custom pesan error (opsional)
-            'email.required'  => 'Email wajib diisi.',
             'email.email'     => 'Format email tidak valid.',
             'email.unique'    => 'Email sudah digunakan oleh akun lain.',
             'nip.max'         => 'NIP maksimal 50 karakter.',
@@ -44,6 +43,11 @@ class AkunController extends Controller
             'golongan.max'    => 'Golongan maksimal 50 karakter.',
             'bidang.max'      => 'Bidang maksimal 255 karakter.',
         ]);
+
+        // Kalau email kosong → jangan ubah email lama (biar tidak jadi null)
+        if (empty($validated['email'])) {
+            unset($validated['email']);
+        }
 
         $user->fill($validated);
 

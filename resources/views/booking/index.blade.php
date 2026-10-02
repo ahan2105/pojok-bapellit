@@ -552,11 +552,16 @@
                                     <span class="text-xs font-bold text-gray-700 uppercase tracking-wide truncate">
                                         Ketersediaan {{ $namaBulanMini[$bulanIni] }} {{ $tahunIni }}
                                     </span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap
-                                        @if($totalTerpakai >= 15) text-red-700 bg-red-100
-                                        @elseif($totalTerpakai >= 7) text-amber-700 bg-amber-100
-                                        @else text-emerald-700 bg-emerald-100
-                                        @endif">
+                                    @php
+                                        if ($totalTerpakai >= 15) {
+                                            $badgeClass = 'text-red-700 bg-red-100';
+                                        } elseif ($totalTerpakai >= 7) {
+                                            $badgeClass = 'text-amber-700 bg-amber-100';
+                                        } else {
+                                            $badgeClass = 'text-emerald-700 bg-emerald-100';
+                                        }
+                                    @endphp
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap {{ $badgeClass }}">
                                         {{ $totalTerpakai }} terisi
                                     </span>
                                 </div>
@@ -601,7 +606,7 @@
                                             {{ !$isPast && !$isBooked ? 'available' : '' }}
                                             {{ $isToday ? 'today' : '' }}"
                                             @if(!$isPast)
-                                                onclick="showCalTooltip(event, '{{ $tanggalDisplay }}', {{ $jumlahBookingHariIni }}, {{ json_encode($bookingsHariIni) }})"
+                                                onclick='showCalTooltip(event, "{{ $tanggalDisplay }}", {{ $jumlahBookingHariIni }}, @json($bookingsHariIni))'
                                             @endif
                                             >
                                             {{ $day }}
@@ -609,21 +614,27 @@
                                             @if(!$isPast)
                                                 <div class="cal-tooltip">
                                                     @if($jumlahBookingHariIni > 0)
-                                                        <div class="font-bold text-amber-400 mb-1 flex items-center gap-1">
+                                                        <div class="font-bold text-amber-400 mb-1.5 flex items-center gap-1">
                                                             <span>📌</span>
-                                                            <span>{{ $jumlahBookingHariIni }} booking</span>
+                                                            <span>{{ $jumlahBookingHariIni }} booking — {{ $tanggalDisplay }}</span>
                                                         </div>
                                                         @foreach($bookingsHariIni as $b)
-                                                            <div class="flex items-center gap-1.5 mb-0.5 last:mb-0">
-                                                                <span class="text-white truncate max-w-[130px]" title="{{ $b['nama'] }}">{{ $b['nama'] }}</span>
-                                                                <span class="text-gray-500">·</span>
-                                                                <span class="text-indigo-300 whitespace-nowrap">Sesi {{ $b['sesi'] }}</span>
+                                                            <div class="mb-1.5 last:mb-0 pb-1.5 last:pb-0 border-b border-white/10 last:border-0">
+                                                                <div class="flex items-center gap-1.5">
+                                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                                                                    <span class="text-white font-semibold truncate max-w-[130px]" title="{{ $b['nama'] }}">{{ $b['nama'] }}</span>
+                                                                    <span class="text-gray-500">·</span>
+                                                                    <span class="text-indigo-300 whitespace-nowrap text-[10px]">Sesi {{ $b['sesi'] }}</span>
+                                                                </div>
+                                                                <div class="text-gray-300 text-[10px] leading-snug mt-0.5 pl-3 line-clamp-2" title="{{ $b['keperluan'] }}">
+                                                                    <span class="text-gray-500">Keperluan:</span> {{ $b['keperluan'] }}
+                                                                </div>
                                                             </div>
                                                         @endforeach
                                                     @else
                                                         <div class="font-bold text-emerald-400 flex items-center gap-1">
                                                             <span>✓</span>
-                                                            <span>Tersedia</span>
+                                                            <span>Tersedia — {{ $tanggalDisplay }}</span>
                                                         </div>
                                                         <div class="text-gray-400 text-[9px] mt-0.5">Belum ada yang booking</div>
                                                     @endif
@@ -681,6 +692,9 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                             </svg>
                                                             Sesi {{ $b['sesi'] }}
+                                                        </p>
+                                                        <p class="text-[10px] leading-snug text-gray-600 mt-0.5 truncate" title="{{ $b['keperluan'] }}">
+                                                            <span class="text-gray-400">Keperluan:</span> {{ $b['keperluan'] }}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -788,11 +802,17 @@
         if (jumlah > 0) {
             bodyHtml = `<div class="text-sm font-bold text-amber-600 mb-2 flex items-center gap-1.5">📌 ${jumlah} booking</div>`;
             bookings.forEach(b => {
+                const keperluan = b.keperluan || '-';
                 bodyHtml += `
-                    <div class="flex items-center gap-2 py-2 border-b border-gray-100 last:border-0">
-                        <div class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                        <span class="text-sm text-gray-800 font-semibold truncate flex-1">${b.nama}</span>
-                        <span class="text-xs text-indigo-600 font-bold whitespace-nowrap">Sesi ${b.sesi}</span>
+                    <div class="py-2.5 border-b border-gray-100 last:border-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                            <span class="text-sm text-gray-800 font-semibold truncate flex-1">${b.nama}</span>
+                            <span class="text-xs text-indigo-600 font-bold whitespace-nowrap">Sesi ${b.sesi}</span>
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1 pl-4 leading-snug">
+                            <span class="text-gray-400">Keperluan:</span> ${keperluan}
+                        </div>
                     </div>
                 `;
             });

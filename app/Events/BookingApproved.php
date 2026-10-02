@@ -3,13 +3,16 @@
 namespace App\Events;
 
 use App\Models\Booking;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class BookingApproved
+class BookingApproved implements ShouldBroadcastNow
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(public Booking $booking)
     {
@@ -25,16 +28,36 @@ class BookingApproved
                     "Booking aula {$this->booking->aula?->nama} tanggal {$this->booking->tanggal_booking} telah disetujui.",
                     [
                         'booking_id' => $this->booking->id,
-                        'status'     => 'approved',
-                        'tanggal'    => $this->booking->tanggal_booking,
-                        'sesi'       => $this->booking->sesi_waktu,
-                        'aula'       => $this->booking->aula?->nama,
+                        'status' => 'approved',
+                        'tanggal' => $this->booking->tanggal_booking,
+                        'sesi' => $this->booking->sesi_waktu,
+                        'aula' => $this->booking->aula?->nama,
                     ],
                     route('riwayat.show', $this->booking->id)
                 );
             }
         } catch (\Exception $e) {
-            Log::error('Gagal kirim notif approved: ' . $e->getMessage());
+            Log::error('Gagal kirim notif approved: '.$e->getMessage());
         }
+    }
+
+    public function broadcastOn(): array
+    {
+        return [new PrivateChannel('user.'.$this->booking->user_id)];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'booking.approved';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'id' => $this->booking->id,
+            'aula' => $this->booking->aula?->nama,
+            'tanggal' => $this->booking->tanggal_booking,
+            'sesi' => $this->booking->sesi_waktu,
+        ];
     }
 }

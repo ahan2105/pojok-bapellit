@@ -17,8 +17,8 @@
                     <p class="text-sm font-semibold text-gray-900">
                         Status saat ini:
                         <span class="ml-1 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium 
-                              {{ $soundType === 'custom' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700' }}">
-                            {{ $soundType === 'custom' ? 'File custom' : 'Default sistem' }}
+                              {{ $soundType === 'custom' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
+                            {{ $soundType === 'custom' ? '🎵 File custom' : '🔔 Default (notif.mp3)' }}
                         </span>
                     </p>
                     <p class="mt-1 break-all font-mono text-xs text-gray-500">{{ $soundFile }}</p>
@@ -40,7 +40,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="rounded-lg bg-gray-900 px-8 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-black">
+            <button type="submit" class="w-full sm:w-auto rounded-xl bg-gray-900 px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-black">
                 Simpan Pengaturan Suara
             </button>
         </div>

@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use App\Traits\HasNotifications;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Traits\HasNotifications;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -21,10 +22,10 @@ use App\Traits\HasNotifications;
  * @property string|null $golongan
  * @property bool $is_admin
  * @property string $status
- * @property \Illuminate\Support\Carbon|null $email_verified_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * 
+ * @property Carbon|null $email_verified_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
  * @method \Illuminate\Database\Eloquent\Relations\MorphMany notifications()
  * @method \Illuminate\Database\Eloquent\Relations\MorphMany unreadNotifications()
  * @method void markNotificationAsRead(string $id)
@@ -32,7 +33,7 @@ use App\Traits\HasNotifications;
  */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasNotifications;
+    use HasFactory, HasNotifications, Notifiable;
 
     protected $fillable = [
         'name',
@@ -76,8 +77,8 @@ class User extends Authenticatable
 
     public function canLogin(): bool
     {
-        return !empty($this->username)
-            && !empty($this->password)
+        return ! empty($this->username)
+            && ! empty($this->password)
             && $this->status === 'aktif';
     }
 
@@ -98,5 +99,10 @@ class User extends Authenticatable
     public function absensiSesiDibuat()
     {
         return $this->hasMany(AbsensiSesi::class, 'created_by');
+    }
+
+    public function loginHistories()
+    {
+        return $this->hasMany(LoginHistory::class);
     }
 }

@@ -15,6 +15,25 @@
     $inputClass = 'w-full h-11 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500';
     $inputClassWithEye = $inputClass . ' pr-12';
     $inputClassReadonly = 'w-full h-11 rounded-xl border border-gray-200 bg-gray-100 px-4 text-sm text-gray-500 cursor-not-allowed';
+
+    // ============================================================
+    // Ambil daftar Bidang & Jabatan unik dari database user
+    // ============================================================
+    $bidangList = \App\Models\User::query()
+        ->whereNotNull('bidang')
+        ->where('bidang', '!=', '')
+        ->distinct()
+        ->orderBy('bidang')
+        ->pluck('bidang')
+        ->toArray();
+
+    $jabatanList = \App\Models\User::query()
+        ->whereNotNull('jabatan')
+        ->where('jabatan', '!=', '')
+        ->distinct()
+        ->orderBy('jabatan')
+        ->pluck('jabatan')
+        ->toArray();
 @endphp
 
 @extends($layout)
@@ -206,15 +225,17 @@
                                 <input type="text" value="{{ $user->name }}" readonly
                                        class="{{ $inputClassReadonly }}">
                             </div>
-{{-- Email (editable) --}}
-<div>
-    <label class="block text-sm font-semibold text-gray-700 mb-2">Email Aktif</label>
-    <input type="email" name="email"
-           value="{{ old('email', $user->email) }}" required
-           placeholder="example@domain.com"
-           class="{{ $inputClass }}">
-    @error('email') <p class="mt-1.5 text-xs text-red-500">{{ $message }}</p> @enderror
-</div>
+
+                            {{-- Email (editable, opsional) --}}
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Email Aktif</label>
+                                <input type="email" name="email"
+                                       value="{{ old('email', $user->email) }}"
+                                       placeholder="example@domain.com"
+                                       class="{{ $inputClass }}">
+                                @error('email') <p class="mt-1.5 text-xs text-red-500">{{ $message }}</p> @enderror
+                            </div>
+
                             {{-- NIP --}}
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">NIP / NI PPPK</label>
@@ -235,15 +256,34 @@
                                 @error('whatsapp') <p class="mt-1.5 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
 
-                            {{-- Jabatan --}}
-                            <div>
+                            {{-- Jabatan (Dropdown dari database + Manual) --}}
+                            <div x-data="formJabatan('{{ old('jabatan', $user->jabatan ?? '') }}')">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     Jabatan <span class="text-xs text-gray-400 font-normal">(opsional)</span>
                                 </label>
-                                <input type="text" name="jabatan"
-                                       value="{{ old('jabatan', $user->jabatan ?? '') }}"
-                                       placeholder="Contoh: Kepala Bidang, Perencana Ahli Muda"
-                                       class="{{ $inputClass }}">
+
+                                <select x-model="selected"
+                                        @change="handleChange()"
+                                        class="{{ $inputClass }}">
+                                    <option value="">-- Pilih Jabatan --</option>
+                                    @foreach($jabatanList as $jab)
+                                        <option value="{{ $jab }}">{{ $jab }}</option>
+                                    @endforeach
+                                    <option value="__lainnya__">✏️ Lainnya (isi manual)...</option>
+                                </select>
+
+                                {{-- Input Manual Jabatan --}}
+                                <div x-show="isLainnya" x-cloak class="mt-3">
+                                    <input type="text"
+                                           x-model="customJabatan"
+                                           placeholder="Ketik jabatan manual..."
+                                           class="w-full h-11 rounded-xl border border-indigo-300 bg-indigo-50/30 px-4 text-sm text-gray-700 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <p class="text-xs text-gray-500 mt-1.5">Isi nama jabatan dengan lengkap</p>
+                                </div>
+
+                                {{-- Hidden input yang dikirim ke controller --}}
+                                <input type="hidden" name="jabatan" :value="finalJabatan">
+
                                 @error('jabatan') <p class="mt-1.5 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
 
@@ -257,7 +297,7 @@
                                 @error('golongan') <p class="mt-1.5 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
 
-                            {{-- Bidang (Dropdown + Manual) --}}
+                            {{-- Bidang (Dropdown dari database + Manual) --}}
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     Asal Bidang / Bagian <span class="text-xs text-gray-400 font-normal">(opsional)</span>
@@ -268,17 +308,13 @@
                                         @change="handleChange()"
                                         class="{{ $inputClass }}">
                                     <option value="">-- Pilih Bidang --</option>
-                                    <option value="KEPALA BADAN">Kepala Badan</option>
-                                    <option value="SEKRETARIAT">Sekretariat</option>
-                                    <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM">Bidang Perekonomian dan Sumber Daya Alam</option>
-                                    <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN">Bidang Infrastruktur dan Kewilayahan</option>
-                                    <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA">Bidang Pemerintahan dan Pembangunan Manusia</option>
-                                    <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI">Bidang Perencanaan Pengendalian dan Evaluasi</option>
-                                    <option value="BIDANG PENELITIAN DAN PENGEMBANGAN">Bidang Penelitian dan Pengembangan</option>
+                                    @foreach($bidangList as $bid)
+                                        <option value="{{ $bid }}">{{ $bid }}</option>
+                                    @endforeach
                                     <option value="__lainnya__">✏️ Lainnya (isi manual)...</option>
                                 </select>
 
-                                {{-- Input Manual --}}
+                                {{-- Input Manual Bidang --}}
                                 <div x-show="isLainnya" x-cloak class="mt-3">
                                     <input type="text"
                                            x-model="customBidang"
@@ -516,18 +552,15 @@
 </script>
 @endif
 
-{{-- ================= ALPINE JS: FORM BIDANG ================= --}}
+{{-- ================= ALPINE JS: FORM BIDANG & JABATAN ================= --}}
 <script>
+    /**
+     * Form Bidang: dropdown dari database + opsi manual.
+     * @param {string} initialBidang
+     */
     function formBidang(initialBidang = '') {
-        const listBidang = [
-            'KEPALA BADAN',
-            'SEKRETARIAT',
-            'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM',
-            'BIDANG INFRASTRUKTUR DAN KEWILAYAHAN',
-            'BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA',
-            'BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI',
-            'BIDANG PENELITIAN DAN PENGEMBANGAN',
-        ];
+        // Daftar bidang yang ada di database (di-render dari Blade ke JS array)
+        const listBidang = @json($bidangList ?? []);
 
         const isInList = listBidang.includes(initialBidang);
 
@@ -546,6 +579,36 @@
             handleChange() {
                 if (!this.isLainnya) {
                     this.customBidang = '';
+                }
+            },
+        };
+    }
+
+    /**
+     * Form Jabatan: dropdown dari database + opsi manual.
+     * @param {string} initialJabatan
+     */
+    function formJabatan(initialJabatan = '') {
+        // Daftar jabatan yang ada di database (di-render dari Blade ke JS array)
+        const listJabatan = @json($jabatanList ?? []);
+
+        const isInList = listJabatan.includes(initialJabatan);
+
+        return {
+            selected: isInList ? initialJabatan : (initialJabatan ? '__lainnya__' : ''),
+            customJabatan: isInList ? '' : (initialJabatan || ''),
+
+            get isLainnya() {
+                return this.selected === '__lainnya__';
+            },
+
+            get finalJabatan() {
+                return this.isLainnya ? this.customJabatan : this.selected;
+            },
+
+            handleChange() {
+                if (!this.isLainnya) {
+                    this.customJabatan = '';
                 }
             },
         };

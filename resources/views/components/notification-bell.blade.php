@@ -291,7 +291,7 @@ function notifBell() {
         unreadCount: {{ auth()->user()->unreadNotificationsCount() ?? 0 }},
         connected: false,
         soundEnabled: true,
-        audioUrl: '/sounds/notif.mp3',
+        audioUrl: '{{ \App\Models\Setting::getNotificationSound() }}',
         _initialized: false,
 
         init() {
@@ -309,12 +309,16 @@ function notifBell() {
             stream = new window.NotificationStream({
                 streamUrl: '{{ route('notifications.stream') }}',
 
-                // 🔊 CUMA DI SINI suara dibunyikan
+                // 🔊 CUMA DI SINI suara dibunyikan — kecuali tipe yang di-silent
                 onNotification: (notif) => {
                     console.log('🔔 Notif SSE masuk:', notif);
                     this.notifications.unshift(notif);
                     this.unreadCount++;
-                    this.playSound();      // ⬅️ hanya di sini
+                    // jangan bunyi untuk notif blokir sesi (biar nggak ganggu)
+                    const silentTypes = ['session_banned'];
+                    if (!silentTypes.includes(notif.type)) {
+                        this.playSound();
+                    }
                     this.showToast(notif);
                 },
 
@@ -515,6 +519,26 @@ function notifBell() {
                 }
             } catch (e) {
                 console.error('❌ Gagal tandai semua:', e);
+            }
+        },
+
+        async deleteNotification(id) {
+            try {
+                const res = await fetch(`/notifications/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                });
+                if (res.ok) {
+                    // Remove dari array
+                    this.notifications = this.notifications.filter(n => n.id !== id);
+                    this.unreadCount = Math.max(0, this.unreadCount - 1);
+                    console.log('[Notif] Deleted notification:', id);
+                }
+            } catch (e) {
+                console.error('❌ Gagal hapus notif:', e);
             }
         },
 

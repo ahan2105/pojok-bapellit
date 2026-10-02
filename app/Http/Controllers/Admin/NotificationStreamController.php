@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -10,7 +11,7 @@ class NotificationStreamController extends Controller
 {
     /**
      * SSE stream untuk notifikasi realtime.
-     * 
+     *
      * OPTIMASI:
      * - Session lock dilepas sebelum streaming dimulai
      * - Query hanya mengambil kolom yang diperlukan + LIMIT
@@ -19,12 +20,12 @@ class NotificationStreamController extends Controller
      */
     public function stream(Request $request): StreamedResponse
     {
-        $user   = $request->user();
+        $user = $request->user();
         $lastId = (int) $request->header('Last-Event-ID', 0);
 
         // Ambil last ID dari database jika tidak ada header
         if ($lastId === 0) {
-            $lastId = \App\Models\Notification::where('user_id', $user->id)->max('id') ?? 0;
+            $lastId = Notification::where('user_id', $user->id)->max('id') ?? 0;
         }
 
         // ⚠️ WAJIB: release session lock agar request lain tidak menunggu
@@ -40,8 +41,8 @@ class NotificationStreamController extends Controller
                 ob_end_clean();
             }
 
-            $startTime     = time();
-            $maxDuration   = 300; // 5 menit
+            $startTime = time();
+            $maxDuration = 300; // 5 menit
             $lastHeartbeat = time();
             $currentLastId = $lastId;
 
@@ -60,7 +61,7 @@ class NotificationStreamController extends Controller
                 }
 
                 // ⭐ OPTIMASI: Query dengan select spesifik + limit untuk efisiensi
-                $newNotifications = \App\Models\Notification::query()
+                $newNotifications = Notification::query()
                     ->select(['id', 'user_id', 'type', 'title', 'message', 'data', 'url', 'read_at', 'created_at'])
                     ->where('user_id', $user->id)
                     ->where('id', '>', $currentLastId)
@@ -73,36 +74,36 @@ class NotificationStreamController extends Controller
 
                     echo "id: {$notif->id}\n";
                     echo "event: notification\n";
-                    echo "data: " . json_encode([
-                        'id'         => $notif->id,
-                        'type'       => $notif->type,
-                        'title'      => $notif->title,
-                        'message'    => $notif->message,
-                        'data'       => $notif->data,
-                        'url'        => $notif->url,
-                        'is_read'    => $notif->read_at !== null,
+                    echo 'data: '.json_encode([
+                        'id' => $notif->id,
+                        'type' => $notif->type,
+                        'title' => $notif->title,
+                        'message' => $notif->message,
+                        'data' => $notif->data,
+                        'url' => $notif->url,
+                        'is_read' => $notif->read_at !== null,
                         'created_at' => $notif->created_at?->toIso8601String(),
-                    ]) . "\n\n";
-                    
+                    ])."\n\n";
+
                     flush();
                 }
 
                 // Heartbeat setiap 15 detik untuk menjaga koneksi tetap hidup
                 if ((time() - $lastHeartbeat) >= 15) {
-                    echo ": heartbeat " . time() . "\n\n";
+                    echo ': heartbeat '.time()."\n\n";
                     $lastHeartbeat = time();
                     flush();
                 }
 
-                // Sleep 2 detik antara polling (balance antara realtime dan beban server)
-                sleep(2);
+                // Sleep 3 detik antara polling (balance antara realtime dan beban server)
+                sleep(3);
             }
         }, 200, [
-            'Content-Type'      => 'text/event-stream',
-            'Cache-Control'     => 'no-cache, no-store, must-revalidate',
-            'Connection'        => 'keep-alive',
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
-            'Content-Encoding'  => 'identity',
+            'Content-Encoding' => 'identity',
         ]);
     }
 }

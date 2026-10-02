@@ -7,68 +7,77 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, WithEvents
+class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, WithStyles
 {
     protected Collection $sesiList;
+
     protected Carbon $tanggalDari;
+
     protected Carbon $tanggalKe;
+
     protected array $excludeIds; // Tambahan: ID sesi yang dikecualikan
 
     protected array $data = [];
+
     protected array $groupHeaderRows = [];
+
     protected array $dataRows = [];
 
     // Info grup tanggal untuk merge horizontal
     protected array $tanggalGroups = [];
-    
+
     // Teks header kolom sesi (untuk hitung lebar kolom dinamis)
     protected array $sesiKolomText = [];
 
     protected int $footerStartRow = 0;
+
     protected int $totalKolom = 0;
+
     protected int $kolomMulaiSesi = 7; // Kolom G
+
     protected int $jumlahSesi = 0;
 
     // PERBAIKAN CONSTRUCTOR: Menerima excludeIds
     public function __construct(Collection $sesiList, Carbon $tanggalDari, Carbon $tanggalKe, array $excludeIds = [])
     {
-        $this->sesiList    = $sesiList;
+        $this->sesiList = $sesiList;
         $this->tanggalDari = $tanggalDari;
-        $this->tanggalKe   = $tanggalKe;
-        $this->excludeIds  = $excludeIds;
+        $this->tanggalKe = $tanggalKe;
+        $this->excludeIds = $excludeIds;
         $this->buildData();
     }
 
     private function buildData(): void
     {
         // Urutkan sesi berdasarkan tanggal
-        $sesiList = $this->sesiList = $this->sesiList->sortBy(fn($s) => $s->tanggal)->values();
-        
+        $sesiList = $this->sesiList = $this->sesiList->sortBy(fn ($s) => $s->tanggal)->values();
+
         // PERBAIKAN LOGIKA: Filter sesi yang ada di excludeIds
-        if (!empty($this->excludeIds)) {
-            $sesiList = $sesiList->filter(fn($s) => !in_array($s->id, $this->excludeIds))->values();
+        if (! empty($this->excludeIds)) {
+            $sesiList = $sesiList->filter(fn ($s) => ! in_array($s->id, $this->excludeIds))->values();
         }
 
         $this->jumlahSesi = $sesiList->count();
 
         // Total kolom = 6 (statis) + N (sesi) + 1 (keterangan) + 2 (rekap hadir/tidak)
-        $kolomMulaiSesi  = 7;
+        $kolomMulaiSesi = 7;
         $kolomKeterangan = $kolomMulaiSesi + max(0, $this->jumlahSesi);
-        $kolomHadir      = $kolomKeterangan + 1;
-        $kolomTidak      = $kolomKeterangan + 2;
-        
+        $kolomHadir = $kolomKeterangan + 1;
+        $kolomTidak = $kolomKeterangan + 2;
+
         $this->kolomMulaiSesi = $kolomMulaiSesi;
-        $this->totalKolom     = $kolomTidak;
+        $this->totalKolom = $kolomTidak;
 
         $tahun = $this->tanggalKe->format('Y');
 
@@ -77,10 +86,10 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         $this->data[] = array_pad($row1, $this->totalKolom, '');
 
         // --- BARIS 2: PERIODE ---
-        $periode = "REKAP PERIODE: "
-            . strtoupper($this->tanggalDari->translatedFormat('d F Y'))
-            . " — "
-            . strtoupper($this->tanggalKe->translatedFormat('d F Y'));
+        $periode = 'REKAP PERIODE: '
+            .strtoupper($this->tanggalDari->translatedFormat('d F Y'))
+            .' — '
+            .strtoupper($this->tanggalKe->translatedFormat('d F Y'));
         $row2 = [$periode];
         $this->data[] = array_pad($row2, $this->totalKolom, '');
 
@@ -108,8 +117,8 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
 
             $this->tanggalGroups[] = [
                 'startCol' => $this->kolomMulaiSesi + $colOffset,
-                'span'     => $span,
-                'date'     => $currentDateStr,
+                'span' => $span,
+                'date' => $currentDateStr,
             ];
 
             for ($k = 0; $k < $span; $k++) {
@@ -120,7 +129,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 $namaSesiRaw = $sesiList[$i + $k]->nama_sesi ?? null;
                 $namaSesi = ($namaSesiRaw !== null && $namaSesiRaw !== '')
                     ? $namaSesiRaw
-                    : ('Sesi ' . ($k + 1));
+                    : ('Sesi '.($k + 1));
 
                 $headerRow2[] = $namaSesi;
                 $this->sesiKolomText[] = $namaSesi;
@@ -149,7 +158,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         // LOGIKA PENGAMBILAN PESERTA (FIXED: SEMUA USER AKTIF MUNCUL)
         // ===================================================================
         $sesiIds = $sesiList->pluck('id');
-        
+
         // 1. Ambil SEMUA USER AKTIF sebagai basis data utama
         $allUsers = User::where('status', 'aktif')
             ->orderBy('name')
@@ -160,7 +169,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
             ->whereIn('absensi_sesi_id', $sesiIds)
             ->get()
             ->groupBy('user_id')
-            ->map(fn($items) => $items->keyBy('absensi_sesi_id'));
+            ->map(fn ($items) => $items->keyBy('absensi_sesi_id'));
 
         // 3. Map target peserta per sesi (Untuk membedakan '-' dan 'o')
         $targetSesiMap = DB::table('absensi_detail')
@@ -168,28 +177,29 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
             ->select('absensi_sesi_id', 'user_id')
             ->get()
             ->groupBy('absensi_sesi_id')
-            ->map(fn($items) => $items->pluck('user_id')->flip());
+            ->map(fn ($items) => $items->pluck('user_id')->flip());
 
         // Grouping Bidang (DINAMIS & OTOMATIS)
         $groupedRaw = $allUsers->groupBy(function ($p) {
             $b = trim(strtoupper($p->bidang ?? ''));
             $b = preg_replace('/\s+/', ' ', $b);
+
             return $b === '' ? 'TANPA BIDANG' : $b;
         });
 
         // Pisahkan KEPALA BADAN agar selalu di paling atas
         $kepalaBadanGroup = $groupedRaw->pull('KEPALA BADAN', collect());
-        
+
         // Sort sisa bidang secara alfabetis (A-Z) agar rapi & dinamis
         $sortedOtherGroups = $groupedRaw->sortKeys();
 
         // Gabungkan kembali: Kepala Badan di depan, sisanya urut A-Z
         $groupedPeserta = collect();
-        
+
         if ($kepalaBadanGroup->isNotEmpty()) {
             $groupedPeserta->put('KEPALA BADAN', $kepalaBadanGroup);
         }
-        
+
         foreach ($sortedOtherGroups as $bidang => $users) {
             $groupedPeserta->put($bidang, $users);
         }
@@ -197,7 +207,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         $noGlobal = 1;
         foreach ($groupedPeserta as $bidang => $groupPeserta) {
             $noBidang = 1;
-            
+
             // Header Bidang (kecuali Kepala Badan tidak pakai baris header terpisah)
             if ($bidang !== 'KEPALA BADAN') {
                 $row = [strtoupper($bidang)];
@@ -208,7 +218,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
             foreach ($groupPeserta as $p) {
                 $row = [$noGlobal, $noBidang, $p->name, $p->golongan ?? '', $p->nip ?? '', $p->jabatan ?? ''];
                 $keteranganParts = [];
-                
+
                 // Variabel penghitung kehadiran
                 $countHadir = 0;
                 $countTidak = 0;
@@ -217,30 +227,31 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 foreach ($sesiList as $sesi) {
                     // Cek apakah user ini termasuk target peserta di sesi ini
                     $isTarget = isset($targetSesiMap[$sesi->id][$p->id]);
-                    
-                    if (!$isTarget) {
+
+                    if (! $isTarget) {
                         // User TIDAK ADA di sesi ini → beri tanda 'o'
                         $row[] = 'o';
+
                         continue;
                     }
 
                     $hasSesiInPeriod = true;
-                    
+
                     // Cek apakah user ini punya record absen di sesi ini
                     $detail = $absensiMap[$p->id][$sesi->id] ?? null;
-                    
-                    if (!$detail) {
+
+                    if (! $detail) {
                         // User terdaftar di sesi ini TAPI belum isi absen → beri tanda '-'
                         $row[] = '-';
                     } elseif ($detail->status_kehadiran === 'hadir') {
-                        $row[] = '✓';
+                        $row[] = 'Hadir';
                         $countHadir++;
                     } elseif ($detail->status_kehadiran === 'tidak') {
-                        $row[] = '✗';
+                        $row[] = 'Tidak hadir';
                         $countTidak++;
-                        
+
                         // Simpan keterangan jika ada
-                        if (!empty($detail->keterangan)) {
+                        if (! empty($detail->keterangan)) {
                             $tgl = Carbon::parse($sesi->tanggal)->format('d/m');
                             $keteranganParts[] = "{$tgl}: {$detail->keterangan}";
                         }
@@ -251,20 +262,20 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 }
 
                 // SKIP: Jika user tidak punya sesi sama sekali di periode ini, lewati
-                if (!$hasSesiInPeriod) {
+                if (! $hasSesiInPeriod) {
                     continue;
                 }
 
                 // Tambahkan kolom keterangan terlebih dahulu
-                $row[] = !empty($keteranganParts) ? implode(' | ', $keteranganParts) : '';
-                
+                $row[] = ! empty($keteranganParts) ? implode(' | ', $keteranganParts) : '';
+
                 // Tambahkan kolom rekap jumlah di PALING KANAN
                 $row[] = $countHadir;
                 $row[] = $countTidak;
-                
+
                 $this->data[] = array_pad($row, $this->totalKolom, '');
                 $this->dataRows[] = count($this->data);
-                
+
                 $noGlobal++;
                 $noBidang++;
             }
@@ -273,15 +284,15 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         // --- FOOTER ---
         // Cari Kepala Badan untuk tanda tangan
         $kepalaUser = User::where('status', 'aktif')
-            ->where(function ($q) { 
+            ->where(function ($q) {
                 $q->where('bidang', 'KEPALA BADAN')
-                  ->orWhere('bidang', 'like', 'KEPALA BADAN%')
-                  ->orWhere('jabatan', 'like', '%Kepala Badan%'); 
+                    ->orWhere('bidang', 'like', 'KEPALA BADAN%')
+                    ->orWhere('jabatan', 'like', '%Kepala Badan%');
             })
             ->orderBy('id')->first();
 
         $namaKepala = $kepalaUser->name ?? '........................................';
-        $nipKepala  = ($kepalaUser && $kepalaUser->nip) ? 'NIP. ' . $kepalaUser->nip : 'NIP. ................................';
+        $nipKepala = ($kepalaUser && $kepalaUser->nip) ? 'NIP. '.$kepalaUser->nip : 'NIP. ................................';
 
         // Spacer Footer
         $this->data[] = array_fill(0, $this->totalKolom, '');
@@ -289,13 +300,13 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         $this->data[] = array_fill(0, $this->totalKolom, '');
 
         $currentDate = Carbon::now()->translatedFormat('d F Y');
-        
+
         // Posisi footer di tengah tabel (Kolom E-H seperti AbsensiSesiExport)
         // Index 4 = Kolom E
-        $footerColIdx = 4; 
+        $footerColIdx = 4;
 
         $footerRows = [
-            'Singaparna, ' . $currentDate,
+            'Singaparna, '.$currentDate,
             'Mengetahui',
             'Kepala Badan Perencanaan Pembangunan,',
             'Penelitian dan Pengembangan Daerah Kabupaten Tasikmalaya',
@@ -314,7 +325,10 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
         }
     }
 
-    public function array(): array { return $this->data; }
+    public function array(): array
+    {
+        return $this->data;
+    }
 
     public function columnWidths(): array
     {
@@ -330,16 +344,16 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
 
         // Lebar kolom sesi dinamis berdasarkan teks header (Nama Sesi)
         for ($i = 0; $i < $this->jumlahSesi; $i++) {
-            $col  = Coordinate::stringFromColumnIndex($this->kolomMulaiSesi + $i);
+            $col = Coordinate::stringFromColumnIndex($this->kolomMulaiSesi + $i);
             $text = $this->sesiKolomText[$i] ?? '';
-            $len  = mb_strlen((string) $text);
+            $len = mb_strlen((string) $text);
             // Minimal 10, maksimal 22, ditambah padding 5
             $widths[$col] = max(10, min(22, $len + 5));
         }
 
         // Lebar kolom KETERANGAN disesuaikan agar muat teks panjang
-        $widths[Coordinate::stringFromColumnIndex($this->totalKolom - 2)] = 30; 
-        
+        $widths[Coordinate::stringFromColumnIndex($this->totalKolom - 2)] = 30;
+
         // Lebar kolom Rekap Kehadiran disesuaikan agar muat teks "JUMLAH HADIR"
         $widths[Coordinate::stringFromColumnIndex($this->totalKolom - 1)] = 16; // JUMLAH HADIR
         $widths[Coordinate::stringFromColumnIndex($this->totalKolom)] = 18;     // JUMLAH TIDAK HADIR
@@ -388,7 +402,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 // 1. HAPUS FREEZE PANE (Ini penyebab garis tengah/split view)
                 // Kita ganti dengan "Rows to Repeat at Top" yang lebih halus.
                 $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(1, 7);
-                
+
                 // Set Print Area natural (tanpa fit to width/orientation)
                 $sheet->getPageSetup()->setPrintArea("A1:{$lastColLetter}{$highestRow}");
 
@@ -424,7 +438,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                         $sheet->mergeCells("{$startLetter}6:{$endLetter}6");
                         $sheet->getStyle("{$startLetter}6:{$endLetter}6")->getAlignment()
                             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    } 
+                    }
                     // SINGLE SESI: Tidak di-merge vertikal, biarkan 2 baris terpisah (Tanggal atas, Nama Sesi bawah)
                 }
 
@@ -440,7 +454,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 // Merge Header Rekap Kehadiran (JUMLAH HADIR & TIDAK HADIR) vertikal baris 6:7
                 $colHadir = Coordinate::stringFromColumnIndex($this->totalKolom - 1);
                 $colTidak = Coordinate::stringFromColumnIndex($this->totalKolom);
-                
+
                 $sheet->mergeCells("{$colHadir}6:{$colHadir}7");
                 $sheet->mergeCells("{$colTidak}6:{$colTidak}7");
 
@@ -450,19 +464,19 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                     $sheet->getStyle("A{$rowIndex}")->applyFromArray([
                         'font' => [
                             'name' => 'Arial',       // Font Arial
-                            'bold' => true, 
-                            'size' => 12
+                            'bold' => true,
+                            'size' => 12,
                         ],
                         'alignment' => [
-                            'horizontal' => Alignment::HORIZONTAL_CENTER, 
-                            'vertical' => Alignment::VERTICAL_CENTER
+                            'horizontal' => Alignment::HORIZONTAL_CENTER,
+                            'vertical' => Alignment::VERTICAL_CENTER,
                         ],
                         'fill' => [
-                            'fillType' => Fill::FILL_SOLID, 
-                            'startColor' => ['rgb' => 'F2F2F2']
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'F2F2F2'],
                         ],
                         'borders' => [
-                            'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN],
                         ],
                     ]);
                     $sheet->getRowDimension($rowIndex)->setRowHeight(20);
@@ -488,7 +502,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                         $value = $sheet->getCell($cell)->getValue();
 
                         $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                        
+
                         // Semua tanda menggunakan font default (Hitam), Bold untuk simbol utama
                         if ($value === '✓' || $value === '✗') {
                             $sheet->getStyle($cell)->getFont()
@@ -535,7 +549,7 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
                 }
 
                 // 6. FOOTER STYLING (Posisi Tengah Tabel E-H)
-                $footerColLetter = 'E'; 
+                $footerColLetter = 'E';
                 $footerStart = $this->footerStartRow;
 
                 // Merge dan center text footer dari E sampai kolom terakhir
@@ -547,18 +561,18 @@ class AbsensiRekapExport implements FromArray, WithStyles, WithColumnWidths, Wit
 
                 // Bold & Underline untuk Nama Kepala
                 $namaRow = $highestRow - 1;
-                $nipRow  = $highestRow;
-                
+                $nipRow = $highestRow;
+
                 if ($namaRow >= $footerStart) {
                     $sheet->getStyle("{$footerColLetter}{$namaRow}")->getFont()
                         ->setBold(true)
-                        ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_SINGLE);
+                        ->setUnderline(Font::UNDERLINE_SINGLE);
                 }
-                
+
                 if ($nipRow >= $footerStart) {
                     $sheet->getStyle("{$footerColLetter}{$nipRow}")->getFont()
                         ->setBold(true)
-                        ->setUnderline(\PhpOffice\PhpSpreadsheet\Style\Font::UNDERLINE_NONE);
+                        ->setUnderline(Font::UNDERLINE_NONE);
                 }
             },
         ];

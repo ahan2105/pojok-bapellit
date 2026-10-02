@@ -17,23 +17,23 @@
 @extends($layout)
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
     <!-- Header -->
-    <div class="flex items-center mb-10">
-        <a href="{{ route('admin.kelolaakun.index') }}" class="p-3 bg-white rounded-full shadow-sm mr-5 hover:bg-gray-100 transition-colors">
-            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-10">
+        <a href="{{ route('admin.kelolaakun.index') }}" class="p-2.5 sm:p-3 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-colors shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
         </a>
-        <div>
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">{{ $title }}</h1>
-            <p class="text-gray-500 text-base mt-2">{{ $subtitle }}</p>
+        <div class="min-w-0">
+            <h1 class="text-xl sm:text-3xl md:text-4xl font-bold text-gray-800 leading-tight">{{ $title }}</h1>
+            <p class="text-sm text-gray-500 mt-1">{{ $subtitle }}</p>
         </div>
     </div>
 
     <!-- Card Form -->
-    <div class="bg-white rounded-xl shadow-sm p-8 md:p-10 border border-gray-100" 
+    <div class="bg-white rounded-2xl shadow-sm p-5 sm:p-8 md:p-10 border border-gray-100" 
          x-data="formAkun('{{ old('bidang', $user->bidang ?? '') }}')">
         
         @if(session('error'))
@@ -289,13 +289,13 @@
             </div>
 
             <!-- Tombol Aksi -->
-            <div class="flex justify-end gap-3 border-t border-gray-100 pt-6">
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100 pt-6">
                 <a href="{{ route('admin.kelolaakun.index') }}" 
-                   class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium text-base hover:bg-gray-50 transition-colors">
+                   class="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium text-sm text-center hover:bg-gray-50 transition-colors">
                     Batal
                 </a>
                 <button type="submit" 
-                        class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold text-base hover:bg-blue-700 transition-colors">
+                        class="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm">
                     {{ $isEdit ? 'Update Akun' : 'Simpan Akun' }}
                 </button>
             </div>

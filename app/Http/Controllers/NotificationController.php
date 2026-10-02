@@ -23,13 +23,13 @@ class NotificationController extends Controller
             ->get()
             ->map(function ($n) {
                 return [
-                    'id'         => $n->id,
-                    'type'       => $n->type,
-                    'title'      => $n->title,
-                    'message'    => $n->message,
-                    'data'       => $n->data,
-                    'url'        => $n->url,
-                    'is_read'    => $n->read_at !== null,
+                    'id' => $n->id,
+                    'type' => $n->type,
+                    'title' => $n->title,
+                    'message' => $n->message,
+                    'data' => $n->data,
+                    'url' => $n->url,
+                    'is_read' => $n->read_at !== null,
                     'created_at' => $n->created_at?->toIso8601String(),
                 ];
             });
@@ -43,7 +43,7 @@ class NotificationController extends Controller
 
         return response()->json([
             'notifications' => $notifications,
-            'unread_count'  => $unreadCount,
+            'unread_count' => $unreadCount,
         ]);
     }
 
@@ -76,5 +76,50 @@ class NotificationController extends Controller
         Cache::put("user_{$user->id}_unread_count", 0, 30);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Hapus 1 notif
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $notification = Notification::findOrFail($id);
+
+        abort_if($notification->user_id !== $request->user()->id, 403);
+
+        $notification->delete();
+
+        // Invalidate cache
+        Cache::forget("user_{$notification->user_id}_unread_count");
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Hapus semua notif user
+     */
+    public function destroyAll(Request $request)
+    {
+        $user = $request->user();
+        Notification::where('user_id', $user->id)->delete();
+
+        // Invalidate cache
+        Cache::forget("user_{$user->id}_unread_count");
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Auto-cleanup: Hapus notif yang lebih tua dari 1 bulan
+     * Jalankan via scheduled command atau manually
+     */
+    public static function cleanupOldNotifications()
+    {
+        $deleted = Notification::where('created_at', '<', now()->subMonth())->delete();
+
+        return [
+            'deleted' => $deleted,
+            'message' => "Deleted {$deleted} old notifications",
+        ];
     }
 }

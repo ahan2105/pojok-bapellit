@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BookingCreated;
 use App\Models\Aula;
 use App\Models\Booking;
-use App\Events\BookingCreated;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -31,7 +31,7 @@ class BookingController extends Controller
                 ->whereYear('tanggal_booking', $tahunIni)
                 ->whereIn('status', ['pending', 'approved'])
                 ->pluck('tanggal_booking')
-                ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+                ->map(fn ($d) => Carbon::parse($d)->format('Y-m-d'))
                 ->unique()
                 ->values()
                 ->toArray();
@@ -43,13 +43,14 @@ class BookingController extends Controller
                 ->whereMonth('tanggal_booking', $bulanIni)
                 ->whereYear('tanggal_booking', $tahunIni)
                 ->whereIn('status', ['pending', 'approved'])
-                ->get(['tanggal_booking', 'nama_penanggung_jawab', 'sesi_waktu'])
-                ->groupBy(fn($b) => Carbon::parse($b->tanggal_booking)->format('Y-m-d'))
+                ->get(['tanggal_booking', 'nama_penanggung_jawab', 'sesi_waktu', 'keperluan'])
+                ->groupBy(fn ($b) => Carbon::parse($b->tanggal_booking)->format('Y-m-d'))
                 ->map(function ($items) {
                     return $items->map(function ($b) {
                         return [
                             'nama' => $b->nama_penanggung_jawab ?? 'Tanpa Nama',
                             'sesi' => ucfirst($b->sesi_waktu ?? '-'),
+                            'keperluan' => $b->keperluan ?? '-',
                         ];
                     })->values()->toArray();
                 })
@@ -69,6 +70,7 @@ class BookingController extends Controller
                         'nama' => $b->nama_penanggung_jawab ?? 'Tanpa Nama',
                         'tanggal' => Carbon::parse($b->tanggal_booking)->translatedFormat('d M'),
                         'sesi' => ucfirst($b->sesi_waktu ?? '-'),
+                        'keperluan' => $b->keperluan ?? '-',
                     ];
                 })
                 ->toArray();
@@ -83,11 +85,8 @@ class BookingController extends Controller
     public function show(int $id)
     {
         $aula = Aula::findOrFail($id);
-        $user = Auth::user();
 
-        $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-
-        if (!$aula->status_aktif && !$isAdmin) {
+        if (! $aula->status_aktif && ! $this->isUserAdmin()) {
             return redirect()->route('booking.index')->with('error', 'Aula tidak tersedia.');
         }
 
@@ -106,7 +105,7 @@ class BookingController extends Controller
             'keperluan' => 'required|string|max:500',
             'jumlah_peserta' => 'required|integer|min:1|max:1000',
             'sesi_waktu' => 'required|in:pagi,siang,seharian',
-            'catatan' => 'nullable|string|max:500'
+            'catatan' => 'nullable|string|max:500',
         ];
 
         $messages = [
@@ -116,7 +115,7 @@ class BookingController extends Controller
             'jumlah_peserta.min' => 'Jumlah peserta minimal 1 orang.',
             'jumlah_peserta.max' => 'Jumlah peserta melebihi kapasitas aula.',
             'sesi_waktu.required' => 'Silakan pilih sesi waktu.',
-            'sesi_waktu.in' => 'Sesi waktu yang dipilih tidak valid.'
+            'sesi_waktu.in' => 'Sesi waktu yang dipilih tidak valid.',
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
@@ -126,7 +125,7 @@ class BookingController extends Controller
         }
 
         // Cek ketersediaan
-        if (!$this->isAvailable($request)) {
+        if (! $this->isAvailable($request)) {
             return back()->with('error', 'Aula sudah dibooking pada tanggal dan sesi tersebut.')->withInput();
         }
 
@@ -150,7 +149,7 @@ class BookingController extends Controller
                 ->with('success', 'Booking berhasil! Menunggu persetujuan admin.');
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal booking: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Gagal booking: '.$e->getMessage())->withInput();
         }
     }
 
@@ -162,13 +161,13 @@ class BookingController extends Controller
         $validator = Validator::make($request->all(), [
             'aula_id' => 'required|exists:aulas,id',
             'tanggal_booking' => 'required|date',
-            'sesi_waktu' => 'required|in:pagi,siang,seharian'
+            'sesi_waktu' => 'required|in:pagi,siang,seharian',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -177,7 +176,7 @@ class BookingController extends Controller
         return response()->json([
             'success' => true,
             'available' => $available,
-            'message' => $available ? 'Aula tersedia' : 'Aula sudah dibooking'
+            'message' => $available ? 'Aula tersedia' : 'Aula sudah dibooking',
         ]);
     }
 
@@ -186,16 +185,11 @@ class BookingController extends Controller
      */
     public function detail(int $id)
     {
-        $user = Auth::user();
-        $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-
         $query = Booking::with(['user:id,name,email', 'aula:id,nama']);
-
-        if (!$isAdmin) {
-            $query->where('user_id', Auth::id());
-        }
+        $query = $this->authorizeUserQuery($query);
 
         $booking = $query->findOrFail($id);
+
         return view('booking.detail', compact('booking'));
     }
 
@@ -205,14 +199,8 @@ class BookingController extends Controller
     public function cancel(int $id)
     {
         try {
-            $user = Auth::user();
-            $isAdmin = $user && ($user->role === 'admin' || $user->is_admin === true);
-
             $query = Booking::where('status', 'pending');
-
-            if (!$isAdmin) {
-                $query->where('user_id', Auth::id());
-            }
+            $query = $this->authorizeUserQuery($query);
 
             $booking = $query->findOrFail($id);
             $booking->status = 'canceled';
@@ -223,7 +211,7 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Gagal membatalkan booking: ' . $e->getMessage());
+                ->with('error', 'Gagal membatalkan booking: '.$e->getMessage());
         }
     }
 
@@ -239,12 +227,12 @@ class BookingController extends Controller
             ->whereIn('status', ['pending', 'approved']);
 
         if ($request->sesi_waktu === 'seharian') {
-            return !$query->exists();
+            return ! $query->exists();
         }
 
-        return !$query->where(function ($q) use ($request) {
+        return ! $query->where(function ($q) use ($request) {
             $q->where('sesi_waktu', $request->sesi_waktu)
-              ->orWhere('sesi_waktu', 'seharian');
+                ->orWhere('sesi_waktu', 'seharian');
         })->exists();
     }
 }

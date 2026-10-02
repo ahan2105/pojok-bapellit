@@ -1,22 +1,23 @@
 <?php
 
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Admin\AulaController;
+use App\Http\Controllers\AbsensiScanController;
+use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminSuratController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\AbsensiController;
+use App\Http\Controllers\Admin\AulaController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificationStreamController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\AbsensiScanController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AkunController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\SuratController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\AkunController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ChatbotController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -104,6 +105,10 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         ->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+    Route::delete('/notifications', [NotificationController::class, 'destroyAll'])
+        ->name('notifications.destroy-all');
 
     // ===== CHATBOT AI (USER & ADMIN) =====
     Route::get('/chatbot/menus', [ChatbotController::class, 'menus'])
@@ -124,6 +129,10 @@ Route::middleware(['auth', 'cek.status', 'admin'])
     ->name('admin.')
     ->group(function () {
 
+        // ===== DASHBOARD =====
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard.index');
+
         // ===== PENGATURAN SISTEM =====
         Route::get('/pengaturan', [SettingsController::class, 'index'])
             ->name('settings.index');
@@ -131,6 +140,9 @@ Route::middleware(['auth', 'cek.status', 'admin'])
         // ⭐ BARU: halaman suara
         Route::get('/pengaturan/suara', [SettingsController::class, 'sound'])
             ->name('settings.sound');
+
+        Route::get('/pengaturan/sesi-perangkat', [SettingsController::class, 'sessions'])
+            ->name('settings.sessions');
 
         // Template Chatbot (PUT sebelum DELETE!)
         Route::post('/pengaturan/chatbot', [SettingsController::class, 'storeTemplate'])
@@ -145,6 +157,12 @@ Route::middleware(['auth', 'cek.status', 'admin'])
             ->name('settings.general.update');
         Route::post('/pengaturan/suara/reset', [SettingsController::class, 'resetSound'])
             ->name('settings.sound.reset');
+
+        // Sesi & Perangkat
+        Route::delete('/pengaturan/sesi/{history}', [SettingsController::class, 'destroySession'])->name('settings.sessions.destroy');
+        Route::delete('/pengaturan/sesi-aktif/{id}', [SettingsController::class, 'destroyActiveSession'])->name('settings.sessions.destroy-active');
+        Route::post('/pengaturan/sesi/ban', [SettingsController::class, 'banSession'])->name('settings.sessions.ban');
+        Route::delete('/pengaturan/sesi-ban/{banned}', [SettingsController::class, 'unbanSession'])->name('settings.sessions.unban');
 
         // ===== KELOLA AULA =====
         Route::post('/aula/{id}/toggle-status', [AulaController::class, 'toggleStatus'])->name('aula.toggle-status');

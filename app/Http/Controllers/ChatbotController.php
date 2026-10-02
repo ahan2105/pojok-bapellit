@@ -17,11 +17,17 @@ class ChatbotController extends Controller
 {
     // ── Pengaturan hemat token (silakan disesuaikan) ──────────────
     private const CACHE_TTL_NORMAL = 7200;  // 2 jam: jawaban umum / seputar sistem
-    private const CACHE_TTL_LIVE   = 600;   // 10 menit: jawaban hasil search (data cepat basi)
-    private const MAX_TOKENS_NORMAL = 700;
-    private const MAX_TOKENS_LIVE   = 1800; // search butuh ruang lebih
+
+    private const CACHE_TTL_LIVE = 600;   // 10 menit: jawaban hasil search (data cepat basi)
+
+    private const MAX_TOKENS_NORMAL = 500;  // Reduced from 700 for faster response
+
+    private const MAX_TOKENS_LIVE = 1200;   // Reduced from 1800 for faster search results
+
     private const GROQ_CALLS_PER_MIN_PER_IP = 8;
+
     private const KB_TOP_TEMPLATES = 3;     // maksimal template detail yang dikirim ke AI
+
     private const KB_CHARS_PER_TEMPLATE = 500;
 
     /**
@@ -38,7 +44,7 @@ class ChatbotController extends Controller
         ]);
 
         $message = trim($request->message);
-        $lower   = mb_strtolower($message);
+        $lower = mb_strtolower($message);
 
         // LAPIS 0: CEK LIMIT
         $limitKeywords = [
@@ -50,7 +56,7 @@ class ChatbotController extends Controller
         foreach ($limitKeywords as $kw) {
             if (str_contains($lower, $kw)) {
                 return response()->json([
-                    'reply'  => GroqRateLimit::formatForChat(),
+                    'reply' => GroqRateLimit::formatForChat(),
                     'source' => 'limit',
                 ]);
             }
@@ -60,17 +66,17 @@ class ChatbotController extends Controller
         $template = $this->matchTemplate($message);
         if ($template) {
             return response()->json([
-                'reply'  => $template['reply'],
+                'reply' => $template['reply'],
                 'source' => $template['source'] ?? 'template',
-                'id'     => $template['id'] ?? null,
+                'id' => $template['id'] ?? null,
             ]);
         }
 
         // LAPIS 2: CACHE (pertanyaan sama dari siapa pun → 0 token)
-        $cacheKey = 'chatbot:ans:' . md5(preg_replace('/\s+/u', ' ', $lower));
+        $cacheKey = 'chatbot:ans:'.md5(preg_replace('/\s+/u', ' ', $lower));
         if ($cached = Cache::get($cacheKey)) {
             return response()->json([
-                'reply'  => $cached,
+                'reply' => $cached,
                 'source' => 'cache',
             ]);
         }
@@ -86,15 +92,15 @@ class ChatbotController extends Controller
     {
         $dbMenus = ChatbotTemplate::where('is_active', true)
             ->get(['id', 'label'])
-            ->map(fn($tpl) => [
-                'id'    => 'db_' . $tpl->id,
+            ->map(fn ($tpl) => [
+                'id' => 'db_'.$tpl->id,
                 'label' => $tpl->label,
             ])
             ->values();
 
         $configMenus = collect(config('chatbot_templates', []))
-            ->map(fn($tpl) => [
-                'id'    => $tpl['id'],
+            ->map(fn ($tpl) => [
+                'id' => $tpl['id'],
                 'label' => $tpl['label'],
             ])
             ->values();
@@ -120,9 +126,9 @@ class ChatbotController extends Controller
 
             if ($tpl && $tpl->is_active) {
                 return response()->json([
-                    'reply'  => $tpl->reply,
+                    'reply' => $tpl->reply,
                     'source' => 'database_template',
-                    'id'     => $id,
+                    'id' => $id,
                 ]);
             }
         } else {
@@ -130,9 +136,9 @@ class ChatbotController extends Controller
 
             if ($tpl) {
                 return response()->json([
-                    'reply'  => $tpl['reply'],
+                    'reply' => $tpl['reply'],
                     'source' => 'config_template',
-                    'id'     => $id,
+                    'id' => $id,
                 ]);
             }
         }
@@ -148,10 +154,6 @@ class ChatbotController extends Controller
      * Normalisasi keywords apa pun bentuknya (array, "a, b", JSON string,
      * JSON ter-encode dua kali) jadi array lowercase tanpa string kosong.
      */
-     /**
-     * Normalisasi keywords apa pun bentuknya (array, "a, b", JSON string,
-     * JSON ter-encode dua kali) jadi array lowercase tanpa string kosong.
-     */
     private function normalizeKeywords(mixed $raw): array
     {
         if (is_string($raw)) {
@@ -163,8 +165,8 @@ class ChatbotController extends Controller
         }
 
         return array_values(array_filter(
-            array_map(fn($k) => mb_strtolower(trim((string) $k)), (array) $raw),
-            fn($k) => $k !== ''
+            array_map(fn ($k) => mb_strtolower(trim((string) $k)), (array) $raw),
+            fn ($k) => $k !== ''
         ));
     }
 
@@ -183,13 +185,14 @@ class ChatbotController extends Controller
                         return true;
                     }
                 }
+
                 return false;
             });
 
         if ($dbTemplate) {
             return [
-                'reply'  => $dbTemplate->reply,
-                'id'     => 'db_' . $dbTemplate->id,
+                'reply' => $dbTemplate->reply,
+                'id' => 'db_'.$dbTemplate->id,
                 'source' => 'database_template',
             ];
         }
@@ -198,8 +201,8 @@ class ChatbotController extends Controller
             foreach ($this->normalizeKeywords($tpl['keywords'] ?? []) as $keyword) {
                 if (str_contains($lower, $keyword)) {
                     return [
-                        'reply'  => $tpl['reply'],
-                        'id'     => $tpl['id'],
+                        'reply' => $tpl['reply'],
+                        'id' => $tpl['id'],
                         'source' => 'config_template',
                     ];
                 }
@@ -220,8 +223,8 @@ class ChatbotController extends Controller
 
         foreach (ChatbotTemplate::where('is_active', true)->get(['label', 'reply', 'keywords']) as $t) {
             $list[] = [
-                'label'    => (string) $t->label,
-                'reply'    => (string) $t->reply,
+                'label' => (string) $t->label,
+                'reply' => (string) $t->reply,
                 'keywords' => $t->keywords,
             ];
         }
@@ -231,8 +234,8 @@ class ChatbotController extends Controller
                 continue;
             }
             $list[] = [
-                'label'    => (string) $t['label'],
-                'reply'    => (string) $t['reply'],
+                'label' => (string) $t['label'],
+                'reply' => (string) $t['reply'],
                 'keywords' => $t['keywords'] ?? [],
             ];
         }
@@ -253,7 +256,7 @@ class ChatbotController extends Controller
 
         return array_values(array_unique(array_filter(
             $words,
-            fn($w) => mb_strlen($w) >= 3 && !in_array($w, $stop, true)
+            fn ($w) => mb_strlen($w) >= 3 && ! in_array($w, $stop, true)
         )));
     }
 
@@ -264,12 +267,12 @@ class ChatbotController extends Controller
      */
     private function buildKnowledgeBase(string $message): string
     {
-        $words  = $this->tokenize($message);
+        $words = $this->tokenize($message);
         $scored = [];
 
         foreach ($this->allTemplates() as $t) {
             $hay = mb_strtolower(
-                $t['label'] . ' ' . implode(' ', $this->normalizeKeywords($t['keywords'])) . ' ' . $t['reply']
+                $t['label'].' '.implode(' ', $this->normalizeKeywords($t['keywords'])).' '.$t['reply']
             );
 
             $score = 0;
@@ -281,15 +284,15 @@ class ChatbotController extends Controller
             $scored[] = ['score' => $score, 't' => $t];
         }
 
-        usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+        usort($scored, fn ($a, $b) => $b['score'] <=> $a['score']);
 
-        $titles = Str::limit(implode(', ', array_map(fn($s) => $s['t']['label'], $scored)), 400);
-        $out    = "Topik yang tersedia di sistem: {$titles}";
+        $titles = Str::limit(implode(', ', array_map(fn ($s) => $s['t']['label'], $scored)), 400);
+        $out = "Topik yang tersedia di sistem: {$titles}";
 
-        $top = array_slice(array_filter($scored, fn($s) => $s['score'] > 0), 0, self::KB_TOP_TEMPLATES);
+        $top = array_slice(array_filter($scored, fn ($s) => $s['score'] > 0), 0, self::KB_TOP_TEMPLATES);
         foreach ($top as $s) {
-            $out .= "\n\n### " . $s['t']['label'] . "\n"
-                . Str::limit(trim($s['t']['reply']), self::KB_CHARS_PER_TEMPLATE);
+            $out .= "\n\n### ".$s['t']['label']."\n"
+                .Str::limit(trim($s['t']['reply']), self::KB_CHARS_PER_TEMPLATE);
         }
 
         return $out;
@@ -299,7 +302,7 @@ class ChatbotController extends Controller
     private function needsWebSearch(string $lower): bool
     {
         return (bool) preg_match(
-            '/\b(jadwal|skor|klasemen|hasil pertandingan|hari ini|besok|kemarin|minggu ini|bulan ini|tahun ini|terbaru|terkini|berita|kabar|cuaca|harga|kurs|saham|update|live|latest|news|lawan|pertandingan|siapa (presiden|gubernur|bupati|walikota|menteri|ketua))\b/iu',
+            '/\b(jadwal|skor|klasemen|hasil pertandingan|hari ini|besok|kemarin|terbaru|terkini|berita|cuaca|harga|kurs|saham|update|live|covid|vaksin|penyakit|resep|restoran|hotel)\b/iu',
             $lower
         );
     }
@@ -309,25 +312,26 @@ class ChatbotController extends Controller
      */
     private function buildSystemPrompt(string $message, bool $live): string
     {
-        $kb   = $this->buildKnowledgeBase($message);
-        $date = now('Asia/Jakarta')->locale('id')->translatedFormat('l, d F Y H:i') . ' WIB';
+        $kb = $this->buildKnowledgeBase($message);
+        $date = now('Asia/Jakarta')->locale('id')->translatedFormat('l, d F Y H:i').' WIB';
 
         $searchRule = $live
-            ? "Pertanyaan ini butuh data terbaru: gunakan pencarian web, jangan menebak dari ingatan, dan sebutkan tanggal data yang ditemukan. Jika tidak ketemu, katakan terus terang."
-            : "Jawab dari pengetahuanmu. Jika ragu soal data yang bisa berubah, katakan datanya mungkin sudah berubah.";
+            ? 'Pertanyaan ini butuh data terbaru atau informasi umum: GUNAKAN pencarian web untuk mendapatkan jawaban akurat dan terkini. Jangan menebak dari ingatan. Sebutkan tanggal data yang ditemukan. Jika ada banyak hasil, pilih yang paling relevan dan buat ringkasan singkat tapi lengkap.'
+            : 'Jawab dari pengetahuanmu. Jika ragu soal data yang bisa berubah, katakan datanya mungkin sudah berubah.';
 
         return <<<PROMPT
 Kamu Asisten Bapelit: asisten AI serbaguna sekaligus asisten resmi Bappeda dan sistem internal "Pojok Bapelit". Sekarang: {$date}.
 
 ATURAN ISI:
 1. Topik Pojok Bapelit/Bappeda: jawab berdasarkan KNOWLEDGE BASE. Jangan mengarang fitur, aturan, jam, atau prosedur yang tidak tertulis. Jika tidak ada infonya, bilang belum ada dan sarankan hubungi admin.
-2. Topik lain: jawab seperti asisten AI pada umumnya. {$searchRule}
+2. Topik lain (sejarah, sains, geography, bahasa, budaya, berita, cuaca, resep, dll): JAWAB DARI PENGETAHUAN AI UMUM KAMU. Jangan bilang "tidak ada informasi", karena kamu punya pengetahuan luas. Gunakan web search jika butuh data terbaru. {$searchRule}
 
-GAYA JAWABAN (hemat tapi tuntas):
-- Langsung ke inti. Tanpa salam pembuka, basa-basi, mengulang pertanyaan, atau penutup seperti "semoga membantu".
+GAYA JAWABAN (hemat, cepat, tuntas):
+- Langsung ke inti. Tanpa salam pembuka, basa-basi, atau penutup seperti "semoga membantu".
+- TANPA markdown: jangan pakai **, ##, atau underscore untuk formatting. Gunakan nomor (1. 2. 3.) untuk list berpoin, tanpa asterisk.
 - Beri jawaban lengkap dalam SATU balasan: sertakan detail yang biasanya ditanyakan lanjutan (tanggal, jam, lokasi, syarat, langkah, angka penting) agar pengguna tidak perlu bertanya lagi.
-- Maksimal sekitar 120 kata. Untuk langkah atau banyak item pakai baris pendek diawali "-" atau angka.
-- Bahasa Indonesia santai-sopan. Jangan pakai markdown (tanpa **, #, tabel).
+- Maksimal sekitar 120 kata. Untuk langkah atau banyak item pakai baris pendek diawali nomor (1. 2. 3.) atau tanda dash (-).
+- Bahasa Indonesia santai-sopan, singkat padat.
 
 KNOWLEDGE BASE:
 {$kb}
@@ -340,9 +344,9 @@ PROMPT;
 
     private function askGroq(string $message, string $lower, string $cacheKey)
     {
-        $apiKey  = config('services.groq.key');
+        $apiKey = config('services.groq.key');
         $baseUrl = config('services.groq.url');
-        $model   = config('services.groq.model', 'openai/gpt-oss-20b');
+        $model = config('services.groq.model', 'openai/gpt-oss-20b');
 
         if (empty($apiKey)) {
             return response()->json([
@@ -351,9 +355,10 @@ PROMPT;
         }
 
         // Batasi pemanggilan AI per IP supaya token tidak terkuras
-        $rlKey = 'chatbot-groq:' . request()->ip();
+        $rlKey = 'chatbot-groq:'.request()->ip();
         if (RateLimiter::tooManyAttempts($rlKey, self::GROQ_CALLS_PER_MIN_PER_IP)) {
             $wait = RateLimiter::availableIn($rlKey);
+
             return response()->json([
                 'error' => "Terlalu banyak pertanyaan. Coba lagi dalam {$wait} detik.",
             ], 429);
@@ -361,17 +366,17 @@ PROMPT;
         RateLimiter::hit($rlKey, 60);
 
         $isGptOss = str_contains($model, 'gpt-oss');
-        $live     = $isGptOss && $this->needsWebSearch($lower);
+        $live = $isGptOss && $this->needsWebSearch($lower);
 
         try {
             $payload = [
-                'model'       => $model,
-                'messages'    => [
+                'model' => $model,
+                'messages' => [
                     ['role' => 'system', 'content' => $this->buildSystemPrompt($message, $live)],
                     ['role' => 'user',   'content' => $message],
                 ],
                 'temperature' => 0.4,
-                'max_tokens'  => $live ? self::MAX_TOKENS_LIVE : self::MAX_TOKENS_NORMAL,
+                'max_tokens' => $live ? self::MAX_TOKENS_LIVE : self::MAX_TOKENS_NORMAL,
             ];
 
             if ($isGptOss) {
@@ -380,21 +385,22 @@ PROMPT;
 
             // Search hanya diaktifkan kalau pertanyaannya memang butuh data terbaru
             if ($live) {
-                $payload['tools']       = [['type' => 'browser_search']];
+                $payload['tools'] = [['type' => 'browser_search']];
                 $payload['tool_choice'] = 'auto';
             }
 
-            $response = Http::timeout($live ? 60 : 30)
-                ->retry(3, 1000, function ($exception) {
+            $response = Http::timeout($live ? 30 : 15)
+                ->retry(2, 500, function ($exception) {
                     if ($exception instanceof ConnectionException) {
                         return true;
                     }
+
                     return $exception instanceof RequestException
                         && in_array($exception->response->status(), [429, 500, 502, 503]);
                 }, throw: false)
                 ->withToken($apiKey)
                 ->acceptJson()
-                ->post(rtrim($baseUrl, '/') . '/chat/completions', $payload);
+                ->post(rtrim($baseUrl, '/').'/chat/completions', $payload);
 
             try {
                 GroqRateLimit::capture($response);
@@ -405,11 +411,11 @@ PROMPT;
             if ($response->failed()) {
                 Log::error('Groq API Error', [
                     'status' => $response->status(),
-                    'body'   => $response->body(),
+                    'body' => $response->body(),
                 ]);
 
                 return response()->json([
-                    'error'  => 'Gagal menghubungi AI (HTTP ' . $response->status() . ')',
+                    'error' => 'Gagal menghubungi AI (HTTP '.$response->status().')',
                     'detail' => app()->isLocal() ? $response->json() : null,
                 ], 500);
             }
@@ -422,7 +428,7 @@ PROMPT;
                 Log::warning('Groq balas kosong', ['body' => $response->json()]);
 
                 return response()->json([
-                    'reply'  => 'Maaf, saya belum bisa menjawab itu. Coba ulangi dengan kalimat lain.',
+                    'reply' => 'Maaf, saya belum bisa menjawab itu. Coba ulangi dengan kalimat lain.',
                     'source' => 'groq',
                 ]);
             }
@@ -431,16 +437,16 @@ PROMPT;
             Cache::put($cacheKey, $reply, $live ? self::CACHE_TTL_LIVE : self::CACHE_TTL_NORMAL);
 
             return response()->json([
-                'reply'  => $reply,
+                'reply' => $reply,
                 'source' => $live ? 'groq_search' : 'groq',
-                'usage'  => app()->isLocal() ? $response->json('usage') : null,
+                'usage' => app()->isLocal() ? $response->json('usage') : null,
             ]);
 
         } catch (\Throwable $e) {
             Log::error('Chatbot Exception', ['message' => $e->getMessage()]);
 
             return response()->json([
-                'error' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'error' => 'Terjadi kesalahan: '.$e->getMessage(),
             ], 500);
         }
     }

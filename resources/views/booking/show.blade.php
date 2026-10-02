@@ -30,6 +30,20 @@
         })
         ->toArray();
 
+    // Detail booking per tanggal (untuk tooltip keperluan)
+    $bookingMapShow = \App\Models\Booking::where('aula_id', $aula->id)
+        ->whereMonth('tanggal_booking', $bulan)
+        ->whereYear('tanggal_booking', $tahun)
+        ->whereIn('status', ['pending', 'approved'])
+        ->get(['tanggal_booking', 'nama_penanggung_jawab', 'sesi_waktu', 'keperluan'])
+        ->groupBy(fn($b) => \Carbon\Carbon::parse($b->tanggal_booking)->format('Y-m-d'))
+        ->map(fn($items) => $items->map(fn($b) => [
+            'nama' => $b->nama_penanggung_jawab ?? 'Tanpa Nama',
+            'sesi' => ucfirst($b->sesi_waktu ?? '-'),
+            'keperluan' => $b->keperluan ?? '-',
+        ])->values()->toArray())
+        ->toArray();
+
     // ⭐ Ambil semua foto yang ada (buat lightbox)
     $fotos = is_array($aula->foto) ? array_values(array_filter($aula->foto)) : [];
     $fotoUrls = array_map(fn($f) => asset('storage/' . $f), $fotos);
@@ -241,7 +255,7 @@
                                 <div>M</div><div>S</div><div>S</div><div>R</div><div>K</div><div>J</div><div>S</div>
                             </div>
 
-                            <div class="grid grid-cols-7 gap-1 sm:gap-1.5">
+                            <div class="grid grid-cols-7 gap-1 sm:gap-1.5" id="booking-calendar-grid">
                                 @php
                                     $today = date('Y-m-d');
                                     $selectedDate = old('tanggal_booking', date('Y-m-d'));
@@ -258,19 +272,62 @@
                                         $isBooked = in_array($dateString, $bookedDates);
                                         $isPast = $dateString < $today;
                                         $isSelected = $dateString === $selectedDate;
+                                        $bookingsHariIniShow = $bookingMapShow[$dateString] ?? [];
+                                        $jumlahShow = count($bookingsHariIniShow);
+                                        $namaBulanMini = [1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',5=>'Mei',6=>'Jun',7=>'Jul',8=>'Agu',9=>'Sep',10=>'Okt',11=>'Nov',12=>'Des'];
+                                        $tanggalDisplayShow = $day.' '.$namaBulanMini[$bulan].' '.$tahun;
                                     @endphp
-                                    <button type="button"
-                                        data-date="{{ $dateString }}"
-                                        class="aspect-square rounded-lg text-sm sm:text-base font-semibold transition
-                                            {{ $isPast ? 'text-gray-300 cursor-not-allowed' : '' }}
-                                            {{ $isBooked ? 'bg-red-500 text-white cursor-not-allowed' : '' }}
-                                            {{ $isSelected && !$isBooked && !$isPast ? 'bg-indigo-600 text-white ring-2 ring-indigo-300' : '' }}
-                                            {{ !$isPast && !$isBooked && !$isSelected ? 'hover:bg-gray-100 text-gray-700' : '' }}
-                                        "
-                                        {{ $isPast || $isBooked ? 'disabled' : '' }}
-                                        onclick="selectDate(this, '{{ $dateString }}')">
-                                        {{ $day }}
-                                    </button>
+                                    <div class="relative aspect-square">
+                                        <button type="button"
+                                            data-date="{{ $dateString }}"
+                                            class="show-cal-cell w-full h-full rounded-lg text-sm sm:text-base font-semibold transition
+                                                {{ $isPast ? 'text-gray-300 cursor-not-allowed' : '' }}
+                                                {{ $isBooked ? 'bg-red-500 text-white' : '' }}
+                                                {{ $isSelected && !$isBooked && !$isPast ? 'bg-indigo-600 text-white ring-2 ring-indigo-300' : '' }}
+                                                {{ !$isPast && !$isBooked && !$isSelected ? 'hover:bg-gray-100 text-gray-700' : '' }}
+                                                {{ $isToday ? 'ring-1 ring-indigo-400 ring-offset-1' : '' }}
+                                            "
+                                            {{ $isPast ? 'disabled' : '' }}
+                                            @if($isPast)
+                                                disabled
+                                            @elseif($isBooked)
+                                                onclick='showCalTooltipShow(event, "{{ $tanggalDisplayShow }}", {{ $jumlahShow }}, @json($bookingsHariIniShow)); event.preventDefault();'
+                                            @else
+                                                onclick="selectDate(this, '{{ $dateString }}')"
+                                            @endif
+                                        >
+                                            {{ $day }}
+                                        </button>
+                                        @if(!$isPast)
+                                            <div class="show-cal-tooltip">
+                                                @if($jumlahShow > 0)
+                                                    <div class="font-bold text-amber-400 mb-1.5 flex items-center gap-1">
+                                                        <span>📌</span>
+                                                        <span>{{ $jumlahShow }} booking — {{ $tanggalDisplayShow }}</span>
+                                                    </div>
+                                                    @foreach($bookingsHariIniShow as $b)
+                                                        <div class="mb-1.5 last:mb-0 pb-1.5 last:pb-0 border-b border-white/10 last:border-0">
+                                                            <div class="flex items-center gap-1.5">
+                                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                                                                <span class="text-white font-semibold truncate max-w-[110px]" title="{{ $b['nama'] }}">{{ $b['nama'] }}</span>
+                                                                <span class="text-gray-500">·</span>
+                                                                <span class="text-indigo-300 whitespace-nowrap text-[10px]">Sesi {{ $b['sesi'] }}</span>
+                                                            </div>
+                                                            <div class="text-gray-300 text-[10px] leading-snug mt-0.5 pl-3 line-clamp-2" title="{{ $b['keperluan'] }}">
+                                                                <span class="text-gray-500">Keperluan:</span> {{ $b['keperluan'] }}
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="font-bold text-emerald-400 flex items-center gap-1">
+                                                        <span>✓</span>
+                                                        <span>Tersedia — {{ $tanggalDisplayShow }}</span>
+                                                    </div>
+                                                    <div class="text-gray-400 text-[10px] mt-0.5">Belum ada yang booking</div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
                                 @endfor
                             </div>
 
@@ -463,11 +520,35 @@
             input.addEventListener('change', checkAvailability);
         });
         
-        const firstAvailable = document.querySelector('.grid-cols-7 button:not([disabled])');
+        const firstAvailable = document.querySelector('#booking-calendar-grid button[data-date]:not([disabled]):not(.bg-red-500)');
         if (firstAvailable) {
             firstAvailable.click();
         }
     });
+
+    // ===== POPUP MOBILE KALENDER DETAIL =====
+    window.showCalTooltipShow = function(event, tanggalDisplay, jumlah, bookings) {
+        event.stopPropagation();
+        const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+        if (!isTouch) return;
+        document.querySelectorAll('.mobile-cal-overlay-show').forEach(el => el.remove());
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-cal-overlay-show';
+        let bodyHtml = '';
+        if (jumlah > 0) {
+            bodyHtml = `<div class="text-sm font-bold text-amber-600 mb-2 flex items-center gap-1.5">📌 ${jumlah} booking</div>`;
+            bookings.forEach(b => {
+                const k = b.keperluan || '-';
+                bodyHtml += `<div class="py-2.5 border-b border-gray-100 last:border-0"><div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div><span class="text-sm text-gray-800 font-semibold truncate flex-1">${b.nama}</span><span class="text-xs text-indigo-600 font-bold whitespace-nowrap">Sesi ${b.sesi}</span></div><div class="text-xs text-gray-600 mt-1 pl-4"><span class="text-gray-400">Keperluan:</span> ${k}</div></div>`;
+            });
+        } else {
+            bodyHtml = `<div class="flex items-center gap-2 text-emerald-600 py-2"><span class="text-lg">✓</span><span class="text-sm font-bold">Tersedia</span></div><div class="text-xs text-gray-500 mt-1">Belum ada yang booking</div>`;
+        }
+        overlay.innerHTML = `<div style="background:white;border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,0.3);max-width:400px;width:100%;animation: modalPop 0.25s ease-out;"><div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-200"><span class="text-base font-bold text-gray-800">${tanggalDisplay}</span><button type="button" class="text-gray-400 hover:text-gray-600 text-2xl leading-none -mt-1" onclick="this.closest('.mobile-cal-overlay-show').remove()">&times;</button></div><div>${bodyHtml}</div></div>`;
+        overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    };
 
     // ============================================================
     // ⭐ LIGHTBOX GALLERY
@@ -580,6 +661,43 @@
     }
     .grid-cols-7 button.bg-indigo-600:hover {
         transform: scale(1.05);
+    }
+    /* Tooltip kalender halaman detail */
+    .show-cal-tooltip {
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        background: #1f2937;
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 10px;
+        line-height: 1.5;
+        z-index: 50;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        font-weight: 500;
+        min-width: 160px;
+        max-width: 220px;
+        text-align: left;
+    }
+    .show-cal-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #1f2937;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        #booking-calendar-grid .relative:hover .show-cal-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     }
 </style>
 @endsection

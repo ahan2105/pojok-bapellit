@@ -263,7 +263,7 @@
                       style="--tw-ring-color: #075E54;"></span>
             </div>
             <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-white">Admin Bapelit</p>
+                <p class="truncate text-sm font-semibold text-white">Admin</p>
                 <p class="truncate text-[11px] text-white/70">online</p>
             </div>
 

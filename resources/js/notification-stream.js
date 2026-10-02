@@ -23,7 +23,7 @@
             // Default Infinity = tidak pernah ditutup (notifikasi tetap masuk di background).
             this.hiddenGraceMs = options.hiddenGraceMs ?? Infinity;
             // Kalau koneksi putus lebih lama dari ini, minta UI resync saat tersambung lagi.
-            this.resyncAfterMs = options.resyncAfterMs ?? 5000;
+            this.resyncAfterMs = options.resyncAfterMs ?? 10000;  // naik dari 5s
 
             // ID stabil untuk guard kepemilikan. Jangan bandingkan `this` langsung:
             // Alpine membungkus objek di state reaktif dengan Proxy, sehingga `this`
@@ -34,8 +34,8 @@
             this.eventSource = null;
             this.connected   = false;
 
-            this.reconnectDelay        = 3000;
-            this.maxReconnectDelay     = 30000;
+            this.reconnectDelay        = 5000;   // 5 detik (naik dari 3s)
+            this.maxReconnectDelay     = 60000;  // 60 detik (naik dari 30s)
             this.currentReconnectDelay = this.reconnectDelay;
 
             this._reconnectTimer = null;
