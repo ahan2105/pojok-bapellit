@@ -1,4 +1,4 @@
-@php
+﻿@php
     /** @var \App\Models\User|null $userAuth */
     $userAuth = Auth::user();
     $isAdmin = $userAuth?->isAdmin() ?? false;
@@ -118,7 +118,7 @@
                         @error('golongan') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Bidang (Dropdown + Manual Input) — OPSIONAL -->
+                    <!-- Bidang (Dropdown + Manual Input) â€” OPSIONAL -->
                     <div class="md:col-span-2">
                         <label class="block text-base font-medium text-gray-700 mb-2">
                             Asal Bidang / Bagian <span class="text-sm text-gray-400 font-normal">(opsional)</span>
@@ -129,14 +129,10 @@
                                 @change="handleChange()"
                                 class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3.5 text-base">
                             <option value="">-- Pilih Bidang --</option>
-                            <option value="KEPALA BADAN">Kepala Badan</option>
-                            <option value="SEKRETARIAT">Sekretariat</option>
-                            <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM">Bidang Perekonomian dan Sumber Daya Alam</option>
-                            <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN">Bidang Infrastruktur dan Kewilayahan</option>
-                            <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA">Bidang Pemerintahan dan Pembangunan Manusia</option>
-                            <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI">Bidang Perencanaan Pengendalian dan Evaluasi</option>
-                            <option value="BIDANG PENELITIAN DAN PENGEMBANGAN">Bidang Penelitian dan Pengembangan</option>
-                            <option value="__lainnya__">✏️ Lainnya (isi manual)...</option>
+                            @foreach(($bidangList ?? collect()) as $bidang)
+                                <option value="{{ $bidang }}">{{ ucwords(strtolower($bidang)) }}</option>
+                            @endforeach
+                            <option value="__lainnya__">Lainnya (isi manual)...</option>
                         </select>
 
                         {{-- Input Manual (muncul kalau pilih "Lainnya") --}}
@@ -324,7 +320,7 @@
 
     // ===== Bidang Manager (Dropdown + Manual Input) =====
     function formAkun(initialBidang = '') {
-        // Daftar bidang — HURUF BESAR, sinkron dengan <option value>
+        // Daftar bidang â€” HURUF BESAR, sinkron dengan <option value>
         const listBidang = [
             'KEPALA BADAN',
             'SEKRETARIAT',

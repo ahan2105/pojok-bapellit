@@ -64,7 +64,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Jenis Surat</label>
                         <input type="text" name="jenis_surat" value="{{ old('jenis_surat', $surat->jenis_surat) }}"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('jenis_surat') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('jenis_surat') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="Surat Masuk / Keluar / Undangan">
                         @error('jenis_surat') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -72,7 +72,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Sifat Surat</label>
                         <input type="text" name="sifat_surat" value="{{ old('sifat_surat', $surat->sifat_surat) }}"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('sifat_surat') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('sifat_surat') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="Penting / Biasa / Rahasia">
                         @error('sifat_surat') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -83,7 +83,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Asal Surat / Pengirim</label>
                         <input type="text" name="asal_surat" value="{{ old('asal_surat', $surat->asal_surat) }}"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('asal_surat') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('asal_surat') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="Instansi pengirim">
                         @error('asal_surat') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -91,7 +91,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Tujuan Surat / Penerima</label>
                         <input type="text" name="alamat_tujuan" value="{{ old('alamat_tujuan', $surat->alamat_tujuan) }}"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('alamat_tujuan') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('alamat_tujuan') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="Instansi penerima">
                         @error('alamat_tujuan') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -102,7 +102,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">No / Indek</label>
                         <input type="text" name="no_indek" value="{{ old('no_indek', $surat->no_indek) }}"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('no_indek') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('no_indek') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="Nomor indeks arsip">
                         @error('no_indek') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -110,7 +110,7 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Banyak Lampiran</label>
                         <input type="number" name="banyak_lampiran" value="{{ old('banyak_lampiran', $surat->banyak_lampiran) }}" min="0"
-                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white @error('banyak_lampiran') border-red-300 @enderror"
+                            class="w-full px-4 py-3 rounded-lg border {{ $errors->has('banyak_lampiran') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white"
                             placeholder="0">
                         @error('banyak_lampiran') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                     </div>
@@ -120,7 +120,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Isi Surat <span class="text-red-500">*</span></label>
                     <textarea name="isi_surat" rows="6" required
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white leading-relaxed @error('isi_surat') border-red-300 @enderror"
+                        class="w-full px-4 py-3 rounded-lg border {{ $errors->has('isi_surat') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white leading-relaxed"
                         placeholder="Tuliskan isi atau ringkasan surat...">{{ old('isi_surat', $surat->isi_surat) }}</textarea>
                     @error('isi_surat') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                 </div>
@@ -129,7 +129,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Keterangan Tambahan</label>
                     <textarea name="keterangan" rows="3"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white leading-relaxed @error('keterangan') border-red-300 @enderror"
+                        class="w-full px-4 py-3 rounded-lg border {{ $errors->has('keterangan') ? 'border-red-300' : 'border-gray-300' }} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition bg-white leading-relaxed"
                         placeholder="Catatan internal atau keterangan lain...">{{ old('keterangan', $surat->keterangan) }}</textarea>
                     @error('keterangan') <p class="text-xs text-red-500 mt-1.5">{{ $message }}</p> @enderror
                 </div>

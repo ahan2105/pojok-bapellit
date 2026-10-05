@@ -34,19 +34,13 @@
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bidang</label>
                     <select name="bidang" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
                         <option value="">Semua Bidang</option>
+                        <option value="__tanpa_bidang__" {{ request('bidang') === '__tanpa_bidang__' ? 'selected' : '' }}>Tanpa Bidang</option>
                         @if(isset($bidangList) && count($bidangList) > 0)
                             @foreach($bidangList as $b)
                                 @php $cleanBidang = strtoupper(trim($b)); $displayBidang = ucwords(strtolower(str_replace('_', ' ', $cleanBidang))); @endphp
                                 <option value="{{ $cleanBidang }}" {{ request('bidang') == $cleanBidang ? 'selected' : '' }}>{{ $displayBidang }}</option>
                             @endforeach
                         @else
-                            <option value="KEPALA BADAN" {{ request('bidang') == 'KEPALA BADAN' ? 'selected' : '' }}>Kepala Badan</option>
-                            <option value="SEKRETARIAT" {{ request('bidang') == 'SEKRETARIAT' ? 'selected' : '' }}>Sekretariat</option>
-                            <option value="BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM" {{ request('bidang') == 'BIDANG PEREKONOMIAN DAN SUMBER DAYA ALAM' ? 'selected' : '' }}>Bidang Perekonomian dan SDA</option>
-                            <option value="BIDANG INFRASTRUKTUR DAN KEWILAYAHAN" {{ request('bidang') == 'BIDANG INFRASTRUKTUR DAN KEWILAYAHAN' ? 'selected' : '' }}>Bidang Infrastruktur dan Kewilayahan</option>
-                            <option value="BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA" {{ request('bidang') == 'BIDANG PEMERINTAHAN DAN PEMBANGUNAN MANUSIA' ? 'selected' : '' }}>Bidang Pemerintahan dan SDM</option>
-                            <option value="BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI" {{ request('bidang') == 'BIDANG PERENCANAAN PENGENDALIAN DAN EVALUASI' ? 'selected' : '' }}>Bidang Perencanaan, Pengendalian dan Evaluasi</option>
-                            <option value="BIDANG PENELITIAN DAN PENGEMBANGAN" {{ request('bidang') == 'BIDANG PENELITIAN DAN PENGEMBANGAN' ? 'selected' : '' }}>Bidang Penelitian dan Pengembangan</option>
                         @endif
                     </select>
                 </div>
@@ -54,6 +48,7 @@
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jabatan</label>
                     <select name="jabatan" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
                         <option value="">Semua Jabatan</option>
+                        <option value="__tanpa_jabatan__" {{ request('jabatan') === '__tanpa_jabatan__' ? 'selected' : '' }}>Tanpa Jabatan</option>
                         @foreach($jabatanList as $j)
                             <option value="{{ $j }}" {{ request('jabatan') == $j ? 'selected' : '' }}>{{ Str::limit($j, 40) }}</option>
                         @endforeach
@@ -64,7 +59,7 @@
                 <button type="submit" class="flex-1 sm:flex-none px-5 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Cari
                 </button>
-                @if(request('bidang') || request('jabatan') || request('search'))
+                @if(request()->filled('bidang') || request()->filled('jabatan') || request()->filled('search'))
                     <a href="{{ route('admin.kelolaakun.index') }}" class="px-4 py-3 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2" title="Reset">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Reset
                     </a>
@@ -253,11 +248,11 @@
     <div class="lg:hidden mt-4 flex flex-col items-center gap-3">
         <div class="text-xs text-gray-500">{{ $users->firstItem() }} - {{ $users->lastItem() }} dari {{ $users->total() }} akun</div>
         <div class="flex items-center gap-1">
-            @if ($users->onFirstPage())<span class="px-4 py-2.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-xl cursor-not-allowed">‹</span>@else<a href="{{ $users->previousPageUrl() }}" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl">‹</a>@endif
+            @if ($users->onFirstPage())<span class="px-4 py-2.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-xl cursor-not-allowed">â€¹</span>@else<a href="{{ $users->previousPageUrl() }}" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl">â€¹</a>@endif
             @foreach ($users->getUrlRange(max(1, $users->currentPage() - 2), min($users->lastPage(), $users->currentPage() + 2)) as $page => $url)
                 @if ($page == $users->currentPage())<span class="px-4 py-2.5 text-sm text-white bg-blue-600 rounded-xl font-bold">{{ $page }}</span>@else<a href="{{ $url }}" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl">{{ $page }}</a>@endif
             @endforeach
-            @if ($users->hasMorePages())<a href="{{ $users->nextPageUrl() }}" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl">›</a>@else<span class="px-4 py-2.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-xl cursor-not-allowed">›</span>@endif
+            @if ($users->hasMorePages())<a href="{{ $users->nextPageUrl() }}" class="px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl">â€º</a>@else<span class="px-4 py-2.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-xl cursor-not-allowed">â€º</span>@endif
         </div>
     </div>
     @endif

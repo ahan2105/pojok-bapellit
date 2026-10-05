@@ -40,10 +40,10 @@ class SuratSubmitted implements ShouldBroadcastNow
                         'Pengajuan Surat Baru',
                         "{$this->surat->no_surat} dari {$this->surat->user?->name}",
                         [
-                            'surat_id'   => $this->surat->id,
-                            'no_surat'   => $this->surat->no_surat,
-                            'pengaju'    => $this->surat->user?->name,
-                            'jenis'      => $this->surat->jenis_surat,
+                            'surat_id' => $this->surat->id,
+                            'no_surat' => $this->surat->no_surat,
+                            'pengaju' => $this->surat->user?->name,
+                            'jenis' => $this->surat->jenis_surat,
                             'created_at' => $this->surat->created_at,
                         ],
                         route('admin.kelolasurat.index')
@@ -51,7 +51,7 @@ class SuratSubmitted implements ShouldBroadcastNow
                 }
             }
         } catch (\Exception $e) {
-            Log::warning('Gagal simpan notif surat: ' . $e->getMessage());
+            Log::warning('Gagal simpan notif surat: '.$e->getMessage());
         }
     }
 
@@ -68,22 +68,21 @@ class SuratSubmitted implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'id'            => $this->surat->id,
-            'no_surat'      => $this->surat->no_surat,
-            'tanggal'       => $this->surat->tanggal?->toDateString(),
-            'no_indek'      => $this->surat->no_indek,
-            'jenis_surat'   => $this->surat->jenis_surat,
-            'sifat_surat'   => $this->surat->sifat_surat,
-            'asal_surat'    => $this->surat->asal_surat,
+            'id' => $this->surat->id,
+            'no_surat' => $this->surat->no_surat,
+            'tanggal' => $this->surat->tanggal?->toDateString(),
+            'no_indek' => $this->surat->no_indek,
+            'jenis_surat' => $this->surat->jenis_surat,
+            'sifat_surat' => $this->surat->sifat_surat,
+            'asal_surat' => $this->surat->asal_surat,
             'alamat_tujuan' => $this->surat->alamat_tujuan,
-            'isi_surat'     => Str::limit($this->surat->isi_surat, 100),
-            'keterangan'    => $this->surat->keterangan,
-            'lampiran'      => $this->surat->banyak_lampiran,
-            'file_url'      => $this->surat->file_url,
-            'is_pdf'        => $this->surat->isFilePdf(),
-            'is_image'      => $this->surat->isFileImage(),
-            'pengaju'       => $this->surat->user?->name,
-            'created_at'    => $this->surat->created_at?->diffForHumans(),
+            'isi_surat' => Str::limit($this->surat->isi_surat, 100),
+            'keterangan' => $this->surat->keterangan,
+            'lampiran' => $this->surat->banyak_lampiran,
+            'file_url' => $this->surat->file_url,
+            'is_pdf' => $this->surat->isFilePdf(),
+            'pengaju' => $this->surat->user?->name,
+            'created_at' => $this->surat->created_at?->diffForHumans(),
         ];
     }
 }

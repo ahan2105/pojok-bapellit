@@ -31,7 +31,7 @@
             <button type="button"
                     id="btn-bulk-delete"
                     onclick="confirmBulkDelete()"
-                    class="hidden inline-flex items-center gap-2 px-5 py-3 bg-red-600 text-white text-base font-semibold rounded-xl hover:bg-red-700 transition shadow-sm animate-pulse">
+                    class="hidden items-center gap-2 px-5 py-3 bg-red-600 text-white text-base font-semibold rounded-xl hover:bg-red-700 transition shadow-sm animate-pulse">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
@@ -199,7 +199,7 @@
                     <button type="button"
                             id="btn-remove-from-preview"
                             onclick="removeSelectedFromPreview()"
-                            class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition shadow-sm">
+                            class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition shadow-sm">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
@@ -557,9 +557,9 @@
         countSpan.textContent = count;
         
         if (count > 0) {
-            btn.classList.remove('hidden');
+            btn.style.display = 'inline-flex';
         } else {
-            btn.classList.add('hidden');
+            btn.style.display = 'none';
         }
     }
 
@@ -651,9 +651,9 @@
         countSpan.textContent = count;
         
         if (count > 0) {
-            btn.classList.remove('hidden');
+            btn.style.display = 'inline-flex';
         } else {
-            btn.classList.add('hidden');
+            btn.style.display = 'none';
         }
     }
 
@@ -699,7 +699,7 @@
                 // Reset checkbox
                 previewSelectedIds.clear();
                 document.querySelectorAll('.preview-checkbox').forEach(cb => cb.checked = false);
-                document.getElementById('btn-remove-from-preview').classList.add('hidden');
+                document.getElementById('btn-remove-from-preview').style.display = 'none';
 
                 Swal.fire({
                     icon: 'success',

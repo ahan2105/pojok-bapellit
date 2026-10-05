@@ -18,7 +18,15 @@
             <h1 class="text-3xl font-bold text-gray-900">Kelola Surat</h1>
             <p class="text-base text-gray-600 mt-1">Daftar surat yang sudah diambil pengguna</p>
         </div>
-        <a href="{{ route('admin.kelolasurat.pengaturan') }}"
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="{{ route('admin.kelolasurat.export') }}"
+                class="inline-flex items-center justify-center px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-base font-medium shadow-sm whitespace-nowrap">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a2 2 0 011.414.586l4.414 4.414A2 2 0 0119 9.414V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Export Excel
+            </a>
+            <a href="{{ route('admin.kelolasurat.pengaturan') }}"
             class="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-base font-medium shadow-sm whitespace-nowrap">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -26,6 +34,7 @@
             </svg>
             Pengaturan Nomor
         </a>
+        </div>
     </div>
 
     <!-- Statistik -->
@@ -74,7 +83,7 @@
 
     <!-- Toolbar Bulk Delete -->
     @if(isset($surats) && $surats->count() > 0)
-    <div id="bulk-toolbar" class="hidden mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-red-100 shadow-sm bg-red-50/50">
+    <div id="bulk-toolbar" class="hidden mb-4 flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-red-100 shadow-sm bg-red-50/50">
         <div class="flex items-center gap-3">
             <input type="checkbox" 
                    id="check-all-surat" 
@@ -574,9 +583,9 @@
         countSpan.textContent = count;
         
         if (count > 0) {
-            toolbar.classList.remove('hidden');
+            toolbar.style.display = 'flex';
         } else {
-            toolbar.classList.add('hidden');
+            toolbar.style.display = 'none';
         }
     }
 

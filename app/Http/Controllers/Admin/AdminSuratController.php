@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\SuratExport;
 use App\Http\Controllers\Controller;
 use App\Models\PengaturanSurat;
 use App\Models\Surat;
@@ -14,6 +15,14 @@ use Illuminate\Support\Str;
 class AdminSuratController extends Controller
 {
     /**
+     * Export seluruh data surat ke Excel.
+     */
+    public function export()
+    {
+        return (new SuratExport)->download('data-surat-'.now()->format('Y-m-d-His').'.xlsx');
+    }
+
+    /**
      * Daftar surat yang sudah diambil user
      */
     public function index(Request $request)
@@ -23,25 +32,25 @@ class AdminSuratController extends Controller
 
         // Batasi kolom yang diambil untuk performa
         $query->select([
-            'id', 'user_id', 'no_surat', 'no_indek', 'isi_surat', 
+            'id', 'user_id', 'no_surat', 'no_indek', 'isi_surat',
             'jenis_surat', 'asal_surat', 'alamat_tujuan', 'file_surat',
             'file_surat_original_name', 'banyak_lampiran', 'keterangan',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
         ]);
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            
+
             // Hindari LIKE %...% pada field TEXT yang besar
             $query->where(function ($q) use ($search) {
                 $q->where('no_surat', 'like', "%{$search}%")
-                  ->orWhere('no_indek', 'like', "%{$search}%")
-                  ->orWhere('jenis_surat', 'like', "%{$search}%")
-                  ->orWhere('asal_surat', 'like', "%{$search}%")
-                  ->orWhere('alamat_tujuan', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($qu) use ($search) {
-                      $qu->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('no_indek', 'like', "%{$search}%")
+                    ->orWhere('jenis_surat', 'like', "%{$search}%")
+                    ->orWhere('asal_surat', 'like', "%{$search}%")
+                    ->orWhere('alamat_tujuan', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($qu) use ($search) {
+                        $qu->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -52,17 +61,17 @@ class AdminSuratController extends Controller
         $nomorBerikutnya = $pengaturan->generateNomor(1);
 
         // Cache statistics selama 5 menit untuk mengurangi query COUNT
-        $cacheKey = 'surat_statistics_' . today()->format('Y-m-d');
+        $cacheKey = 'surat_statistics_'.today()->format('Y-m-d');
         $statistics = Cache::remember($cacheKey, 300, function () {
             return [
                 'total' => Surat::count(),
                 'bulan_ini' => Surat::whereMonth('created_at', date('m'))
-                                     ->whereYear('created_at', date('Y'))
-                                     ->count(),
+                    ->whereYear('created_at', date('Y'))
+                    ->count(),
                 'hari_ini' => Surat::whereDate('created_at', today())->count(),
             ];
         });
-        
+
         $statistics['nomor_berikutnya'] = $nomorBerikutnya;
 
         return view('admin.kelolasurat.index', compact('surats', 'statistics'));
@@ -74,6 +83,7 @@ class AdminSuratController extends Controller
     public function edit(int $id)
     {
         $surat = Surat::with('user:id,name,email')->findOrFail($id);
+
         return view('admin.kelolasurat.edit', compact('surat'));
     }
 
@@ -85,7 +95,7 @@ class AdminSuratController extends Controller
         $surat = Surat::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'no_surat' => 'required|string|max:255|unique:surats,no_surat,' . $id,
+            'no_surat' => 'required|string|max:255|unique:surats,no_surat,'.$id,
             'jenis_surat' => 'nullable|string|max:100',
             'sifat_surat' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date',
@@ -95,7 +105,7 @@ class AdminSuratController extends Controller
             'banyak_lampiran' => 'nullable|integer|min:0',
             'no_indek' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
-            
+
             // ⭐ VALIDASI FILE BARU (SAMA DENGAN USER)
             'file_surat' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:5120',
         ], [
@@ -129,9 +139,9 @@ class AdminSuratController extends Controller
 
                 $file = $request->file('file_surat');
                 $originalName = $file->getClientOriginalName();
-                
+
                 // Gunakan UUID agar nama file unik dan aman
-                $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
                 $path = $file->storeAs('uploads/surat', $filename, 'public');
 
                 $surat->file_surat = $path;
@@ -141,14 +151,14 @@ class AdminSuratController extends Controller
             $surat->save();
 
             // Clear cache statistics setelah update
-            Cache::forget('surat_statistics_' . today()->format('Y-m-d'));
+            Cache::forget('surat_statistics_'.today()->format('Y-m-d'));
 
             return redirect()->route('admin.kelolasurat.index')
                 ->with('success', 'Surat berhasil diperbarui!');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -168,14 +178,14 @@ class AdminSuratController extends Controller
             $surat->delete();
 
             // Clear cache statistics setelah delete
-            Cache::forget('surat_statistics_' . today()->format('Y-m-d'));
+            Cache::forget('surat_statistics_'.today()->format('Y-m-d'));
 
             return redirect()->route('admin.kelolasurat.index')
                 ->with('success', 'Surat berhasil dihapus!');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Gagal menghapus: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus: '.$e->getMessage());
         }
     }
 
@@ -186,11 +196,11 @@ class AdminSuratController extends Controller
     {
         $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'exists:surats,id'
+            'ids.*' => 'exists:surats,id',
         ]);
 
         $ids = $request->input('ids');
-        
+
         // Ambil data surat terlebih dahulu untuk menghapus file fisiknya
         $surats = Surat::whereIn('id', $ids)->get();
 
@@ -204,11 +214,11 @@ class AdminSuratController extends Controller
         Surat::whereIn('id', $ids)->delete();
 
         // Clear cache statistics setelah bulk delete
-        Cache::forget('surat_statistics_' . today()->format('Y-m-d'));
+        Cache::forget('surat_statistics_'.today()->format('Y-m-d'));
 
         return response()->json([
             'success' => true,
-            'message' => count($ids) . ' surat berhasil dihapus.'
+            'message' => count($ids).' surat berhasil dihapus.',
         ]);
     }
 
@@ -219,7 +229,7 @@ class AdminSuratController extends Controller
     {
         $surat = Surat::findOrFail($id);
 
-        if (!$surat->file_surat || !Storage::disk('public')->exists($surat->file_surat)) {
+        if (! $surat->file_surat || ! Storage::disk('public')->exists($surat->file_surat)) {
             return redirect()->back()->with('error', 'File tidak tersedia.');
         }
 
@@ -227,7 +237,7 @@ class AdminSuratController extends Controller
 
         // Pakai nama file asli kalau ada
         $filename = $surat->file_surat_original_name
-            ?? (str_replace('/', '-', $surat->no_surat) . '.' . pathinfo($surat->file_surat, PATHINFO_EXTENSION));
+            ?? (str_replace('/', '-', $surat->no_surat).'.'.pathinfo($surat->file_surat, PATHINFO_EXTENSION));
 
         return response()->download($path, $filename);
     }
@@ -272,11 +282,11 @@ class AdminSuratController extends Controller
             $nomorBerikutnya = $pengaturanBaru->generateNomor(1);
 
             return redirect()->route('admin.kelolasurat.pengaturan')
-                ->with('success', 'Pengaturan berhasil disimpan! Surat berikutnya: ' . $nomorBerikutnya);
+                ->with('success', 'Pengaturan berhasil disimpan! Surat berikutnya: '.$nomorBerikutnya);
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage())
                 ->withInput();
         }
     }

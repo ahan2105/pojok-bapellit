@@ -187,6 +187,7 @@ Route::middleware(['auth', 'cek.status', 'admin'])
 
         // ===== KELOLA BOOKING (ADMIN) =====
         Route::get('/kelolabooking', [AdminBookingController::class, 'index'])->name('kelolabooking.index');
+        Route::get('/kelolabooking/export', [AdminBookingController::class, 'export'])->name('kelolabooking.export');
         Route::post('/kelolabooking/bulk-destroy', [AdminBookingController::class, 'bulkDestroy'])->name('kelolabooking.bulk-destroy');
         Route::get('/kelolabooking/{id}', [AdminBookingController::class, 'detail'])->name('kelolabooking.detail');
         Route::post('/kelolabooking/{id}/approve', [AdminBookingController::class, 'approve'])->name('kelolabooking.approve');
@@ -197,6 +198,7 @@ Route::middleware(['auth', 'cek.status', 'admin'])
 
         // ===== KELOLA SURAT (ADMIN) =====
         Route::get('/kelolasurat', [AdminSuratController::class, 'index'])->name('kelolasurat.index');
+        Route::get('/kelolasurat/export', [AdminSuratController::class, 'export'])->name('kelolasurat.export');
         Route::get('/kelolasurat/pengaturan', [AdminSuratController::class, 'pengaturan'])->name('kelolasurat.pengaturan');
         Route::put('/kelolasurat/pengaturan', [AdminSuratController::class, 'updatePengaturan'])->name('kelolasurat.pengaturan.update');
         Route::post('/kelolasurat/bulk-destroy', [AdminSuratController::class, 'bulkDestroy'])->name('kelolasurat.bulk-destroy');

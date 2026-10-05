@@ -29,10 +29,10 @@ class AbsensiScanController extends Controller
         // ============================================
         // QR tidak valid
         // ============================================
-        if (!$sesi) {
-            return view('absensi.scan-result', [
-                'status'  => 'error',
-                'title'   => 'QR Code Tidak Valid',
+        if (! $sesi) {
+            return view('presensi.scan-result', [
+                'status' => 'error',
+                'title' => 'QR Code Tidak Valid',
                 'message' => 'QR Code tidak dikenali. Silakan minta admin menampilkan QR baru.',
             ]);
         }
@@ -42,13 +42,13 @@ class AbsensiScanController extends Controller
         // ============================================
         // QR kadaluarsa
         // ============================================
-        if (!$sesi->isQrValid()) {
-            return view('absensi.scan-result', [
-                'status'  => 'error',
-                'title'   => 'QR Code Kadaluarsa',
-                'message' => 'QR Code untuk sesi "' . $sesi->nama_sesi . '" (' . $tanggalSesi . ') sudah tidak berlaku. '
-                           . 'Kemungkinan sudah di-refresh oleh admin. Silakan scan QR terbaru di layar admin.',
-                'sesi'    => $sesi,
+        if (! $sesi->isQrValid()) {
+            return view('presensi.scan-result', [
+                'status' => 'error',
+                'title' => 'QR Code Kadaluarsa',
+                'message' => 'QR Code untuk sesi "'.$sesi->nama_sesi.'" ('.$tanggalSesi.') sudah tidak berlaku. '
+                           .'Kemungkinan sudah di-refresh oleh admin. Silakan scan QR terbaru di layar admin.',
+                'sesi' => $sesi,
             ]);
         }
 
@@ -56,12 +56,12 @@ class AbsensiScanController extends Controller
         // Sesi sudah dikunci
         // ============================================
         if ($sesi->is_locked) {
-            return view('absensi.scan-result', [
-                'status'  => 'error',
-                'title'   => 'Sesi Sudah Dikunci',
-                'message' => 'Absensi untuk sesi "' . $sesi->nama_sesi . '" (' . $tanggalSesi . ') sudah ditutup oleh admin. '
-                           . 'Tidak bisa absen lagi.',
-                'sesi'    => $sesi,
+            return view('presensi.scan-result', [
+                'status' => 'error',
+                'title' => 'Sesi Sudah Dikunci',
+                'message' => 'Absensi untuk sesi "'.$sesi->nama_sesi.'" ('.$tanggalSesi.') sudah ditutup oleh admin. '
+                           .'Tidak bisa absen lagi.',
+                'sesi' => $sesi,
             ]);
         }
 
@@ -72,14 +72,14 @@ class AbsensiScanController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$detail) {
-            return view('absensi.scan-result', [
-                'status'  => 'error',
-                'title'   => 'Anda Tidak Terdaftar',
-                'message' => 'Anda tidak terdaftar sebagai peserta di sesi "' . $sesi->nama_sesi . '" (' . $tanggalSesi . '). '
-                           . 'Kemungkinan admin tidak memilih Anda saat membuat sesi ini. '
-                           . 'Silakan hubungi admin untuk didaftarkan.',
-                'sesi'    => $sesi,
+        if (! $detail) {
+            return view('presensi.scan-result', [
+                'status' => 'error',
+                'title' => 'Anda Tidak Terdaftar',
+                'message' => 'Anda tidak terdaftar sebagai peserta di sesi "'.$sesi->nama_sesi.'" ('.$tanggalSesi.'). '
+                           .'Kemungkinan admin tidak memilih Anda saat membuat sesi ini. '
+                           .'Silakan hubungi admin untuk didaftarkan.',
+                'sesi' => $sesi,
             ]);
         }
 
@@ -88,15 +88,15 @@ class AbsensiScanController extends Controller
         // ============================================
         if ($detail->status_kehadiran === 'hadir') {
             $waktuAbsen = $detail->waktu_absen
-                ? $detail->waktu_absen->translatedFormat('d F Y, H:i') . ' WIB'
+                ? $detail->waktu_absen->translatedFormat('d F Y, H:i').' WIB'
                 : '-';
 
-            return view('absensi.scan-result', [
-                'status'  => 'info',
-                'title'   => 'Sudah Absen',
-                'message' => 'Anda sudah tercatat hadir di sesi "' . $sesi->nama_sesi . '" pada ' . $waktuAbsen . '.',
-                'sesi'    => $sesi,
-                'waktu'   => $detail->waktu_absen,
+            return view('presensi.scan-result', [
+                'status' => 'info',
+                'title' => 'Sudah Absen',
+                'message' => 'Anda sudah tercatat hadir di sesi "'.$sesi->nama_sesi.'" pada '.$waktuAbsen.'.',
+                'sesi' => $sesi,
+                'waktu' => $detail->waktu_absen,
             ]);
         }
 
@@ -105,16 +105,16 @@ class AbsensiScanController extends Controller
         // ============================================
         $detail->update([
             'status_kehadiran' => 'hadir',
-            'waktu_absen'      => now(),
-            'keterangan'       => null,
+            'waktu_absen' => now(),
+            'keterangan' => null,
         ]);
 
-        return view('absensi.scan-result', [
-            'status'  => 'success',
-            'title'   => 'Absensi Berhasil!',
-            'message' => 'Kehadiran Anda di sesi "' . $sesi->nama_sesi . '" (' . $tanggalSesi . ') sudah tercatat. Terima kasih.',
-            'sesi'    => $sesi,
-            'waktu'   => now(),
+        return view('presensi.scan-result', [
+            'status' => 'success',
+            'title' => 'Absensi Berhasil!',
+            'message' => 'Kehadiran Anda di sesi "'.$sesi->nama_sesi.'" ('.$tanggalSesi.') sudah tercatat. Terima kasih.',
+            'sesi' => $sesi,
+            'waktu' => now(),
         ]);
     }
 
@@ -131,7 +131,7 @@ class AbsensiScanController extends Controller
         // ============================================
         // QR tidak valid
         // ============================================
-        if (!$sesi) {
+        if (! $sesi) {
             return response()->json([
                 'success' => false,
                 'message' => 'QR Code tidak valid atau tidak dikenali.',
@@ -143,10 +143,10 @@ class AbsensiScanController extends Controller
         // ============================================
         // QR kadaluarsa
         // ============================================
-        if (!$sesi->isQrValid()) {
+        if (! $sesi->isQrValid()) {
             return response()->json([
                 'success' => false,
-                'message' => 'QR Code untuk sesi "' . $sesi->nama_sesi . '" sudah kadaluarsa. Silakan scan QR terbaru di layar admin.',
+                'message' => 'QR Code untuk sesi "'.$sesi->nama_sesi.'" sudah kadaluarsa. Silakan scan QR terbaru di layar admin.',
             ], 410);
         }
 
@@ -156,7 +156,7 @@ class AbsensiScanController extends Controller
         if ($sesi->is_locked) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sesi "' . $sesi->nama_sesi . '" sudah dikunci oleh admin. Tidak bisa absen lagi.',
+                'message' => 'Sesi "'.$sesi->nama_sesi.'" sudah dikunci oleh admin. Tidak bisa absen lagi.',
             ], 423);
         }
 
@@ -167,10 +167,10 @@ class AbsensiScanController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$detail) {
+        if (! $detail) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak terdaftar sebagai peserta di sesi "' . $sesi->nama_sesi . '" (' . $tanggalSesi . '). Hubungi admin untuk didaftarkan.',
+                'message' => 'Anda tidak terdaftar sebagai peserta di sesi "'.$sesi->nama_sesi.'" ('.$tanggalSesi.'). Hubungi admin untuk didaftarkan.',
             ], 403);
         }
 
@@ -179,15 +179,15 @@ class AbsensiScanController extends Controller
         // ============================================
         if ($detail->status_kehadiran === 'hadir') {
             $waktuAbsen = $detail->waktu_absen
-                ? $detail->waktu_absen->translatedFormat('d F Y, H:i') . ' WIB'
+                ? $detail->waktu_absen->translatedFormat('d F Y, H:i').' WIB'
                 : '-';
 
             return response()->json([
                 'success' => true,
                 'already' => true,
-                'message' => 'Anda sudah tercatat hadir di sesi ini pada ' . $waktuAbsen . '.',
-                'sesi'    => $sesi->nama_sesi,
-                'waktu'   => $detail->waktu_absen?->format('H:i:s'),
+                'message' => 'Anda sudah tercatat hadir di sesi ini pada '.$waktuAbsen.'.',
+                'sesi' => $sesi->nama_sesi,
+                'waktu' => $detail->waktu_absen?->format('H:i:s'),
             ]);
         }
 
@@ -196,15 +196,15 @@ class AbsensiScanController extends Controller
         // ============================================
         $detail->update([
             'status_kehadiran' => 'hadir',
-            'waktu_absen'      => now(),
-            'keterangan'       => null,
+            'waktu_absen' => now(),
+            'keterangan' => null,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Absensi berhasil! Kehadiran Anda di sesi "' . $sesi->nama_sesi . '" sudah tercatat.',
-            'sesi'    => $sesi->nama_sesi,
-            'waktu'   => now()->format('H:i:s'),
+            'message' => 'Absensi berhasil! Kehadiran Anda di sesi "'.$sesi->nama_sesi.'" sudah tercatat.',
+            'sesi' => $sesi->nama_sesi,
+            'waktu' => now()->format('H:i:s'),
         ]);
     }
 }

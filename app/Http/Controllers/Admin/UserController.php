@@ -16,21 +16,33 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $search        = $request->input('search');
-        $filterBidang  = $request->input('bidang');
+        $search = $request->input('search');
+        $filterBidang = $request->input('bidang');
         $filterJabatan = $request->input('jabatan');
 
         $users = User::when($search, function ($query, $search) {
-                return $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('nip', 'like', "%{$search}%");
-                });
-            })
+            return $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('nip', 'like', "%{$search}%");
+            });
+        })
             ->when($filterBidang, function ($q, $bidang) {
+                if ($bidang === '__tanpa_bidang__') {
+                    return $q->where(function ($query) {
+                        $query->whereNull('bidang')->orWhere('bidang', '');
+                    });
+                }
+
                 return $q->where('bidang', $bidang);
             })
             ->when($filterJabatan, function ($q, $jabatan) {
+                if ($jabatan === '__tanpa_jabatan__') {
+                    return $q->where(function ($query) {
+                        $query->whereNull('jabatan')->orWhere('jabatan', '');
+                    });
+                }
+
                 return $q->where('jabatan', $jabatan);
             })
             ->orderBy('bidang')
@@ -63,14 +75,26 @@ class UserController extends Controller
         ));
     }
 
-    /**
-     * Form tambah akun baru
-     */
     public function create()
     {
         return view('admin.kelolaakun.create', [
-            'user' => null, // null = mode TAMBAH
+            'user' => null,
+            'bidangList' => $this->getDistinctUserValues('bidang'),
+            'jabatanList' => $this->getDistinctUserValues('jabatan'),
         ]);
+    }
+
+    /**
+     * Ambil nilai unik dari data akun yang sudah tersimpan.
+     */
+    private function getDistinctUserValues(string $column)
+    {
+        return User::query()
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->distinct()
+            ->orderBy($column)
+            ->pluck($column);
     }
 
     /**
@@ -79,31 +103,31 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'username' => 'nullable|string|max:255|unique:users,username',
-            'email'    => 'nullable|email|max:255|unique:users,email',
-            'nip'      => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255|unique:users,email',
+            'nip' => 'nullable|string|max:50',
             'whatsapp' => 'nullable|string|max:20',
-            'jabatan'  => 'nullable|string|max:255',
+            'jabatan' => 'nullable|string|max:255',
             'golongan' => 'nullable|string|max:50',
-            'role'     => 'required|string',
-            'bidang'   => 'nullable|string|max:255',
-            'status'   => 'required|in:aktif,nonaktif',
+            'role' => 'required|string',
+            'bidang' => 'nullable|string|max:255',
+            'status' => 'required|in:aktif,nonaktif',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         User::create([
-            'name'     => $validated['name'],
+            'name' => $validated['name'],
             'username' => $validated['username'] ?? null,
-            'email'    => $validated['email'] ?? null,
-            'nip'      => $validated['nip'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'nip' => $validated['nip'] ?? null,
             'whatsapp' => $validated['whatsapp'] ?? null,
-            'jabatan'  => $validated['jabatan'] ?? null,
+            'jabatan' => $validated['jabatan'] ?? null,
             'golongan' => $validated['golongan'] ?? null,
-            'role'     => $validated['role'],
-            'bidang'   => $validated['bidang'] ?? null,
-            'status'   => $validated['status'],
-            'password' => !empty($validated['password']) ? $validated['password'] : null,
+            'role' => $validated['role'],
+            'bidang' => $validated['bidang'] ?? null,
+            'status' => $validated['status'],
+            'password' => ! empty($validated['password']) ? $validated['password'] : null,
             'is_admin' => $validated['role'] === 'admin',
         ]);
 
@@ -120,7 +144,9 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         return view('admin.kelolaakun.create', [
-            'user' => $user, // ada data = mode EDIT
+            'user' => $user,
+            'bidangList' => $this->getDistinctUserValues('bidang'),
+            'jabatanList' => $this->getDistinctUserValues('jabatan'),
         ]);
     }
 
@@ -132,33 +158,33 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
-            'email'    => 'nullable|email|max:255|unique:users,email,' . $user->id,
-            'nip'      => 'nullable|string|max:50',
+            'name' => 'required|string|max:255',
+            'username' => 'nullable|string|max:255|unique:users,username,'.$user->id,
+            'email' => 'nullable|email|max:255|unique:users,email,'.$user->id,
+            'nip' => 'nullable|string|max:50',
             'whatsapp' => 'nullable|string|max:20',
-            'jabatan'  => 'nullable|string|max:255',
+            'jabatan' => 'nullable|string|max:255',
             'golongan' => 'nullable|string|max:50',
-            'role'     => 'required|string',
-            'bidang'   => 'nullable|string|max:255',
-            'status'   => 'required|in:aktif,nonaktif',
+            'role' => 'required|string',
+            'bidang' => 'nullable|string|max:255',
+            'status' => 'required|in:aktif,nonaktif',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        $user->name     = $validated['name'];
+        $user->name = $validated['name'];
         $user->username = $validated['username'] ?? null;
-        $user->email    = $validated['email'] ?? null;
-        $user->nip      = $validated['nip'] ?? null;
+        $user->email = $validated['email'] ?? null;
+        $user->nip = $validated['nip'] ?? null;
         $user->whatsapp = $validated['whatsapp'] ?? null;
-        $user->jabatan  = $validated['jabatan'] ?? null;
+        $user->jabatan = $validated['jabatan'] ?? null;
         $user->golongan = $validated['golongan'] ?? null;
-        $user->role     = $validated['role'];
-        $user->bidang   = $validated['bidang'] ?? null;
-        $user->status   = $validated['status'];
+        $user->role = $validated['role'];
+        $user->bidang = $validated['bidang'] ?? null;
+        $user->status = $validated['status'];
         $user->is_admin = $validated['role'] === 'admin';
 
         // Update password hanya kalau diisi
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = $validated['password'];
         }
 

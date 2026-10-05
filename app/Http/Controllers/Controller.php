@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+
 abstract class Controller
 {
     /**
@@ -9,7 +12,7 @@ abstract class Controller
      */
     protected function isUserAdmin(): bool
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         return $user && ($user->role === 'admin' || $user->is_admin === true);
     }
@@ -17,10 +20,10 @@ abstract class Controller
     /**
      * Apply user authorization to query (non-admin only see their own data)
      */
-    protected function authorizeUserQuery($query)
+    protected function authorizeUserQuery(Builder $query): Builder
     {
         if (! $this->isUserAdmin()) {
-            $query->where('user_id', auth()->id());
+            $query->where('user_id', Auth::id());
         }
 
         return $query;

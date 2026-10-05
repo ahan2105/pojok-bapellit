@@ -167,8 +167,27 @@
         z-index: 2147483646;
         width: 24rem;
         max-width: calc(100vw - 2rem);
+        transform-origin: bottom right;
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        transition: opacity 360ms ease-out, transform 420ms cubic-bezier(0.16, 1, 0.3, 1), visibility 420ms;
+        visibility: visible;
+        will-change: opacity, transform;
     }
-    #chatbot-bubble.chatbot-hidden { display: none !important; }
+    #chatbot-bubble.chatbot-hidden {
+        opacity: 0;
+        transform: translate3d(18px, 18px, 0) scale(0.12);
+        pointer-events: none;
+        visibility: hidden;
+    }
+    #chatbot-bubble.chatbot-closing {
+        opacity: 0;
+        transform: translate3d(18px, 18px, 0) scale(0.12);
+        pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #chatbot-bubble { transition: none; }
+    }
 
     #chatbot-container {
         display: flex;
@@ -368,11 +387,39 @@
 
         let menusLoaded  = false;
         let isFullscreen = false;
+        const CHAT_STORAGE_KEY = 'pojok_bapelit_chatbot_history';
+        const CHAT_HISTORY_TTL = 24 * 60 * 60 * 1000;
         const isMobile   = () => window.matchMedia('(max-width: 640px)').matches;
 
         function nowTime() {
             const d = new Date();
             return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+
+        function saveChatHistory() {
+            const history = [...messages.querySelectorAll('[data-chat-message]')].map((element) => ({
+                text: element.dataset.chatText || '',
+                isUser: element.dataset.chatUser === '1',
+                time: element.dataset.chatTime || nowTime(),
+            }));
+
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), history }));
+        }
+
+        function restoreChatHistory() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || 'null');
+                if (!saved || Date.now() - saved.savedAt > CHAT_HISTORY_TTL || !Array.isArray(saved.history)) {
+                    localStorage.removeItem(CHAT_STORAGE_KEY);
+                    return;
+                }
+
+                saved.history.forEach((message) => addMessage(message.text, message.isUser, message.time, false));
+                messages.scrollTop = messages.scrollHeight;
+            } catch (error) {
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+                console.warn('[Chatbot] Riwayat tidak dapat dipulihkan:', error);
+            }
         }
 
         // Hapus inline style — biar CSS class yang atur
@@ -385,7 +432,7 @@
         // BUKA / TUTUP / FULLSCREEN
         // ═══════════════════════════════════════════════════════
         window.openChatbot = function () {
-            bubble.classList.remove('chatbot-hidden');
+            bubble.classList.remove('chatbot-hidden', 'chatbot-closing');
             toggle.style.display = 'none';
             setTimeout(() => input && input.focus(), 150);
             if (!menusLoaded) {
@@ -396,7 +443,7 @@
         };
 
         window.closeChatbot = function () {
-            bubble.classList.add('chatbot-hidden');
+            bubble.classList.add('chatbot-closing');
             bubble.classList.remove('chatbot-fullscreen');
             clearInlineStyles();
             toggle.style.display = 'flex';
@@ -405,6 +452,10 @@
             iconMinimize.classList.add('hidden');
             fsBtn.title = 'Perbesar';
             document.body.style.overflow = '';
+            setTimeout(() => {
+                bubble.classList.remove('chatbot-closing');
+                bubble.classList.add('chatbot-hidden');
+            }, 220);
         };
 
         window.toggleChatbotFullscreen = function () {
@@ -571,9 +622,13 @@
         // ═══════════════════════════════════════════════════════
         // RENDER BUBBLE PESAN
         // ═══════════════════════════════════════════════════════
-        function addMessage(text, isUser) {
+        function addMessage(text, isUser, time = nowTime(), persist = true) {
             const row = document.createElement('div');
             row.className = isUser ? 'chatbot-row-user' : 'chatbot-row-bot';
+            row.dataset.chatMessage = '1';
+            row.dataset.chatText = text;
+            row.dataset.chatUser = isUser ? '1' : '0';
+            row.dataset.chatTime = time;
 
             const b = document.createElement('div');
             b.className = isUser ? 'chatbot-bubble-user' : 'chatbot-bubble-bot';
@@ -585,16 +640,19 @@
 
             const meta = document.createElement('div');
             meta.className = 'chatbot-meta';
-            meta.innerHTML = `<span>${nowTime()}</span>`;
+            meta.innerHTML = `<span>${time}</span>`;
             if (isUser) {
-                meta.innerHTML += `<svg class="chatbot-check" viewBox="0 0 16 15" fill="currentColor"><path d="M15.01 3.316l-.478-.372a.365.365 0 00-.51.063L8.666 9.879a.32.32 0 01-.484.033l-.358-.325a.319.319 0 00-.484.032l-.378.483a.418.418 0 00.036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 00-.063-.51zm-4.1 0l-.478-.372a.365.365 0 00-.51.063L4.566 9.879a.32.32 0 01-.484.033L1.891 7.769a.366.366 0 00-.515.006l-.423.433a.364.364 0 00.006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 00-.063-.51z"/></svg>`;
+                meta.innerHTML += `<svg class="chatbot-check" viewBox="0 0 16 15" fill="currentColor"><path d="M15.01 3.316l-.478-.372a.365.365 0 00-.51.063L8.666 9.879a.32.32 0 01-.484.033l-.358-.325a.319.319 0 00-.484.032l-.378.483a.418.418 0 00.036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 00-.063-.51zm-4.1 0l-.478-.372a.365.365 0 00-.51.063L4.566 9.879a.32.32 0 01-.484.033l-.423.433a.364.364 0 00.006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 00-.063-.51z"/></svg>`;
             }
             b.appendChild(meta);
 
             row.appendChild(b);
             messages.appendChild(row);
             messages.scrollTop = messages.scrollHeight;
+            if (persist) saveChatHistory();
         }
+
+        restoreChatHistory();
 
         function addTyping() {
             const row = document.createElement('div');
