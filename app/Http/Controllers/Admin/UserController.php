@@ -19,6 +19,8 @@ class UserController extends Controller
         $search = $request->input('search');
         $filterBidang = $request->input('bidang');
         $filterJabatan = $request->input('jabatan');
+        $filterRole = $request->input('role');
+        $filterStatus = $request->input('status');
 
         $users = User::when($search, function ($query, $search) {
             return $query->where(function ($q) use ($search) {
@@ -45,6 +47,8 @@ class UserController extends Controller
 
                 return $q->where('jabatan', $jabatan);
             })
+            ->when($filterRole, fn ($q, $role) => $q->where('role', $role))
+            ->when($filterStatus, fn ($q, $status) => $q->where('status', $status))
             ->orderBy('bidang')
             ->orderBy('name')
             ->paginate(25)
@@ -70,6 +74,8 @@ class UserController extends Controller
             'search',
             'filterBidang',      // ⭐ BARU
             'filterJabatan',     // ⭐ BARU
+            'filterRole',
+            'filterStatus',
             'jabatanList',
             'bidangList'         // ⭐ BARU
         ));

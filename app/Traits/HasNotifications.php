@@ -48,27 +48,27 @@ trait HasNotifications
         // Handle legacy: sendNotification($title, $message, $options)
         if ($message === null) {
             $message = $title;
-            $title   = $type;
-            $type    = 'info';
+            $title = $type;
+            $type = 'info';
         }
 
         // Handle legacy: sendNotification($title, $message, $optionsArray)
         if (is_array($message)) {
             $options = $message;
             $payload = [
-                'type'    => $options['type'] ?? 'info',
-                'title'   => $title,
+                'type' => $options['type'] ?? 'info',
+                'title' => $title,
                 'message' => $type,  // di legacy, $type sebenarnya berisi message
-                'data'    => $options['data'] ?? [],
-                'url'     => $options['url'] ?? null,
+                'data' => $options['data'] ?? [],
+                'url' => $options['url'] ?? null,
             ];
         } else {
             $payload = [
-                'type'    => $type,
-                'title'   => $title,
+                'type' => $type,
+                'title' => $title,
                 'message' => $message,
-                'data'    => $data,
-                'url'     => $url,
+                'data' => $data,
+                'url' => $url,
             ];
         }
 
@@ -168,6 +168,7 @@ trait HasNotifications
                 $count++;
             }
         }
+
         return $count;
     }
 }

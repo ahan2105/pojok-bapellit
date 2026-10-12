@@ -32,7 +32,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Scan Absensi</h1>
-            <p class="text-sm sm:text-base text-gray-500">Arahkan kamera ke QR Code yang ditampilkan admin</p>
+            <p class="text-sm sm:text-base text-gray-500">Arahkan kamera ke QR Code</p>
         </div>
 
         <!-- Scanner Area -->

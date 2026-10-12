@@ -127,32 +127,54 @@
                 </p>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 flex-shrink-0">
-                <div>
-                    <label class="block text-xs font-semibold text-emerald-700 mb-1.5">Dari Tanggal</label>
-                    <input type="date"
-                           id="tanggal-dari"
-                           value="{{ request('tanggal_dari', now()->startOfMonth()->format('Y-m-d')) }}"
-                           class="px-3 py-2.5 border border-emerald-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+            <div class="flex flex-col gap-3 flex-shrink-0">
+                <div class="flex flex-wrap items-end gap-2">
+                    <div>
+                        <label for="tanggal-dari" class="block text-xs font-semibold text-emerald-700 mb-1.5">Dari Tanggal</label>
+                        <input type="date"
+                               id="tanggal-dari"
+                               value="{{ request('tanggal_dari', now()->startOfMonth()->format('Y-m-d')) }}"
+                               class="px-3 py-2.5 border border-emerald-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label for="tanggal-ke" class="block text-xs font-semibold text-emerald-700 mb-1.5">Ke Tanggal</label>
+                        <input type="date"
+                               id="tanggal-ke"
+                               value="{{ request('tanggal_ke', now()->format('Y-m-d')) }}"
+                               class="px-3 py-2.5 border border-emerald-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                    </div>
+
+                    <button type="button"
+                            id="btn-apply-date-range"
+                            onclick="applyDateRange()"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        Terapkan
+                    </button>
+
+                    <button type="button"
+                            onclick="resetDateRange()"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-emerald-700 text-sm font-semibold rounded-lg border border-emerald-200 hover:bg-emerald-50 transition whitespace-nowrap">
+                        Reset
+                    </button>
+
+                    <button type="button"
+                       id="btn-export-rekap"
+                       onclick="exportRekap(event)"
+                       class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Export Rekap
+                    </button>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-emerald-700 mb-1.5">Ke Tanggal</label>
-                    <input type="date"
-                           id="tanggal-ke"
-                           value="{{ request('tanggal_ke', now()->format('Y-m-d')) }}"
-                           class="px-3 py-2.5 border border-emerald-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="font-semibold text-emerald-700">Rentang cepat:</span>
+                    <button type="button" onclick="setDatePreset('today')" class="date-preset px-2.5 py-1 rounded-full border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition">Hari ini</button>
+                    <button type="button" onclick="setDatePreset('week')" class="date-preset px-2.5 py-1 rounded-full border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition">7 hari terakhir</button>
+                    <button type="button" onclick="setDatePreset('month')" class="date-preset px-2.5 py-1 rounded-full border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition">Bulan ini</button>
+                    <button type="button" onclick="setDatePreset('year')" class="date-preset px-2.5 py-1 rounded-full border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100 transition">Tahun ini</button>
                 </div>
-
-                <button type="button"
-                   id="btn-export-rekap"
-                   onclick="exportRekap(event)"
-                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition shadow-sm whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Export Rekap
-                </button>
             </div>
         </div>
 
@@ -167,6 +189,7 @@
         </div>
     </div>
 
+    <div id="rekap-preview-area">
     @if(isset($sesiRekap) && $sesiRekap->count() > 0)
         @php
             $totalHadirPreview  = $sesiRekap->sum(fn($s) => $s->details->where('status_kehadiran', 'hadir')->count());
@@ -186,158 +209,47 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-emerald-900">
-                                Preview Sesi yang Akan Di-rekap
-                            </h3>
-                            <p class="text-xs text-emerald-700">
-                                <span id="sesi-count">{{ $sesiRekap->count() }}</span> sesi ditemukan dalam rentang ini
-                            </p>
+                            <h3 class="text-sm font-bold text-emerald-900">Preview Sesi yang Akan Di-rekap</h3>
+                            <p class="text-xs text-emerald-700"><span id="sesi-count">{{ $sesiRekap->count() }}</span> sesi ditemukan dalam rentang ini</p>
                         </div>
                     </div>
-
-                    <!-- Tombol Hapus Sesi Terpilih dari Preview -->
-                    <button type="button"
-                            id="btn-remove-from-preview"
-                            onclick="removeSelectedFromPreview()"
-                            class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition shadow-sm">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
+                    <button type="button" id="btn-remove-from-preview" onclick="removeSelectedFromPreview()" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-orange-600 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition shadow-sm">
                         Hapus Terpilih dari Export (<span id="preview-selected-count">0</span>)
                     </button>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
-                <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-green-600" id="preview-total-hadir">{{ $totalHadirPreview }}</div>
-                    <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Hadir</div>
-                </div>
-                <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-red-600" id="preview-total-tidak">{{ $totalTidakPreview }}</div>
-                    <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Tidak Hadir</div>
-                </div>
-                <div class="p-4 text-center">
-                    <div class="text-2xl font-extrabold text-amber-600" id="preview-total-belum">{{ $totalBelumPreview }}</div>
-                    <div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Belum Absen</div>
-                </div>
+                <div class="p-4 text-center"><div class="text-2xl font-extrabold text-green-600" id="preview-total-hadir">{{ $totalHadirPreview }}</div><div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Hadir</div></div>
+                <div class="p-4 text-center"><div class="text-2xl font-extrabold text-red-600" id="preview-total-tidak">{{ $totalTidakPreview }}</div><div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Tidak Hadir</div></div>
+                <div class="p-4 text-center"><div class="text-2xl font-extrabold text-amber-600" id="preview-total-belum">{{ $totalBelumPreview }}</div><div class="text-xs text-gray-500 font-semibold uppercase tracking-wide mt-1">Total Belum Absen</div></div>
             </div>
 
             <div class="divide-y divide-gray-100 max-h-96 overflow-y-auto" id="preview-list">
                 @foreach($sesiRekap as $sr)
                     @php
-                        $hadir  = $sr->details->where('status_kehadiran', 'hadir')->count();
-                        $tidak  = $sr->details->where('status_kehadiran', 'tidak')->count();
-                        $total  = $sr->details->count();
-                        $belum  = max(0, $total - $hadir - $tidak);
+                        $hadir = $sr->details->where('status_kehadiran', 'hadir')->count();
+                        $tidak = $sr->details->where('status_kehadiran', 'tidak')->count();
+                        $total = $sr->details->count();
+                        $belum = max(0, $total - $hadir - $tidak);
                     @endphp
                     <div class="px-5 py-3.5 hover:bg-emerald-50/30 transition preview-item" data-id="{{ $sr->id }}" data-hadir="{{ $hadir }}" data-tidak="{{ $tidak }}" data-belum="{{ $belum }}">
                         <div class="flex items-center justify-between gap-4 flex-wrap">
-                            
-                            <!-- Checkbox untuk pilih sesi yang mau dihapus dari export -->
-                            <div class="flex-shrink-0">
-                                <input type="checkbox" 
-                                       class="preview-checkbox w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer" 
-                                       value="{{ $sr->id }}"
-                                       onchange="updatePreviewSelectedCount()">
-                            </div>
-
+                            <div class="flex-shrink-0"><input type="checkbox" class="preview-checkbox w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer" value="{{ $sr->id }}" onchange="updatePreviewSelectedCount()"></div>
                             <div class="flex items-center gap-3 min-w-0 flex-1">
-                                <div class="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white shadow-sm">
-                                    <span class="text-[10px] font-bold uppercase leading-none opacity-90">
-                                        {{ $sr->tanggal->translatedFormat('M') }}
-                                    </span>
-                                    <span class="text-xl font-extrabold leading-tight">
-                                        {{ $sr->tanggal->format('d') }}
-                                    </span>
-                                    <span class="text-[9px] font-semibold leading-none opacity-80">
-                                        {{ $sr->tanggal->format('Y') }}
-                                    </span>
-                                </div>
-
-                                <div class="min-w-0 flex-1">
-                                    <h4 class="text-sm font-bold text-gray-900 truncate">
-                                        {{ $sr->nama_sesi }}
-                                    </h4>
-                                    <div class="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                                        <span class="flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            {{ $sr->tanggal->translatedFormat('l') }}
-                                        </span>
-                                        @if($sr->lokasi)
-                                            <span class="flex items-center gap-1 truncate">
-                                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                </svg>
-                                                <span class="truncate">{{ $sr->lokasi }}</span>
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
+                                <div class="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white shadow-sm"><span class="text-[10px] font-bold uppercase leading-none opacity-90">{{ $sr->tanggal->translatedFormat('M') }}</span><span class="text-xl font-extrabold leading-tight">{{ $sr->tanggal->format('d') }}</span><span class="text-[9px] font-semibold leading-none opacity-80">{{ $sr->tanggal->format('Y') }}</span></div>
+                                <div class="min-w-0 flex-1"><h4 class="text-sm font-bold text-gray-900 truncate">{{ $sr->nama_sesi }}</h4><div class="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap"><span class="flex items-center gap-1">📅 {{ $sr->tanggal->translatedFormat('l') }}</span>@if($sr->lokasi)<span class="flex items-center gap-1 truncate">📍 <span class="truncate">{{ $sr->lokasi }}</span></span>@endif</div></div>
                             </div>
-
-                            <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                                <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                    <span class="text-xs font-bold text-green-700">{{ $hadir }} Hadir</span>
-                                </div>
-                                <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg">
-                                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                    <span class="text-xs font-bold text-red-700">{{ $tidak }} Tidak</span>
-                                </div>
-                                <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
-                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                    <span class="text-xs font-bold text-amber-700">{{ $belum }} Belum</span>
-                                </div>
-
-                                <a href="{{ route('admin.absensi.show', $sr->id) }}"
-                                   class="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
-                                   title="Buka Sesi">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                </a>
-                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0 flex-wrap"><div class="px-2.5 py-1.5 bg-green-50 border border-green-200 rounded-lg"><span class="text-xs font-bold text-green-700">{{ $hadir }} Hadir</span></div><div class="px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg"><span class="text-xs font-bold text-red-700">{{ $tidak }} Tidak</span></div><div class="px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg"><span class="text-xs font-bold text-amber-700">{{ $belum }} Belum</span></div><a href="{{ route('admin.absensi.show', $sr->id) }}" class="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition" title="Buka Sesi">›</a></div>
                         </div>
                     </div>
                 @endforeach
             </div>
         </div>
     @elseif(request()->filled('tanggal_dari') && request()->filled('tanggal_ke'))
-        <div class="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            <div class="text-sm text-amber-700">
-                <p class="font-bold mb-0.5">Tidak ada sesi dalam rentang ini</p>
-                <p>Tidak ditemukan sesi absensi antara
-                   <strong>{{ \Carbon\Carbon::parse(request('tanggal_dari'))->translatedFormat('d F Y') }}</strong> —
-                   <strong>{{ \Carbon\Carbon::parse(request('tanggal_ke'))->translatedFormat('d F Y') }}</strong>.
-                   Coba ubah rentang tanggal.
-                </p>
-            </div>
-        </div>
+        <div class="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3"><div class="text-sm text-amber-700"><p class="font-bold mb-0.5">Tidak ada sesi dalam rentang ini</p><p>Tidak ditemukan sesi absensi pada rentang tanggal yang dipilih. Coba ubah rentang tanggal.</p></div></div>
     @endif
-
-    @if(session('success'))
-        <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-base text-green-700 flex items-center gap-3">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-base text-red-700 flex items-center gap-3">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
+    </div>
 
     <div class="mb-4 flex items-center justify-between">
         <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -751,27 +663,108 @@
             }
         }
 
-        function applyDateRange() {
+        async function applyDateRange() {
             const dari = dariInput.value;
             const ke = keInput.value;
-            if (!dari || !ke) return;
-            if (new Date(dari) > new Date(ke)) return;
+            const previewArea = document.getElementById('rekap-preview-area');
+            const applyButton = document.getElementById('btn-apply-date-range');
+
+            if (!dari || !ke) {
+                Swal.fire({ icon: 'warning', title: 'Tanggal belum lengkap', text: 'Pilih tanggal mulai dan tanggal akhir.', confirmButtonColor: '#10b981' });
+                return;
+            }
+            if (dari > ke) {
+                Swal.fire({ icon: 'error', title: 'Rentang tanggal tidak valid', text: 'Tanggal mulai tidak boleh lebih besar dari tanggal akhir.', confirmButtonColor: '#10b981' });
+                return;
+            }
 
             const url = new URL(window.location.href);
             url.searchParams.set('tanggal_dari', dari);
             url.searchParams.set('tanggal_ke', ke);
+            url.searchParams.delete('page');
+
+            if (applyButton) {
+                applyButton.disabled = true;
+                applyButton.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span> Memuat...';
+            }
+            if (previewArea) {
+                previewArea.classList.add('opacity-50', 'transition', 'duration-300');
+            }
+
+            try {
+                const response = await fetch(url.toString(), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+                });
+                if (!response.ok) throw new Error('Gagal memuat data rekap.');
+
+                const html = await response.text();
+                const documentParser = new DOMParser();
+                const nextDocument = documentParser.parseFromString(html, 'text/html');
+                const nextPreview = nextDocument.getElementById('rekap-preview-area');
+
+                if (!nextPreview || !previewArea) throw new Error('Preview rekap tidak ditemukan.');
+
+                previewArea.replaceWith(nextPreview);
+                history.pushState({}, '', url.toString());
+                document.getElementById('periode-label').textContent = `${formatIndonesianDate(dari)} — ${formatIndonesianDate(ke)}`;
+                nextPreview.classList.add('animate-pulse');
+                setTimeout(() => nextPreview.classList.remove('animate-pulse'), 700);
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Gagal memuat rekap', text: error.message, confirmButtonColor: '#10b981' });
+            } finally {
+                if (applyButton) {
+                    applyButton.disabled = false;
+                    applyButton.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Terapkan';
+                }
+                const currentPreview = document.getElementById('rekap-preview-area');
+                if (currentPreview) currentPreview.classList.remove('opacity-50');
+            }
+        }
+
+        function formatIndonesianDate(value) {
+            return new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function setDatePreset(preset) {
+            const today = new Date();
+            const formatDate = date => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            const end = new Date(today);
+            const start = new Date(today);
+            if (preset === 'week') start.setDate(today.getDate() - 6);
+            if (preset === 'month') start.setDate(1);
+            if (preset === 'year') {
+                start.setMonth(0, 1);
+            }
+
+            dariInput.value = formatDate(start);
+            keInput.value = formatDate(end);
+            updateLabel();
+        }
+
+        function resetDateRange() {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('tanggal_dari');
+            url.searchParams.delete('tanggal_ke');
+            url.searchParams.delete('page');
             window.location.href = url.toString();
         }
 
-        dariInput.addEventListener('change', function() {
-            updateLabel();
-            applyDateRange();
-        });
+        window.applyDateRange = applyDateRange;
+        window.setDatePreset = setDatePreset;
+        window.resetDateRange = resetDateRange;
 
-        keInput.addEventListener('change', function() {
-            updateLabel();
-            applyDateRange();
-        });
+        dariInput.addEventListener('change', updateLabel);
+        keInput.addEventListener('change', updateLabel);
     });
 
     function exportRekap(event) {

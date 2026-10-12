@@ -17,13 +17,13 @@ class Aula extends Model
         'lokasi',
         'foto',
         'fasilitas',
-        'status_aktif'
+        'status_aktif',
     ];
 
     protected $casts = [
         'foto' => 'array',
         'fasilitas' => 'array',
-        'status_aktif' => 'boolean'
+        'status_aktif' => 'boolean',
     ];
 
     /**
@@ -31,12 +31,12 @@ class Aula extends Model
      */
     public function getFotoUrlsAttribute()
     {
-        if (!$this->foto) {
+        if (! $this->foto) {
             return [];
         }
-        
-        return array_map(function($path) {
-            return asset('storage/' . $path);
+
+        return array_map(function ($path) {
+            return asset('storage/'.$path);
         }, $this->foto);
     }
 

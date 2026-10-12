@@ -50,13 +50,14 @@ class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, With
         // BARIS 3: Kosong
         $this->data[] = ['', '', '', '', '', '', '', ''];
 
-        // BARIS 4: HARI
+        // BARIS 4: HARI, nilai ditempatkan di C4 agar dekat dengan label
+        Carbon::setLocale('id');
         $hari = Carbon::parse($sesi->tanggal)->translatedFormat('l');
-        $this->data[] = ['HARI', '', ':', $hari, '', '', '', ''];
+        $this->data[] = ['HARI', '', $hari, '', '', '', '', ''];
 
-        // BARIS 5: TANGGAL
+        // BARIS 5: TANGGAL, nilai ditempatkan di C5 agar dekat dengan label
         $tanggal = Carbon::parse($sesi->tanggal)->translatedFormat('d F Y');
-        $this->data[] = ['TANGGAL', '', ':', $tanggal, '', '', '', ''];
+        $this->data[] = ['TANGGAL', '', $tanggal, '', '', '', '', ''];
 
         // BARIS 6-7: Kosong
         $this->data[] = ['', '', '', '', '', '', '', ''];
@@ -208,14 +209,14 @@ class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, With
     public function columnWidths(): array
     {
         return [
-            'A' => 5,
-            'B' => 5,
-            'C' => 35,
-            'D' => 8,
-            'E' => 25,
-            'F' => 30,
-            'G' => 20,
-            'H' => 25,
+            'A' => 6,
+            'B' => 6,
+            'C' => 38,
+            'D' => 10,
+            'E' => 30,
+            'F' => 42,
+            'G' => 22,
+            'H' => 30,
         ];
     }
 
@@ -223,15 +224,15 @@ class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, With
     {
         return [
             1 => [
-                'font' => ['bold' => true, 'size' => 14],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 16],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
             2 => [
-                'font' => ['bold' => true, 'size' => 12],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
             8 => [
-                'font' => ['bold' => true, 'size' => 10],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => [
                     'horizontal' => Alignment::HORIZONTAL_CENTER,
                     'vertical' => Alignment::VERTICAL_CENTER,
@@ -254,20 +255,52 @@ class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, With
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = $sheet->getHighestRow();
 
+                $sheet->getStyle("A1:H{$highestRow}")->getFont()
+                    ->setName('Arial')
+                    ->setSize(12);
+                $sheet->getStyle('A1')->getFont()
+                    ->setName('Arial')
+                    ->setBold(true)
+                    ->setSize(16);
+                $sheet->getStyle('A2')->getFont()
+                    ->setName('Arial')
+                    ->setBold(true)
+                    ->setSize(16);
+
+                $sheet->getStyle("A1:H{$highestRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                    ->setVertical(Alignment::VERTICAL_TOP)
+                    ->setWrapText(true)
+                    ->setShrinkToFit(false);
+                $sheet->getStyle('A1:H2')->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A4:C5')->getFont()
+                    ->setName('Arial')
+                    ->setBold(true)
+                    ->setSize(12);
+                $sheet->getStyle('A4:C5')->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A8:H8')->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setWrapText(true);
+
                 // Merge Header
                 $sheet->mergeCells('A1:H1');
                 $sheet->mergeCells('A2:H2');
                 $sheet->mergeCells('A4:B4');
-                $sheet->mergeCells('D4:H4');
+                $sheet->mergeCells('C4:H4');
                 $sheet->mergeCells('A5:B5');
-                $sheet->mergeCells('D5:H5');
+                $sheet->mergeCells('C5:H5');
 
                 // Row Heights
                 $sheet->getRowDimension(1)->setRowHeight(24);
-                $sheet->getRowDimension(2)->setRowHeight(22);
+                $sheet->getRowDimension(2)->setRowHeight(28);
                 $sheet->getRowDimension(4)->setRowHeight(20);
                 $sheet->getRowDimension(5)->setRowHeight(20);
-                $sheet->getRowDimension(8)->setRowHeight(25);
+                $sheet->getRowDimension(8)->setRowHeight(36);
 
                 // Style Group Headers
                 foreach ($this->groupHeaderRows as $rowIndex) {
@@ -295,15 +328,24 @@ class AbsensiSesiExport implements FromArray, WithColumnWidths, WithEvents, With
                         'borders' => [
                             'allBorders' => ['borderStyle' => Border::BORDER_THIN],
                         ],
-                        'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+                        'alignment' => [
+                            'horizontal' => Alignment::HORIZONTAL_LEFT,
+                            'vertical' => Alignment::VERTICAL_CENTER,
+                            'wrapText' => true,
+                            'indent' => 1,
+                        ],
                     ]);
 
-                    $sheet->getStyle("A{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("B{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("D{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                    $sheet->getStyle("G{$rowIndex}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                    $sheet->getRowDimension($rowIndex)->setRowHeight(25);
+                    $nameLength = mb_strlen((string) $sheet->getCell("C{$rowIndex}")->getValue());
+                    $positionLength = mb_strlen((string) $sheet->getCell("F{$rowIndex}")->getValue());
+                    $notesLength = mb_strlen((string) $sheet->getCell("H{$rowIndex}")->getValue());
+                    $estimatedLines = max(
+                        1,
+                        (int) ceil($nameLength / 38),
+                        (int) ceil($positionLength / 42),
+                        (int) ceil($notesLength / 30)
+                    );
+                    $sheet->getRowDimension($rowIndex)->setRowHeight(max(25, min(90, $estimatedLines * 15)));
 
                     // Warna conditional berdasarkan data DB asli
                     $statusValue = $sheet->getCell("G{$rowIndex}")->getValue();

@@ -14,3 +14,10 @@ Schedule::command('app:cleanup-old-notifications')
     ->at('02:00')
     ->withoutOverlapping()
     ->name('cleanup-old-notifications');
+
+// Check vehicle tax expiration daily at 8 AM
+Schedule::command('app:check-vehicle-tax-expiration')
+    ->daily()
+    ->at('08:00')
+    ->withoutOverlapping()
+    ->name('check-vehicle-tax-expiration');

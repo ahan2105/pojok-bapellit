@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminSuratController;
 use App\Http\Controllers\Admin\AulaController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\KendaraanController;
 use App\Http\Controllers\Admin\NotificationStreamController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
@@ -103,8 +104,6 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         ->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
         ->name('notifications.read');
-    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
-        ->name('notifications.destroy');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
         ->name('notifications.read-all');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
@@ -125,6 +124,11 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
         ]);
     })->name('notifications.cleanup-old');
 
+    // ===== PAJAK KENDARAAN (READ-ONLY untuk user) =====
+    Route::get('/kendaraan', [KendaraanController::class, 'index'])->name('kendaraan.index');
+    Route::get('/kendaraan/{id}', [KendaraanController::class, 'show'])->name('kendaraan.show');
+    Route::post('/kendaraan/dismiss-alert', [KendaraanController::class, 'dismissAlert'])->name('kendaraan.dismiss-alert');
+
     // ===== CHATBOT AI (USER & ADMIN) =====
     Route::get('/chatbot/menus', [ChatbotController::class, 'menus'])
         ->name('chatbot.menus');
@@ -134,6 +138,8 @@ Route::middleware(['auth', 'cek.status'])->group(function () {
     Route::post('/chatbot', [ChatbotController::class, 'chat'])
         ->middleware('throttle:30,1')
         ->name('chatbot.chat');
+    Route::post('/chatbot/clear-history', [ChatbotController::class, 'clearHistory'])
+        ->name('chatbot.clear-history');
 });
 
 // ==========================================================
@@ -152,7 +158,6 @@ Route::middleware(['auth', 'cek.status', 'admin'])
         Route::get('/pengaturan', [SettingsController::class, 'index'])
             ->name('settings.index');
 
-        // ⭐ BARU: halaman suara
         Route::get('/pengaturan/suara', [SettingsController::class, 'sound'])
             ->name('settings.sound');
 
@@ -174,10 +179,22 @@ Route::middleware(['auth', 'cek.status', 'admin'])
             ->name('settings.sound.reset');
 
         // Sesi & Perangkat
+        Route::delete('/pengaturan/sesi/semua', [SettingsController::class, 'destroyAllSessions'])->name('settings.sessions.destroy-all');
+        Route::delete('/pengaturan/sesi-aktif/semua', [SettingsController::class, 'destroyAllActiveSessions'])->name('settings.sessions.destroy-all-active');
         Route::delete('/pengaturan/sesi/{history}', [SettingsController::class, 'destroySession'])->name('settings.sessions.destroy');
         Route::delete('/pengaturan/sesi-aktif/{id}', [SettingsController::class, 'destroyActiveSession'])->name('settings.sessions.destroy-active');
         Route::post('/pengaturan/sesi/ban', [SettingsController::class, 'banSession'])->name('settings.sessions.ban');
         Route::delete('/pengaturan/sesi-ban/{banned}', [SettingsController::class, 'unbanSession'])->name('settings.sessions.unban');
+
+        // ===== PAJAK KENDARAAN (ADMIN) =====
+        Route::get('/kendaraan', [KendaraanController::class, 'index'])->name('kendaraan.index');
+        Route::get('/kendaraan/create', [KendaraanController::class, 'create'])->name('kendaraan.create');
+        Route::post('/kendaraan', [KendaraanController::class, 'store'])->name('kendaraan.store');
+        Route::post('/kendaraan/pajak/{pajakId}/tandai-bayar', [KendaraanController::class, 'tandaiBayar'])->name('kendaraan.tandai-bayar');
+        Route::get('/kendaraan/{id}/edit', [KendaraanController::class, 'edit'])->name('kendaraan.edit');
+        Route::get('/kendaraan/{id}', [KendaraanController::class, 'show'])->name('kendaraan.show');
+        Route::put('/kendaraan/{id}', [KendaraanController::class, 'update'])->name('kendaraan.update');
+        Route::delete('/kendaraan/{id}', [KendaraanController::class, 'destroy'])->name('kendaraan.destroy');
 
         // ===== KELOLA AULA =====
         Route::post('/aula/{id}/toggle-status', [AulaController::class, 'toggleStatus'])->name('aula.toggle-status');

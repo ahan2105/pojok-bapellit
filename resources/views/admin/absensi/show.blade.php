@@ -127,8 +127,9 @@
     </div>
 
     <!-- Tabel Absensi -->
-    <form id="form-absensi" action="{{ route('admin.absensi.update-kehadiran', $sesi->id) }}" method="POST">
+    <form id="form-absensi" action="{{ route('admin.absensi.update-kehadiran', $sesi->id) }}" method="POST" onsubmit="rememberAbsensiScroll()">
         @csrf
+        <div id="autosave-status" class="hidden px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-200"></div>
         
         <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
@@ -324,6 +325,119 @@
     @endif
 </div>
 
+<style>
+    /* Responsif khusus HP; tampilan desktop tetap menggunakan class yang ada. */
+    @media (max-width: 767px) {
+        #form-absensi {
+            display: block;
+            width: 100%;
+            max-width: 100vw;
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+            overflow: hidden;
+        }
+
+        #form-absensi > .bg-white {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        #form-absensi .overflow-x-auto {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: scroll !important;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+            overscroll-behavior-x: contain;
+            scrollbar-width: auto;
+            scrollbar-color: #64748b #e2e8f0;
+        }
+
+        #form-absensi table {
+            display: table;
+            width: 920px !important;
+            min-width: 920px !important;
+            max-width: none !important;
+            table-layout: fixed;
+        }
+
+        #form-absensi th,
+        #form-absensi td {
+            padding: 0.75rem 0.875rem;
+            white-space: normal;
+        }
+
+        #form-absensi th:nth-child(1),
+        #form-absensi td:nth-child(1) {
+            width: 44px;
+        }
+
+        #form-absensi th:nth-child(2) {
+            min-width: 150px;
+        }
+
+        #form-absensi th:nth-child(3) {
+            min-width: 130px;
+        }
+
+        #form-absensi th:nth-child(4) {
+            min-width: 260px;
+        }
+
+        #form-absensi th:nth-child(5),
+        #form-absensi td:nth-child(5) {
+            min-width: 120px;
+        }
+
+        #form-absensi td:nth-child(4) .flex.items-center.gap-6 {
+            gap: 1rem;
+        }
+
+        #form-absensi td:nth-child(4) input[type="text"] {
+            max-width: 100%;
+        }
+
+        #form-absensi td:nth-child(5) input[type="time"] {
+            width: 7rem;
+        }
+
+        /* Toolbar judul dan tombol utama */
+        .max-w-screen-2xl > .mb-6.flex {
+            gap: 1rem;
+        }
+
+        .max-w-screen-2xl > .mb-6.flex > .flex.items-center.gap-2 {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .max-w-screen-2xl > .mb-6.flex > .flex.items-center.gap-2 > * {
+            flex: 1 1 auto;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .max-w-screen-2xl > .mb-6.flex > .flex.items-center.gap-2 > a:first-of-type {
+            flex: 1 1 100%;
+        }
+
+        /* Toolbar status bulk agar tidak terlalu padat */
+        #form-absensi th:nth-child(4) > div {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        #form-absensi th:nth-child(4) > div > div {
+            gap: 1rem;
+        }
+    }
+</style>
+
 {{-- ⭐ Include Modal QR — hanya kalau sesi belum dikunci --}}
 @if(!$sesi->is_locked)
     @include('admin.absensi.partials.qr-modal')
@@ -332,37 +446,91 @@
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    let autosaveTimer = null;
+    let autosaveRequest = null;
+
+    function setAutosaveStatus(message, isError = false) {
+        const status = document.getElementById('autosave-status');
+        if (!status) return;
+        status.textContent = message;
+        status.className = `px-4 py-2 text-xs font-semibold border-b ${isError ? 'text-red-600 bg-red-50 border-red-200' : 'text-gray-500 bg-gray-50 border-gray-200'}`;
+        status.classList.remove('hidden');
+    }
+
+    function autosaveAbsensi() {
+        const form = document.getElementById('form-absensi');
+        if (!form) return;
+
+        if (autosaveRequest) {
+            autosaveRequest.abort();
+        }
+
+        setAutosaveStatus('Menyimpan perubahan...');
+        autosaveRequest = new AbortController();
+
+        autosaveRequest.promise = fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+            signal: autosaveRequest.signal,
+        }).then(response => {
+            if (!response.ok) throw new Error('Gagal menyimpan');
+            setAutosaveStatus('Perubahan tersimpan otomatis.');
+            setTimeout(() => document.getElementById('autosave-status')?.classList.add('hidden'), 1800);
+        }).catch(error => {
+            if (error.name !== 'AbortError') {
+                setAutosaveStatus('Perubahan belum tersimpan. Gunakan tombol Simpan Absen.', true);
+            }
+        });
+    }
+
+    function scheduleAutosave() {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(autosaveAbsensi, 350);
+    }
+
     // ===== Toggle keterangan & JAM OTOMATIS =====
     function toggleKeterangan(userId) {
         const radios = document.querySelectorAll(`input[name="kehadiran[${userId}]"]`);
         const keterangan = document.getElementById(`keterangan-${userId}`);
         const waktuInput = document.getElementById(`waktu-${userId}`);
-        
+
         let selected = null;
-        radios.forEach(r => { if (r.checked) selected = r.value; });
+        radios.forEach(radio => {
+            if (radio.checked) {
+                selected = radio.value;
+            }
+        });
 
         if (selected === 'tidak') {
-            // Jika Tidak Hadir: Aktifkan keterangan, kosongkan jam
             keterangan.disabled = false;
-            keterangan.focus();
-            if(waktuInput) waktuInput.value = '';
-        } else if (selected === 'hadir') {
-            // Jika Hadir: Nonaktifkan keterangan, isi jam sekarang
-            keterangan.disabled = true;
-            keterangan.value = '';
-            
-            if(waktuInput && !waktuInput.value) {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                waktuInput.value = `${hours}:${minutes}`;
+            if (waktuInput) {
+                waktuInput.value = '';
             }
-        } else {
-            // Jika belum dipilih: Kosongkan semua
+            scheduleAutosave();
+            return;
+        }
+
+        if (selected === 'hadir') {
             keterangan.disabled = true;
             keterangan.value = '';
-            if(waktuInput) waktuInput.value = '';
+
+            if (waktuInput && !waktuInput.value) {
+                const now = new Date();
+                waktuInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            }
+            scheduleAutosave();
+            return;
         }
+
+        if (waktuInput) {
+            waktuInput.value = '';
+        }
+
+        scheduleAutosave();
     }
 
     // ===== Bulk: Hadirkan semua =====
@@ -404,6 +572,8 @@
                     }
                     if (radioTidak) radioTidak.checked = false;
                 });
+
+                scheduleAutosave();
 
                 Swal.fire({
                     title: 'Berhasil!',
@@ -452,9 +622,11 @@
                     if (radioHadir) radioHadir.checked = false;
                 });
 
+                scheduleAutosave();
+
                 Swal.fire({
                     title: 'Berhasil!',
-                    text: 'Semua peserta ditandai Tidak Hadir. Isi keterangan lalu klik "Simpan Absen".',
+                    text: 'Semua peserta ditandai Tidak Hadir dan disimpan otomatis.',
                     icon: 'success',
                     timer: 2500,
                     showConfirmButton: false
@@ -488,8 +660,38 @@
         });
     }
 
-    // Reset radio bulk
+    // Cegah browser melakukan restorasi scroll kedua yang menyebabkan halaman sempat meloncat.
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    // Pertahankan posisi scroll setelah simpan absensi.
+    function rememberAbsensiScroll() {
+        sessionStorage.setItem('absensi-scroll-position', String(window.scrollY));
+    }
+
+    function restoreAbsensiScroll() {
+        const savedScrollPosition = sessionStorage.getItem('absensi-scroll-position');
+
+        if (savedScrollPosition === null) {
+            return;
+        }
+
+        const restore = () => {
+            window.scrollTo(0, Number(savedScrollPosition));
+        };
+
+        restore();
+        window.requestAnimationFrame(restore);
+        setTimeout(restore, 50);
+        sessionStorage.removeItem('absensi-scroll-position');
+    }
+
+    restoreAbsensiScroll();
+
     document.addEventListener('DOMContentLoaded', function() {
+        restoreAbsensiScroll();
+
         const bulkHadir = document.getElementById('bulk-hadir');
         const bulkTidak = document.getElementById('bulk-tidak');
         

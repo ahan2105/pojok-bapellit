@@ -11,12 +11,12 @@ return new class extends Migration
         // ===== TABEL 1: SURATS =====
         Schema::create('surats', function (Blueprint $table) {
             $table->id();
-            
+
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            
+
             // Nomor surat (auto-assign saat user submit)
             $table->string('no_surat')->unique();
-            
+
             // === KOLOM SESUAI BUKU AGENDA ===
             $table->date('tanggal')->nullable();              // Tanggal
             $table->string('no_indek')->nullable();           // No / Indek
@@ -25,12 +25,12 @@ return new class extends Migration
             $table->integer('banyak_lampiran')->default(0);   // Banyak Lampiran
             $table->string('sifat_surat')->nullable();        // Sifat Surat
             $table->text('keterangan')->nullable();           // Keterangan
-            
+
             // === KOLOM TAMBAHAN (untuk form user) ===
             $table->string('jenis_surat')->nullable();        // Jenis Surat (Surat Tugas, dll)
             $table->string('asal_surat')->nullable();         // Asal/Pengirim
             $table->string('file_surat');                     // File Lampiran (WAJIB)
-            
+
             $table->timestamps();
         });
 

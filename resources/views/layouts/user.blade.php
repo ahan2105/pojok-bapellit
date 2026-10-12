@@ -7,6 +7,8 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'User - Pojok Bapelit')</title>
+    <link rel="icon" type="image/png" href="{{ asset('image/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('image/logo.png') }}">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -30,6 +32,7 @@
     {{-- Konten Utama --}}
     <main class="flex-1 py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <x-tax-alert-banner />
             @yield('content')
         </div>
     </main>

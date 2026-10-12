@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // Tambah is_admin jika belum ada
-            if (!Schema::hasColumn('users', 'is_admin')) {
+            if (! Schema::hasColumn('users', 'is_admin')) {
                 $table->boolean('is_admin')->default(false);
             }
 
             // Tambah status jika belum ada
-            if (!Schema::hasColumn('users', 'status')) {
+            if (! Schema::hasColumn('users', 'status')) {
                 $table->string('status')->default('aktif');
             }
         });

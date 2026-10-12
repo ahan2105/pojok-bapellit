@@ -24,23 +24,23 @@ class BookingRejected implements ShouldBroadcastNow
                 $this->booking->user->sendNotification(
                     type: 'booking',
                     title: 'Booking Ditolak',
-                    message: "Booking aula {$this->booking->aula?->nama} tanggal {$this->booking->tanggal_booking} ditolak." . ($this->alasan ? " Alasan: {$this->alasan}" : ''),
+                    message: "Booking aula {$this->booking->aula?->nama} tanggal {$this->booking->tanggal_booking} ditolak.".($this->alasan ? " Alasan: {$this->alasan}" : ''),
                     data: [
                         'booking_id' => $this->booking->id,
-                        'status'     => 'rejected',
-                        'alasan'     => $this->alasan,
+                        'status' => 'rejected',
+                        'alasan' => $this->alasan,
                     ],
                     url: route('riwayat.index', $this->booking->id),
                 );
             }
         } catch (\Exception $e) {
-            Log::warning('Gagal kirim notif rejected: ' . $e->getMessage());
+            Log::warning('Gagal kirim notif rejected: '.$e->getMessage());
         }
     }
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('user.' . $this->booking->user_id)];
+        return [new PrivateChannel('user.'.$this->booking->user_id)];
     }
 
     public function broadcastAs(): string
@@ -51,10 +51,10 @@ class BookingRejected implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'id'      => $this->booking->id,
-            'aula'    => $this->booking->aula?->nama,
+            'id' => $this->booking->id,
+            'aula' => $this->booking->aula?->nama,
             'tanggal' => $this->booking->tanggal_booking,
-            'alasan'  => $this->alasan,
+            'alasan' => $this->alasan,
         ];
     }
 }

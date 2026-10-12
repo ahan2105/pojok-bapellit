@@ -29,7 +29,7 @@ class AdminBookingController extends Controller
         // ✅ KODE ASLI: Aman dari error kolom
         $bookings = Booking::with(['user', 'aula'])
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate(30);
 
         // ⭐ OPTIMASI AMAN: Cache statistik selama 5 menit
         // Hanya ini yang diubah dari kode asli Anda

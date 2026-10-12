@@ -334,12 +334,12 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
     {
         // Lebar Fixed & Lega sesuai referensi AbsensiSesiExport
         $widths = [
-            'A' => 5,   // NO Global
-            'B' => 5,   // NO Bidang
-            'C' => 35,  // NAMA (Lega agar tidak kepotong)
-            'D' => 8,   // GOL
-            'E' => 28,  // NIP
-            'F' => 32,  // JABATAN (Lega agar tidak kepotong)
+            'A' => 6,   // NO Global
+            'B' => 6,   // NO Bidang
+            'C' => 38,  // NAMA
+            'D' => 10,  // GOL
+            'E' => 30,  // NIP
+            'F' => 42,  // JABATAN
         ];
 
         // Lebar kolom sesi dinamis berdasarkan teks header (Nama Sesi)
@@ -365,21 +365,21 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
     {
         return [
             1 => [
-                'font' => ['bold' => true, 'size' => 14],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
             2 => [
-                'font' => ['bold' => true, 'size' => 12],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
             // Style untuk Header Tabel (Baris 6 & 7)
             6 => [
-                'font' => ['bold' => true, 'size' => 10],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
             ],
             7 => [
-                'font' => ['bold' => true, 'size' => 9],
+                'font' => ['name' => 'Arial', 'bold' => true, 'size' => 12],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
             ],
@@ -393,6 +393,24 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = $sheet->getHighestRow();
                 $lastColLetter = Coordinate::stringFromColumnIndex($this->totalKolom);
+
+                $sheet->getStyle("A1:{$lastColLetter}{$highestRow}")->getFont()
+                    ->setName('Arial')
+                    ->setSize(12);
+                $sheet->getStyle('A1')->getFont()
+                    ->setName('Arial')
+                    ->setBold(true)
+                    ->setSize(16);
+
+                // Teks panjang dibungkus ke bawah tanpa justify.
+                $sheet->getStyle("A1:{$lastColLetter}{$highestRow}")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                    ->setVertical(Alignment::VERTICAL_TOP)
+                    ->setWrapText(true)
+                    ->setShrinkToFit(false);
+                $sheet->getStyle("A1:{$lastColLetter}2")->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER);
 
                 // ===================================================================
                 // SOLUSI GARIS TENGAH / SPLIT VIEW
@@ -410,7 +428,7 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                 $sheet->mergeCells("A1:{$lastColLetter}1");
                 $sheet->mergeCells("A2:{$lastColLetter}2");
 
-                $sheet->getRowDimension(1)->setRowHeight(24);
+                $sheet->getRowDimension(1)->setRowHeight(30);
                 $sheet->getRowDimension(2)->setRowHeight(22);
 
                 // Tinggi baris header tabel
@@ -420,9 +438,22 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                 // Warna Background Header Tabel (Biru Muda)
                 $headerRange = "A6:{$lastColLetter}7";
                 $sheet->getStyle($headerRange)->applyFromArray([
+                    'font' => [
+                        'name' => 'Arial',
+                        'bold' => true,
+                        'size' => 12,
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                        'wrapText' => true,
+                    ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => 'D9E1F2'],
+                    ],
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => Border::BORDER_THIN],
                     ],
                 ]);
 
@@ -458,6 +489,17 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                 $sheet->mergeCells("{$colHadir}6:{$colHadir}7");
                 $sheet->mergeCells("{$colTidak}6:{$colTidak}7");
 
+                // Terapkan ulang border setelah merge agar garis header tidak putus.
+                $mergedHeaderRanges = [
+                    "{$colKet}6:{$colKet}7",
+                    "{$colHadir}6:{$colHadir}7",
+                    "{$colTidak}6:{$colTidak}7",
+                ];
+
+                foreach ($mergedHeaderRanges as $range) {
+                    $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                }
+
                 // 4. STYLE GROUP HEADERS (BIDANG)
                 foreach ($this->groupHeaderRows as $rowIndex) {
                     $sheet->mergeCells("A{$rowIndex}:{$lastColLetter}{$rowIndex}");
@@ -487,7 +529,12 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                     // Border semua sel
                     $sheet->getStyle("A{$rowIndex}:{$lastColLetter}{$rowIndex}")->applyFromArray([
                         'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-                        'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+                        'alignment' => [
+                            'horizontal' => Alignment::HORIZONTAL_LEFT,
+                            'vertical' => Alignment::VERTICAL_CENTER,
+                            'wrapText' => true,
+                            'indent' => 1,
+                        ],
                     ]);
 
                     // Alignment spesifik per kolom
@@ -501,21 +548,36 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                         $cell = "{$colLetter}{$rowIndex}";
                         $value = $sheet->getCell($cell)->getValue();
 
-                        $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                        $sheet->getStyle($cell)->getAlignment()
+                            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(Alignment::VERTICAL_CENTER)
+                            ->setWrapText(true);
 
-                        // Semua tanda menggunakan font default (Hitam), Bold untuk simbol utama
-                        if ($value === '✓' || $value === '✗') {
+                        // Warna status kehadiran.
+                        if ($value === 'Hadir') {
                             $sheet->getStyle($cell)->getFont()
+                                ->setName('Arial')
+                                ->setSize(12)
                                 ->setBold(true)
-                                ->setSize(12);
+                                ->getColor()->setRGB('10B981');
+                        } elseif ($value === 'Tidak hadir') {
+                            $sheet->getStyle($cell)->getFont()
+                                ->setName('Arial')
+                                ->setSize(12)
+                                ->setBold(true)
+                                ->getColor()->setRGB('DC2626');
                         } elseif ($value === '-') {
                             $sheet->getStyle($cell)->getFont()
+                                ->setName('Arial')
+                                ->setSize(12)
                                 ->setBold(true)
-                                ->setSize(11);
+                                ->getColor()->setRGB('D97706');
                         } elseif ($value === 'o') {
                             $sheet->getStyle($cell)->getFont()
+                                ->setName('Arial')
+                                ->setSize(12)
                                 ->setBold(false)
-                                ->setSize(10);
+                                ->getColor()->setRGB('6B7280');
                         }
                     }
 
@@ -536,16 +598,28 @@ class AbsensiRekapExport implements FromArray, WithColumnWidths, WithEvents, Wit
                     $sheet->getStyle("{$colKet}{$rowIndex}")->getAlignment()
                         ->setHorizontal(Alignment::HORIZONTAL_LEFT)
                         ->setWrapText(true);
-                    $sheet->getStyle("{$colKet}{$rowIndex}")->getFont()->setSize(9);
+                    $sheet->getStyle("{$colKet}{$rowIndex}")->getFont()
+                        ->setName('Arial')
+                        ->setSize(12);
 
-                    $ketVal = (string) $sheet->getCell("{$colKet}{$rowIndex}")->getValue();
-                    if ($ketVal !== '') {
-                        // Estimasi tinggi baris berdasarkan panjang teks
-                        $estLines = max(1, (int) ceil(mb_strlen($ketVal) / 40));
-                        $sheet->getRowDimension($rowIndex)->setRowHeight(max(25, $estLines * 13));
-                    } else {
-                        $sheet->getRowDimension($rowIndex)->setRowHeight(25);
+                    $nameLength = mb_strlen((string) $sheet->getCell("C{$rowIndex}")->getValue());
+                    $positionLength = mb_strlen((string) $sheet->getCell("F{$rowIndex}")->getValue());
+                    $notesLength = mb_strlen((string) $sheet->getCell("{$colKet}{$rowIndex}")->getValue());
+                    $statusLines = 0;
+                    for ($i = 0; $i < $this->jumlahSesi; $i++) {
+                        $statusColumn = Coordinate::stringFromColumnIndex($this->kolomMulaiSesi + $i);
+                        $statusText = (string) $sheet->getCell("{$statusColumn}{$rowIndex}")->getValue();
+                        $statusLines = max($statusLines, (int) ceil(mb_strlen($statusText) / 8));
                     }
+
+                    $estimatedLines = max(
+                        1,
+                        (int) ceil($nameLength / 38),
+                        (int) ceil($positionLength / 42),
+                        (int) ceil($notesLength / 30),
+                        $statusLines
+                    );
+                    $sheet->getRowDimension($rowIndex)->setRowHeight(max(30, min(120, $estimatedLines * 18)));
                 }
 
                 // 6. FOOTER STYLING (Posisi Tengah Tabel E-H)

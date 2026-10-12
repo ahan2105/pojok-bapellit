@@ -281,6 +281,8 @@
 <script>
 function notifBell() {
     let audio = null;
+    let audioContext = null;
+    let audioGain = null;
     let lastFetch = 0;
     let stream = null;
     let lastPlayTime = 0;   // ⬅️ cegah double play
@@ -386,20 +388,34 @@ function notifBell() {
 
             audio = new Audio(this.audioUrl);
             audio.preload = 'auto';
-            audio.volume = 0.7;
+            audio.volume = 1.0;
 
-            // Unlock audio TANPA bunyi — pakai volume 0
+            // Perkuat suara custom/default melalui Web Audio API.
+            // Gain 2.5 membuat file custom yang pelan terdengar lebih jelas.
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaElementSource(audio);
+                audioGain = audioContext.createGain();
+                audioGain.gain.value = 2.5;
+                source.connect(audioGain);
+                audioGain.connect(audioContext.destination);
+            } catch (error) {
+                console.warn('[Sound] Amplifier tidak tersedia, memakai volume normal:', error);
+            }
+
+            // Unlock audio tanpa menghasilkan suara.
             const events = ['click', 'keydown', 'touchstart'];
             const unlock = () => {
-                audio.volume = 0;              // ⬅️ volume 0 = silent
+                if (audioContext?.state === 'suspended') audioContext.resume();
+                audio.volume = 0;
                 audio.play().then(() => {
                     audio.pause();
                     audio.currentTime = 0;
-                    audio.volume = 0.7;
+                    audio.volume = 1.0;
                     events.forEach(ev => document.removeEventListener(ev, unlock));
-                    console.log('[Sound] Audio unlocked (silent)');
+                    console.log('[Sound] Audio unlocked');
                 }).catch(() => {
-                    audio.volume = 0.7;
+                    audio.volume = 1.0;
                 });
             };
             events.forEach(ev => document.addEventListener(ev, unlock, { once: true }));
@@ -411,7 +427,6 @@ function notifBell() {
         playSound() {
             if (!audio || !this.soundEnabled) return;
 
-            // Throttle: skip kalau belum 800ms sejak bunyi terakhir
             const now = Date.now();
             if (now - lastPlayTime < 800) {
                 console.log('[Sound] Skip — terlalu cepat');
@@ -419,18 +434,41 @@ function notifBell() {
             }
             lastPlayTime = now;
 
+            if (audioContext?.state === 'suspended') audioContext.resume();
             audio.currentTime = 0;
-            audio.volume = 0.7;
+            audio.volume = 1.0;
             audio.play()
-                .then(() => console.log('[Sound] 🔊 Bunyi (notif baru)'))
+                .then(() => console.log('[Sound] 🔊 Bunyi diperkuat (notif baru)'))
                 .catch((err) => console.warn('[Sound] Gagal play:', err.name));
         },
 
-        // Toggle suara — TIDAK bunyi
+        // Toggle suara. Saat unmute, putar preview satu kali agar pengguna mengetahui volumenya.
         toggleSound() {
             this.soundEnabled = !this.soundEnabled;
             localStorage.setItem('notification_sound_enabled', this.soundEnabled);
-            // ❌ JANGAN panggil playSound() di sini
+
+            if (this.soundEnabled) {
+                this.playSoundPreview();
+            }
+        },
+
+        playSoundPreview() {
+            if (!audio) return;
+
+            const now = Date.now();
+            if (now - lastPlayTime < 800) return;
+            lastPlayTime = now;
+
+            if (audioContext?.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            audio.pause();
+            audio.currentTime = 0;
+            audio.volume = 1.0;
+            audio.play()
+                .then(() => console.log('[Sound] Preview unmute diputar'))
+                .catch((error) => console.warn('[Sound] Preview gagal diputar:', error.name));
         },
 
         showToast(notif) {

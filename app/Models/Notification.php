@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -14,11 +15,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $message
  * @property array|null $data
  * @property string|null $url
- * @property \Illuminate\Support\Carbon|null $read_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- *
- * @property-read \App\Models\User|null $user
+ * @property Carbon|null $read_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User|null $user
  *
  * @method static \Illuminate\Database\Eloquent\Builder|Notification unread()
  */
@@ -37,7 +37,7 @@ class Notification extends Model
     ];
 
     protected $casts = [
-        'data'    => 'array',
+        'data' => 'array',
         'read_at' => 'datetime',
     ];
 

@@ -21,7 +21,7 @@ class RiwayatController extends Controller
         $query = Booking::with(['user', 'aula']);
 
         // Jika bukan admin, hanya tampilkan booking sendiri
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $query->where('user_id', Auth::id());
         }
 
@@ -52,7 +52,7 @@ class RiwayatController extends Controller
             $query = Booking::where('status', 'pending');
 
             // Jika bukan admin, hanya bisa batalkan booking sendiri
-            if (!$isAdmin) {
+            if (! $isAdmin) {
                 $query->where('user_id', Auth::id());
             }
 
@@ -65,7 +65,7 @@ class RiwayatController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Gagal membatalkan booking: ' . $e->getMessage());
+                ->with('error', 'Gagal membatalkan booking: '.$e->getMessage());
         }
     }
 }

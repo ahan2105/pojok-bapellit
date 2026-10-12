@@ -19,8 +19,8 @@
     <!-- ===== ACTION BAR ===== -->
     <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-100 mb-6">
         <form id="filterForm" action="{{ route('admin.kelolaakun.index') }}" method="GET" class="flex flex-col gap-4">
-            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <div class="flex-1">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:gap-4">
+                <div class="sm:col-span-2 xl:col-span-4">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Pencarian</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -30,7 +30,7 @@
                                class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
                     </div>
                 </div>
-                <div class="w-full sm:w-48 lg:w-64">
+                <div class="sm:col-span-1 xl:col-span-2">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bidang</label>
                     <select name="bidang" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
                         <option value="">Semua Bidang</option>
@@ -44,7 +44,7 @@
                         @endif
                     </select>
                 </div>
-                <div class="w-full sm:w-48 lg:w-64">
+                <div class="sm:col-span-1 xl:col-span-2">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jabatan</label>
                     <select name="jabatan" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
                         <option value="">Semua Jabatan</option>
@@ -54,17 +54,33 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="sm:col-span-1 xl:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Peran</label>
+                    <select name="role" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
+                        <option value="">Semua Peran</option>
+                        <option value="admin" {{ request('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="user" {{ request('role') === 'user' ? 'selected' : '' }}>User</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-1 xl:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Status Akun</label>
+                    <select name="status" onchange="this.form.submit()" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white cursor-pointer">
+                        <option value="">Semua Status</option>
+                        <option value="aktif" {{ request('status') === 'aktif' ? 'selected' : '' }}>Aktif</option>
+                        <option value="nonaktif" {{ request('status') === 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
+                    </select>
+                </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center">
                 <button type="submit" class="flex-1 sm:flex-none px-5 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-sm flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Cari
                 </button>
-                @if(request()->filled('bidang') || request()->filled('jabatan') || request()->filled('search'))
+                @if(request()->filled('bidang') || request()->filled('jabatan') || request()->filled('role') || request()->filled('status') || request()->filled('search'))
                     <a href="{{ route('admin.kelolaakun.index') }}" class="px-4 py-3 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 flex items-center justify-center gap-2" title="Reset">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Reset
                     </a>
                 @endif
-                <a href="{{ route('admin.kelolaakun.create') }}" class="flex-1 sm:flex-none sm:ml-auto px-5 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                <a href="{{ route('admin.kelolaakun.create') }}" class="w-full sm:ml-auto sm:w-auto px-5 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Akun
                 </a>
             </div>

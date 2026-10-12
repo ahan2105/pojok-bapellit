@@ -14,155 +14,155 @@ return [
     // BOOKING AULA
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'booking',
+        'id' => 'booking',
         'label' => '📅 Cara Booking Aula',
         'keywords' => [
             'cara booking', 'booking aula', 'pesan aula', 'sewa aula',
             'gimana booking', 'bagaimana booking', 'mau booking',
             'cara pesan aula', 'cara sewa aula', 'cara booking aula',
         ],
-        'reply' => "📅 *Cara Booking Aula:*\n\n" .
-                   "1. Buka menu *Booking Aula* di navbar\n" .
-                   "2. Pilih aula yang ingin dipesan\n" .
-                   "3. Isi form: tanggal, sesi (pagi/siang/seharian), keperluan, jumlah peserta\n" .
-                   "4. Klik *Simpan* — status awal: Pending\n" .
-                   "5. Tunggu admin approve\n" .
-                   "6. Cek status di menu *Riwayat Booking*\n\n" .
-                   "⏰ Booking minimal H-1 sebelum pemakaian.",
+        'reply' => "📅 *Cara Booking Aula:*\n\n".
+                   "1. Buka menu *Booking Aula* di navbar\n".
+                   "2. Pilih aula yang ingin dipesan\n".
+                   "3. Isi form: tanggal, sesi (pagi/siang/seharian), keperluan, jumlah peserta\n".
+                   "4. Klik *Simpan* — status awal: Pending\n".
+                   "5. Tunggu admin approve\n".
+                   "6. Cek status di menu *Riwayat Booking*\n\n".
+                   '⏰ Booking minimal H-1 sebelum pemakaian.',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // RIWAYAT BOOKING
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'riwayat',
+        'id' => 'riwayat',
         'label' => '📋 Cek Riwayat Booking',
         'keywords' => [
             'riwayat booking', 'cek booking', 'status booking',
             'lihat booking', 'daftar booking', 'riwayat aula',
         ],
-        'reply' => "📋 *Cek Riwayat Booking:*\n\n" .
-                   "1. Buka menu *Riwayat Booking Aula* di navbar\n" .
-                   "2. Semua booking lu bakal tampil di situ\n" .
-                   "3. Status booking:\n" .
-                   "   • 🟡 *Pending* — belum di-approve admin\n" .
-                   "   • 🟢 *Approved* — disetujui\n" .
-                   "   • 🔴 *Rejected* — ditolak\n" .
-                   "   • ⚪ *Canceled* — dibatalkan\n" .
-                   "   • ✅ *Completed* — selesai",
+        'reply' => "📋 *Cek Riwayat Booking:*\n\n".
+                   "1. Buka menu *Riwayat Booking Aula* di navbar\n".
+                   "2. Semua booking lu bakal tampil di situ\n".
+                   "3. Status booking:\n".
+                   "   • 🟡 *Pending* — belum di-approve admin\n".
+                   "   • 🟢 *Approved* — disetujui\n".
+                   "   • 🔴 *Rejected* — ditolak\n".
+                   "   • ⚪ *Canceled* — dibatalkan\n".
+                   '   • ✅ *Completed* — selesai',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // AMBIL NOMOR SURAT
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'surat',
+        'id' => 'surat',
         'label' => '✉️ Cara Ambil Nomor Surat',
         'keywords' => [
             'cara ambil surat', 'ambil nomor surat', 'nomor surat',
             'cara surat', 'buat surat', 'minta nomor surat',
             'cara ambil nomor', 'cara minta surat',
         ],
-        'reply' => "✉️ *Cara Ambil Nomor Surat:*\n\n" .
-                   "1. Buka menu *Ambil Surat* di navbar\n" .
-                   "2. Isi form:\n" .
-                   "   • Jenis surat\n" .
-                   "   • Sifat surat\n" .
-                   "   • Asal surat & alamat tujuan\n" .
-                   "   • Isi ringkas surat\n" .
-                   "   • Banyak lampiran\n" .
-                   "3. Nomor surat otomatis muncul\n" .
-                   "4. Klik *Simpan*\n" .
-                   "5. Surat bisa di-download dari riwayat",
+        'reply' => "✉️ *Cara Ambil Nomor Surat:*\n\n".
+                   "1. Buka menu *Ambil Surat* di navbar\n".
+                   "2. Isi form:\n".
+                   "   • Jenis surat\n".
+                   "   • Sifat surat\n".
+                   "   • Asal surat & alamat tujuan\n".
+                   "   • Isi ringkas surat\n".
+                   "   • Banyak lampiran\n".
+                   "3. Nomor surat otomatis muncul\n".
+                   "4. Klik *Simpan*\n".
+                   '5. Surat bisa di-download dari riwayat',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // PRESENSI / ABSENSI
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'absensi',
+        'id' => 'absensi',
         'label' => '📱 Cara Presensi / Absen',
         'keywords' => [
             'cara absen', 'cara presensi', 'scan absen', 'absen qr',
             'cara scan qr', 'presensi pegawai', 'cara absensi',
             'cara scan', 'absen gimana', 'cara absen qr',
         ],
-        'reply' => "📱 *Cara Presensi / Absen:*\n\n" .
-                   "1. Buka menu *Scan Absensi* di navbar\n" .
-                   "2. Arahkan kamera ke QR code yang ditampilkan admin\n" .
-                   "3. Sistem otomatis catat kehadiran lu\n" .
-                   "4. Cek riwayat di menu *Presensi Saya*\n\n" .
-                   "⚠️ QR code cuma berlaku untuk sesi yang sedang aktif.",
+        'reply' => "📱 *Cara Presensi / Absen:*\n\n".
+                   "1. Buka menu *Scan Absensi* di navbar\n".
+                   "2. Arahkan kamera ke QR code yang ditampilkan admin\n".
+                   "3. Sistem otomatis catat kehadiran lu\n".
+                   "4. Cek riwayat di menu *Presensi Saya*\n\n".
+                   '⚠️ QR code cuma berlaku untuk sesi yang sedang aktif.',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // LUPA PASSWORD
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'password',
+        'id' => 'password',
         'label' => '🔐 Lupa / Ganti Password',
         'keywords' => [
             'lupa password', 'reset password', 'ganti password',
             'ubah password', 'ganti akun', 'password lupa',
         ],
-        'reply' => "🔐 *Lupa / Ganti Password:*\n\n" .
-                   "1. Buka menu *Akun Profil* (dropdown kanan atas)\n" .
-                   "2. Pilih *Ganti Password*\n" .
-                   "3. Masukkan password lama + password baru\n" .
-                   "4. Simpan\n\n" .
-                   "Kalau beneran lupa password, hubungi admin Bappeda untuk reset.",
+        'reply' => "🔐 *Lupa / Ganti Password:*\n\n".
+                   "1. Buka menu *Akun Profil* (dropdown kanan atas)\n".
+                   "2. Pilih *Ganti Password*\n".
+                   "3. Masukkan password lama + password baru\n".
+                   "4. Simpan\n\n".
+                   'Kalau beneran lupa password, hubungi admin Bappeda untuk reset.',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // JAM OPERASIONAL
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'jam',
+        'id' => 'jam',
         'label' => '⏰ Jam Operasional',
         'keywords' => [
             'jam kerja', 'jam operasional', 'jam buka', 'jam layanan',
             'kapan buka', 'jam berapa',
         ],
-        'reply' => "⏰ *Jam Operasional Bappeda:*\n\n" .
-                   "• Senin–Kamis: 08.00 – 16.00 WIB\n" .
-                   "• Jumat: 08.00 – 14.30 WIB\n" .
-                   "• Sabtu–Minggu & hari libur: Tutup\n\n" .
-                   "Sistem Pojok Bapelit bisa diakses 24/7, tapi approval admin cuma di jam kerja.",
+        'reply' => "⏰ *Jam Operasional Bappeda:*\n\n".
+                   "• Senin–Kamis: 08.00 – 16.00 WIB\n".
+                   "• Jumat: 08.00 – 14.30 WIB\n".
+                   "• Sabtu–Minggu & hari libur: Tutup\n\n".
+                   'Sistem Pojok Bapelit bisa diakses 24/7, tapi approval admin cuma di jam kerja.',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // KONTAK / BANTUAN
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'kontak',
+        'id' => 'kontak',
         'label' => '☎️ Kontak & Bantuan',
         'keywords' => [
             'kontak', 'hubungi', 'bantuan', 'admin bappeda', 'cs',
             'customer service', 'no telp', 'nomor telp', 'email bappeda',
         ],
-        'reply' => "☎️ *Kontak & Bantuan:*\n\n" .
-                   "• Email: bappeda@example.go.id\n" .
-                   "• Telp: (0265) 123-456\n" .
-                   "• Alamat: Jl. Contoh No. 123\n\n" .
-                   "Untuk bantuan teknis sistem, hubungi admin IT Bappeda.",
+        'reply' => "☎️ *Kontak & Bantuan:*\n\n".
+                   "• Email: bappeda@example.go.id\n".
+                   "• Telp: (0265) 123-456\n".
+                   "• Alamat: Jl. Contoh No. 123\n\n".
+                   'Untuk bantuan teknis sistem, hubungi admin IT Bappeda.',
     ],
 
     // ═══════════════════════════════════════════════════════════
     // TENTANG BAPPEDA
     // ═══════════════════════════════════════════════════════════
     [
-        'id'    => 'tentang',
+        'id' => 'tentang',
         'label' => '🏛️ Tentang Bappeda',
         'keywords' => [
             'apa itu bappeda', 'bappeda adalah', 'tugas bappeda',
             'fungsi bappeda', 'bappeda itu',
         ],
-        'reply' => "🏛️ *Bappeda* adalah Badan Perencanaan Pembangunan Daerah — instansi pemerintah daerah yang bertugas:\n\n" .
-                   "• Menyusun rencana pembangunan daerah\n" .
-                   "• Koordinasi perencanaan lintas SKPD\n" .
-                   "• Penelitian & pengembangan daerah\n" .
-                   "• Monitoring & evaluasi pembangunan\n\n" .
-                   "Pojok Bapelit adalah sistem internal untuk booking aula, pengambilan nomor surat, dan presensi pegawai.",
+        'reply' => "🏛️ *Bappeda* adalah Badan Perencanaan Pembangunan Daerah — instansi pemerintah daerah yang bertugas:\n\n".
+                   "• Menyusun rencana pembangunan daerah\n".
+                   "• Koordinasi perencanaan lintas SKPD\n".
+                   "• Penelitian & pengembangan daerah\n".
+                   "• Monitoring & evaluasi pembangunan\n\n".
+                   'Pojok Bapelit adalah sistem internal untuk booking aula, pengambilan nomor surat, dan presensi pegawai.',
     ],
 
 ];

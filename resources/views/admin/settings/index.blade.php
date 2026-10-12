@@ -76,8 +76,14 @@
         {{-- Sidebar internal --}}
         @include('admin.settings.nav')
 
-        {{-- Konten dinamis --}}
-        <div class="min-w-0 flex-1">
+        {{-- Konten dinamis dengan animasi Alpine.js --}}
+        <div class="min-w-0 flex-1"
+             x-cloak
+             x-data="{ show: true }"
+             x-show="show"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-3"
+             x-transition:enter-end="opacity-100 translate-y-0">
             @if($isSessionsPage)
                 @include('admin.settings.sessions', [
                     'histories' => $histories,

@@ -14,12 +14,15 @@
 
             {{-- KOLOM 1: BRAND --}}
             <div class="lg:col-span-1">
-                <h3 class="text-lg font-bold text-indigo-600">
-                    Pojok Bapelit
-                </h3>
-                <p class="mt-2 text-sm text-gray-500 leading-relaxed">
-                    Sistem informasi Bappeda untuk booking aula, pengambilan nomor surat, dan presensi pegawai.
-                </p>
+                <div class="mb-3 flex items-center gap-3">
+                    <img src="{{ asset('image/logo.png') }}"
+                         alt="Logo Pojok Bapelit"
+                         class="h-12 w-12 rounded-xl object-cover shadow-sm ring-1 ring-indigo-100">
+                    <h3 class="text-lg font-bold text-indigo-600">
+                        Pojok Bapelit
+                    </h3>
+                </div>
+              
 
                 {{-- Tombol Tanya Asisten AI — di dalam kolom brand --}}
                 <button type="button"

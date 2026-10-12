@@ -93,10 +93,11 @@
                         <th class="px-6 py-4 text-left font-semibold text-gray-700 w-10">
                             <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" disabled>
                         </th>
-                        <th class="px-6 py-4 text-left font-semibold text-gray-700">ID</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-700">No.</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-700">User</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-700">Aula</th>
-                        <th class="px-6 py-4 text-left font-semibold text-gray-700">Tanggal</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-700">Tanggal Booking</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-700">Diajukan Pada</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-700">Sesi</th>
                         <th class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
                         <th class="px-6 py-4 text-center font-semibold text-gray-700">Aksi</th>
@@ -132,10 +133,11 @@
                                        value="{{ $booking->id }}"
                                        onchange="updateSelectedBookingCount()">
                             </td>
-                            <td class="px-6 py-4 text-gray-700">#{{ $booking->id }}</td>
+                            <td class="px-6 py-4 text-gray-700">{{ $bookings->firstItem() + $loop->index }}</td>
                             <td class="px-6 py-4 text-gray-900 font-medium">{{ $booking->user->name ?? 'User' }}</td>
                             <td class="px-6 py-4 text-gray-900 font-medium">{{ $booking->aula->nama ?? 'Aula' }}</td>
                             <td class="px-6 py-4 text-gray-700">{{ \Carbon\Carbon::parse($booking->tanggal_booking)->format('d/m/Y') }}</td>
+                            <td class="px-6 py-4 text-gray-700">{{ $booking->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
                             <td class="px-6 py-4 text-gray-700">
                                 {{ $sesiLabels[$booking->sesi_waktu] ?? $booking->sesi_waktu }}
                             </td>
@@ -206,7 +208,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-16 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-16 text-center text-gray-500">
                                 <svg class="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
@@ -265,7 +267,7 @@
                 <!-- Header Card -->
                 <div class="pr-8 mb-3">
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-bold text-gray-400">#{{ $booking->id }}</span>
+                        <span class="text-xs font-bold text-gray-400">No. {{ $bookings->firstItem() + $loop->index }}</span>
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$booking->status] ?? 'bg-gray-100 text-gray-800' }}">
                             {{ $statusLabels[$booking->status] ?? $booking->status }}
                         </span>
@@ -277,8 +279,12 @@
                 <!-- Info Grid -->
                 <div class="space-y-2 mb-4 text-sm">
                     <div class="flex justify-between py-1 border-b border-gray-50">
-                        <span class="text-gray-500">Tanggal</span>
+                        <span class="text-gray-500">Tanggal Booking</span>
                         <span class="font-medium text-gray-900">{{ \Carbon\Carbon::parse($booking->tanggal_booking)->format('d/m/Y') }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-gray-50">
+                        <span class="text-gray-500">Diajukan Pada</span>
+                        <span class="font-medium text-gray-900">{{ $booking->created_at?->format('d/m/Y H:i') ?? '-' }}</span>
                     </div>
                     <div class="flex justify-between py-1 border-b border-gray-50">
                         <span class="text-gray-500">Sesi</span>

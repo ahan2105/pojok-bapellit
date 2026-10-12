@@ -32,12 +32,12 @@ class PresensiController extends Controller
 
         // Riwayat absensi (pagination)
         $riwayat = $query->orderByDesc('created_at')
-                         ->paginate(15)
-                         ->withQueryString();
+            ->paginate(15)
+            ->withQueryString();
 
         // ⭐ OPTIMASI: Hitung statistik dalam 1 query saja menggunakan conditional aggregation
         $baseQuery = AbsensiDetail::where('user_id', $user->id)
-                                  ->whereHas('sesi');
+            ->whereHas('sesi');
 
         // Gunakan select raw untuk menghitung semuanya sekaligus
         $stats = $baseQuery->selectRaw("

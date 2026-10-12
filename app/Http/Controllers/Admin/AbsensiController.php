@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Exports\AbsensiSesiExport;
 use App\Exports\AbsensiRekapExport;
+use App\Exports\AbsensiSesiExport;
+use App\Http\Controllers\Controller;
 use App\Models\AbsensiDetail;
 use App\Models\AbsensiSesi;
 use App\Models\User;
@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use SimpleSoftwareIO\QrCode\Generator;
 
 class AbsensiController extends Controller
 {
@@ -27,8 +28,8 @@ class AbsensiController extends Controller
 
         $query = AbsensiSesi::with('creator')
             ->withCount([
-                'details as jumlah_hadir'  => fn($q) => $q->where('status_kehadiran', 'hadir'),
-                'details as jumlah_tidak'  => fn($q) => $q->where('status_kehadiran', 'tidak'),
+                'details as jumlah_hadir' => fn ($q) => $q->where('status_kehadiran', 'hadir'),
+                'details as jumlah_tidak' => fn ($q) => $q->where('status_kehadiran', 'tidak'),
                 'details as details_count',
             ]);
 
@@ -44,10 +45,10 @@ class AbsensiController extends Controller
 
         // Urutkan: tanggal terbaru → created_at → id
         $sesiList = $query->orderByDesc('tanggal')
-                         ->orderByDesc('created_at')
-                         ->orderByDesc('id')
-                         ->paginate(9)
-                         ->withQueryString();
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(9)
+            ->withQueryString();
 
         // Preview sesi dalam rentang rekap (kalau tanggal diisi)
         $sesiRekap = collect();
@@ -121,10 +122,10 @@ class AbsensiController extends Controller
             ->get(['id', 'name', 'jabatan', 'bidang'])
             ->map(function ($u) {
                 return [
-                    'id'      => $u->id,
-                    'name'    => $u->name,
+                    'id' => $u->id,
+                    'name' => $u->name,
                     'jabatan' => $u->jabatan ?: '(Tanpa Jabatan)',
-                    'bidang'  => $u->bidang  ?: '(Tanpa Bidang)',
+                    'bidang' => $u->bidang ?: '(Tanpa Bidang)',
                 ];
             })
             ->toArray();
@@ -138,43 +139,43 @@ class AbsensiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_sesi'          => 'required|string|max:255',
-            'tanggal'            => 'required|date',
-            'lokasi'             => 'nullable|string|max:255',
-            'catatan'            => 'nullable|string',
-            'pilih_bidang'       => 'nullable|array',
-            'pilih_bidang.*'     => 'string|max:255',
-            'pilih_jabatan'      => 'nullable|array',
-            'pilih_jabatan.*'    => 'string|max:255',
-            'pilih_user_ids'     => 'nullable|array',
-            'pilih_user_ids.*'   => 'integer|exists:users,id',
-            'exclude_user_ids'   => 'nullable|array',
+            'nama_sesi' => 'required|string|max:255',
+            'tanggal' => 'required|date',
+            'lokasi' => 'nullable|string|max:255',
+            'catatan' => 'nullable|string',
+            'pilih_bidang' => 'nullable|array',
+            'pilih_bidang.*' => 'string|max:255',
+            'pilih_jabatan' => 'nullable|array',
+            'pilih_jabatan.*' => 'string|max:255',
+            'pilih_user_ids' => 'nullable|array',
+            'pilih_user_ids.*' => 'integer|exists:users,id',
+            'exclude_user_ids' => 'nullable|array',
             'exclude_user_ids.*' => 'integer|exists:users,id',
         ]);
 
         $sesi = AbsensiSesi::create([
-            'nama_sesi'           => $validated['nama_sesi'],
-            'tanggal'             => $validated['tanggal'],
-            'lokasi'              => $validated['lokasi'] ?? null,
-            'catatan'             => $validated['catatan'] ?? null,
-            'is_default'          => false,
-            'is_locked'           => false,
-            'created_by'          => Auth::id(),
-            'token_qr'            => Str::random(48),
-            'token_generated_at'  => now(),
+            'nama_sesi' => $validated['nama_sesi'],
+            'tanggal' => $validated['tanggal'],
+            'lokasi' => $validated['lokasi'] ?? null,
+            'catatan' => $validated['catatan'] ?? null,
+            'is_default' => false,
+            'is_locked' => false,
+            'created_by' => Auth::id(),
+            'token_qr' => Str::random(48),
+            'token_generated_at' => now(),
             'qr_lifetime_seconds' => 0,
-            'qr_auto_refresh'     => false,
+            'qr_auto_refresh' => false,
         ]);
 
         // ============================================
         // Filter INCLUDE (whitelist)
         // ============================================
-        $pilihBidang    = $validated['pilih_bidang'] ?? [];
-        $pilihJabatan   = $validated['pilih_jabatan'] ?? [];
-        $pilihUserIds   = $validated['pilih_user_ids'] ?? [];
+        $pilihBidang = $validated['pilih_bidang'] ?? [];
+        $pilihJabatan = $validated['pilih_jabatan'] ?? [];
+        $pilihUserIds = $validated['pilih_user_ids'] ?? [];
         $excludeUserIds = $validated['exclude_user_ids'] ?? [];
 
-        $hasFilter = !empty($pilihBidang) || !empty($pilihJabatan) || !empty($pilihUserIds);
+        $hasFilter = ! empty($pilihBidang) || ! empty($pilihJabatan) || ! empty($pilihUserIds);
 
         $users = collect();
 
@@ -183,7 +184,7 @@ class AbsensiController extends Controller
                 ->where(function ($q) use ($pilihBidang, $pilihJabatan, $pilihUserIds) {
 
                     // ===== Bidang =====
-                    if (!empty($pilihBidang)) {
+                    if (! empty($pilihBidang)) {
                         $bidangNormal = [];
                         $includeTanpaBidang = false;
 
@@ -196,7 +197,7 @@ class AbsensiController extends Controller
                         }
 
                         $q->orWhere(function ($sub) use ($bidangNormal, $includeTanpaBidang) {
-                            if (!empty($bidangNormal)) {
+                            if (! empty($bidangNormal)) {
                                 $sub->whereIn('bidang', $bidangNormal);
                             }
                             if ($includeTanpaBidang) {
@@ -208,7 +209,7 @@ class AbsensiController extends Controller
                     }
 
                     // ===== Jabatan =====
-                    if (!empty($pilihJabatan)) {
+                    if (! empty($pilihJabatan)) {
                         $jabatanNormal = [];
                         $includeTanpaJabatan = false;
 
@@ -221,7 +222,7 @@ class AbsensiController extends Controller
                         }
 
                         $q->orWhere(function ($sub) use ($jabatanNormal, $includeTanpaJabatan) {
-                            if (!empty($jabatanNormal)) {
+                            if (! empty($jabatanNormal)) {
                                 $sub->whereIn('jabatan', $jabatanNormal);
                             }
                             if ($includeTanpaJabatan) {
@@ -233,13 +234,13 @@ class AbsensiController extends Controller
                     }
 
                     // ===== User spesifik (include) =====
-                    if (!empty($pilihUserIds)) {
+                    if (! empty($pilihUserIds)) {
                         $q->orWhereIn('id', $pilihUserIds);
                     }
                 });
 
             // EXCLUDE: kurangi user yang di-blacklist
-            if (!empty($excludeUserIds)) {
+            if (! empty($excludeUserIds)) {
                 $query->whereNotIn('id', $excludeUserIds);
             }
 
@@ -248,12 +249,12 @@ class AbsensiController extends Controller
 
         // Bulk insert peserta
         if ($users->isNotEmpty()) {
-            $data = $users->map(fn($u) => [
-                'absensi_sesi_id'  => $sesi->id,
-                'user_id'          => $u->id,
+            $data = $users->map(fn ($u) => [
+                'absensi_sesi_id' => $sesi->id,
+                'user_id' => $u->id,
                 'status_kehadiran' => null,
-                'created_at'       => now(),
-                'updated_at'       => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ])->toArray();
 
             AbsensiDetail::insert($data);
@@ -261,24 +262,24 @@ class AbsensiController extends Controller
 
         // Info pesan sukses
         $infoPilih = [];
-        if (!empty($pilihBidang)) {
-            $infoPilih[] = count($pilihBidang) . " bidang";
+        if (! empty($pilihBidang)) {
+            $infoPilih[] = count($pilihBidang).' bidang';
         }
-        if (!empty($pilihJabatan)) {
-            $infoPilih[] = count($pilihJabatan) . " jabatan";
+        if (! empty($pilihJabatan)) {
+            $infoPilih[] = count($pilihJabatan).' jabatan';
         }
-        if (!empty($pilihUserIds)) {
-            $infoPilih[] = count($pilihUserIds) . " user spesifik";
+        if (! empty($pilihUserIds)) {
+            $infoPilih[] = count($pilihUserIds).' user spesifik';
         }
 
         $pesan = "Sesi \"{$sesi->nama_sesi}\" berhasil dibuat dengan {$users->count()} peserta.";
-        if (!empty($infoPilih)) {
-            $pesan .= " (Dari: " . implode(', ', $infoPilih) . ")";
+        if (! empty($infoPilih)) {
+            $pesan .= ' (Dari: '.implode(', ', $infoPilih).')';
         } else {
-            $pesan .= " (Tidak ada peserta yang dipilih)";
+            $pesan .= ' (Tidak ada peserta yang dipilih)';
         }
-        if (!empty($excludeUserIds)) {
-            $pesan .= " — " . count($excludeUserIds) . " user dikecualikan.";
+        if (! empty($excludeUserIds)) {
+            $pesan .= ' — '.count($excludeUserIds).' user dikecualikan.';
         }
 
         return redirect()
@@ -289,7 +290,7 @@ class AbsensiController extends Controller
     /**
      * Halaman absensi 1 sesi
      */
-      /**
+    /**
      * Halaman absensi 1 sesi
      */
     public function show(Request $request, int $id)
@@ -309,21 +310,21 @@ class AbsensiController extends Controller
             ->get()
             ->map(function ($detail) {
                 return (object) [
-                    'id'               => $detail->user->id,
-                    'name'             => $detail->user->name,
-                    'bidang'           => $detail->user->bidang,
-                    'status'           => $detail->user->status,
-                    'detail_id'        => $detail->id,
+                    'id' => $detail->user->id,
+                    'name' => $detail->user->name,
+                    'bidang' => $detail->user->bidang,
+                    'status' => $detail->user->status,
+                    'detail_id' => $detail->id,
                     'status_kehadiran' => $detail->status_kehadiran,
-                    'keterangan'       => $detail->keterangan,
-                    'waktu_absen'      => $detail->waktu_absen, // ✅ PASTIKAN ADA DI SINI
+                    'keterangan' => $detail->keterangan,
+                    'waktu_absen' => $detail->waktu_absen, // ✅ PASTIKAN ADA DI SINI
                 ];
             })
             ->sortBy('name')
             ->values();
 
         // Generate token QR kalau belum ada & sesi belum dikunci
-        if (!$sesi->is_locked && empty($sesi->token_qr)) {
+        if (! $sesi->is_locked && empty($sesi->token_qr)) {
             $sesi->token_qr = Str::random(48);
             $sesi->token_generated_at = now();
             $sesi->save();
@@ -332,11 +333,11 @@ class AbsensiController extends Controller
         $scanUrl = null;
         $qrCode = null;
 
-        if ($sesi->token_qr && !$sesi->is_locked) {
+        if ($sesi->token_qr && ! $sesi->is_locked) {
             $scanUrl = route('absensi.scan', ['token' => $sesi->token_qr]);
 
             try {
-                /** @var \SimpleSoftwareIO\QrCode\Generator $qrGenerator */
+                /** @var Generator $qrGenerator */
                 $qrGenerator = QrCode::getFacadeRoot();
                 $qrCode = $qrGenerator->size(300)->margin(2)->generate($scanUrl);
             } catch (\Exception $e) {
@@ -367,28 +368,36 @@ class AbsensiController extends Controller
         }
 
         $request->validate([
-            'kehadiran'   => 'required|array',
+            'kehadiran' => 'required|array',
             'kehadiran.*' => 'nullable|in:hadir,tidak',
-            'keterangan'  => 'nullable|array',
+            'keterangan' => 'nullable|array',
+            'waktu_absen' => 'nullable|array',
+            'waktu_absen.*' => 'nullable|date_format:H:i',
         ]);
 
         $totalDiupdate = 0;
         foreach ($request->kehadiran as $userId => $status) {
-            if (!$status) continue;
+            if (! $status) {
+                continue;
+            }
 
             $keterangan = $status === 'tidak'
                 ? ($request->keterangan[$userId] ?? null)
                 : null;
 
+            $waktuAbsen = $status === 'hadir'
+                ? ($request->waktu_absen[$userId] ?? now()->format('H:i'))
+                : null;
+
             AbsensiDetail::updateOrCreate(
                 [
                     'absensi_sesi_id' => $id,
-                    'user_id'         => $userId,
+                    'user_id' => $userId,
                 ],
                 [
                     'status_kehadiran' => $status,
-                    'keterangan'       => $keterangan,
-                    'waktu_absen'      => now(),
+                    'keterangan' => $keterangan,
+                    'waktu_absen' => $waktuAbsen,
                 ]
             );
 
@@ -414,8 +423,8 @@ class AbsensiController extends Controller
         }
 
         $sesi->update([
-            'is_locked'          => true,
-            'token_qr'           => null,
+            'is_locked' => true,
+            'token_qr' => null,
             'token_generated_at' => null,
         ]);
 
@@ -457,32 +466,32 @@ class AbsensiController extends Controller
     {
         $sesi = AbsensiSesi::findOrFail($id);
 
-        $tanggal  = Carbon::parse($sesi->tanggal)->format('Y-m-d');
+        $tanggal = Carbon::parse($sesi->tanggal)->format('Y-m-d');
         $namaSesi = Str::slug($sesi->nama_sesi, '_');
         $namaFile = "Daftar_Hadir_{$namaSesi}_{$tanggal}.xlsx";
 
         return Excel::download(new AbsensiSesiExport($sesi), $namaFile);
     }
 
-     /**
+    /**
      * Export Rekap Excel berdasarkan rentang tanggal
      */
     public function exportRekap(Request $request)
     {
         $request->validate([
             'tanggal_dari' => 'required|date',
-            'tanggal_ke'   => 'required|date|after_or_equal:tanggal_dari',
-            'ids'          => 'nullable|array', // Validasi untuk array ID yang dikirim frontend
-            'ids.*'        => 'integer|exists:absensi_sesi,id',
+            'tanggal_ke' => 'required|date|after_or_equal:tanggal_dari',
+            'ids' => 'nullable|array', // Validasi untuk array ID yang dikirim frontend
+            'ids.*' => 'integer|exists:absensi_sesi,id',
         ], [
-            'tanggal_dari.required'     => 'Tanggal "dari" wajib diisi.',
-            'tanggal_ke.required'       => 'Tanggal "ke" wajib diisi.',
+            'tanggal_dari.required' => 'Tanggal "dari" wajib diisi.',
+            'tanggal_ke.required' => 'Tanggal "ke" wajib diisi.',
             'tanggal_ke.after_or_equal' => 'Tanggal "ke" harus sama atau setelah tanggal "dari".',
-            'ids.*.exists'              => 'Terdapat sesi yang tidak valid atau sudah dihapus.',
+            'ids.*.exists' => 'Terdapat sesi yang tidak valid atau sudah dihapus.',
         ]);
 
         $tanggalDari = Carbon::parse($request->tanggal_dari)->startOfDay();
-        $tanggalKe   = Carbon::parse($request->tanggal_ke)->endOfDay();
+        $tanggalKe = Carbon::parse($request->tanggal_ke)->endOfDay();
 
         // Ambil ID sesi yang dikirim dari preview (Whitelist)
         $includeIds = $request->input('ids', []);
@@ -491,7 +500,7 @@ class AbsensiController extends Controller
         if (empty($includeIds)) {
             return redirect()
                 ->route('admin.absensi.index')
-                ->with('error', "Tidak ada sesi yang dipilih untuk di-export. Silakan reset filter atau pilih ulang sesi.");
+                ->with('error', 'Tidak ada sesi yang dipilih untuk di-export. Silakan reset filter atau pilih ulang sesi.');
         }
 
         // Query hanya sesi yang ID-nya ada dalam daftar includeIds DAN berada dalam rentang tanggal
@@ -505,16 +514,16 @@ class AbsensiController extends Controller
         if ($sesiList->isEmpty()) {
             return redirect()
                 ->route('admin.absensi.index')
-                ->with('error', "Data sesi yang Anda pilih tidak ditemukan di rentang tanggal tersebut.");
+                ->with('error', 'Data sesi yang Anda pilih tidak ditemukan di rentang tanggal tersebut.');
         }
 
         $labelDari = $tanggalDari->format('Y-m-d');
-        $labelKe   = $tanggalKe->format('Y-m-d');
-        $namaFile  = "Rekap_Absensi_{$labelDari}_sd_{$labelKe}.xlsx";
+        $labelKe = $tanggalKe->format('Y-m-d');
+        $namaFile = "Rekap_Absensi_{$labelDari}_sd_{$labelKe}.xlsx";
 
         // Kirim array kosong ke Exclude karena kita sudah memfilter via Query Builder (Include)
         return Excel::download(
-            new AbsensiRekapExport($sesiList, $tanggalDari, $tanggalKe, []), 
+            new AbsensiRekapExport($sesiList, $tanggalDari, $tanggalKe, []),
             $namaFile
         );
     }
@@ -551,18 +560,18 @@ class AbsensiController extends Controller
     {
         $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'exists:absensi_sesi,id'
+            'ids.*' => 'exists:absensi_sesi,id',
         ]);
 
         $ids = $request->input('ids');
-        
+
         // Hapus sesi yang dipilih
         // Catatan: Jika ada relasi cascade di database, detail absensi akan ikut terhapus
         AbsensiSesi::whereIn('id', $ids)->delete();
 
         return response()->json([
             'success' => true,
-            'message' => count($ids) . ' sesi berhasil dihapus.'
+            'message' => count($ids).' sesi berhasil dihapus.',
         ]);
     }
 
@@ -571,7 +580,7 @@ class AbsensiController extends Controller
      */
     public function pegawai(Request $request)
     {
-        $search       = $request->input('search');
+        $search = $request->input('search');
         $filterBidang = $request->input('bidang');
 
         $pegawai = User::where('status', 'aktif')
@@ -587,7 +596,7 @@ class AbsensiController extends Controller
                 return $q->where('bidang', $bidang);
             })
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate(100)
             ->withQueryString();
 
         $bidangList = User::where('status', 'aktif')

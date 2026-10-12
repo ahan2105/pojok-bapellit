@@ -190,7 +190,7 @@ class BookingController extends Controller
 
         $booking = $query->findOrFail($id);
 
-        return view('booking.detail', compact('booking'));
+        return view('booking.show', compact('booking'));
     }
 
     /**

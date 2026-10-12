@@ -10,8 +10,11 @@
 
             <!-- KIRI: Logo -->
             <div class="flex items-center">
-                <a href="{{ route('booking.index') }}" class="text-xl font-bold text-indigo-600">
-                    Pojok
+                <a href="{{ route('booking.index') }}" class="inline-flex items-center gap-3">
+                    <img src="{{ asset('image/logo.png') }}"
+                         alt="Logo Pojok Bapelit"
+                         class="h-12 w-12 rounded-xl object-cover shadow-sm ring-1 ring-indigo-100">
+                    <span class="text-xl font-bold text-indigo-600">Pojok Bapelit</span>
                 </a>
             </div>
 
@@ -28,6 +31,9 @@
                 </a>
                 <a href="{{ route('presensi.index') }}" class="text-gray-700 hover:text-indigo-600 font-medium {{ request()->routeIs('presensi.*') ? 'text-indigo-600 border-b-2 border-indigo-600' : '' }}">
                     Presensi
+                </a>
+                <a href="{{ route('kendaraan.index') }}" class="text-gray-700 hover:text-amber-600 font-medium {{ request()->routeIs('kendaraan.*', 'admin.kendaraan.*') ? 'text-amber-600 border-b-2 border-amber-600' : '' }}">
+                    Pajak Kendaraan
                 </a>
             </div>
 
@@ -209,6 +215,17 @@
                                 Ambil Surat
                             </a>
 
+                            <a href="{{ route('kendaraan.index') }}"
+                               class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
+                                      {{ request()->routeIs('kendaraan.*', 'admin.kendaraan.*')
+                                          ? 'bg-amber-50 text-amber-600 border-amber-600 font-semibold'
+                                          : 'text-gray-700 border-transparent hover:bg-amber-50 hover:text-amber-600 hover:border-amber-600' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 17h14m-1 0a2 2 0 11-4 0m-6 0a2 2 0 11-4 0m1-9h8l3 4H5l1-4zm0 0H4a2 2 0 00-2 2v4h2m14 0h4v-3a1 1 0 00-1-1h-3m-8 0v-2h3v2" />
+                                </svg>
+                                Pajak Kendaraan
+                            </a>
+
                             <a href="{{ route('presensi.index') }}"
                                class="group flex items-center gap-3 px-4 py-2.5 text-sm border-l-2 transition-all
                                       {{ request()->routeIs('presensi.*')
@@ -271,6 +288,15 @@
         </div>
     </div>
 </nav>
+
+<div class="border-b border-gray-200 bg-white px-4 py-2 md:hidden">
+    <a href="{{ route('kendaraan.index') }}" class="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('kendaraan.*', 'admin.kendaraan.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-700 hover:bg-amber-50 hover:text-amber-700' }}">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 17h14m-1 0a2 2 0 11-4 0m-6 0a2 2 0 11-4 0m1-9h8l3 4H5l1-4z" />
+        </svg>
+        Pajak Kendaraan
+    </a>
+</div>
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -20,7 +19,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SuratExport implements FromQuery, ShouldAutoSize, WithCustomStartCell, WithEvents, WithHeadings, WithMapping, WithStyles
+class SuratExport implements FromQuery, WithCustomStartCell, WithEvents, WithHeadings, WithMapping, WithStyles
 {
     use Exportable;
 
@@ -36,7 +35,7 @@ class SuratExport implements FromQuery, ShouldAutoSize, WithCustomStartCell, Wit
                 $sheet = $event->getSheet()->getDelegate();
                 $sheet->mergeCells('A1:H1');
                 $sheet->mergeCells('A2:H2');
-                $sheet->setCellValue('A1', 'BUKU AGENDA SURAT KELUAR');
+                $sheet->setCellValue('A1', 'BUKU AGENDA SURAT KELUAR/MASUK');
                 $sheet->setCellValue('A2', 'Tanggal Export: '.now()->format('d-m-Y H:i'));
             },
         ];
@@ -79,17 +78,26 @@ class SuratExport implements FromQuery, ShouldAutoSize, WithCustomStartCell, Wit
     {
         $lastRow = max($sheet->getHighestRow(), 4);
 
-        $sheet->getStyle("A1:H{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle("A1:H{$lastRow}")->getAlignment()->setWrapText(true);
+        $sheet->getStyle("A1:H{$lastRow}")->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+            ->setVertical(Alignment::VERTICAL_TOP)
+            ->setWrapText(true)
+            ->setShrinkToFit(false);
         $sheet->getStyle("A4:H{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
         $sheet->getStyle('A1:H1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
         ]);
         $sheet->getStyle('A2:H2')->applyFromArray([
             'font' => ['italic' => true, 'color' => ['rgb' => '6B7280']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
         ]);
 
         $sheet->getStyle('A4:H4')->applyFromArray([
@@ -102,15 +110,25 @@ class SuratExport implements FromQuery, ShouldAutoSize, WithCustomStartCell, Wit
             ],
         ]);
 
-        $sheet->getStyle("A5:B{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("F5:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getRowDimension(1)->setRowHeight(28);
         $sheet->getRowDimension(2)->setRowHeight(20);
         $sheet->getRowDimension(4)->setRowHeight(32);
 
+        for ($row = 5; $row <= $lastRow; $row++) {
+            $contentLength = max(
+                mb_strlen((string) $sheet->getCell("D{$row}")->getValue()),
+                mb_strlen((string) $sheet->getCell("E{$row}")->getValue()),
+                mb_strlen((string) $sheet->getCell("H{$row}")->getValue())
+            );
+            $estimatedLines = max(1, (int) ceil($contentLength / 42));
+            $sheet->getRowDimension($row)->setRowHeight(max(24, min(90, $estimatedLines * 15)));
+        }
+
+        // Lebar tetap mencegah isi panjang memperlebar kolom; wrap text
+        // membuat teks turun ke baris berikutnya.
         $widths = [
-            'A' => 12, 'B' => 15, 'C' => 24, 'D' => 32,
-            'E' => 42, 'F' => 18, 'G' => 16, 'H' => 24,
+            'A' => 12, 'B' => 15, 'C' => 24, 'D' => 28,
+            'E' => 42, 'F' => 18, 'G' => 16, 'H' => 28,
         ];
 
         foreach ($widths as $column => $width) {

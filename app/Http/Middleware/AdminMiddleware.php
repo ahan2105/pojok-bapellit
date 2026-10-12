@@ -14,14 +14,14 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('login');
         }
 
         $user = Auth::user();
-        
+
         // Cek admin langsung dari property (mendukung legacy & new structure)
-        if (!($user->role === 'admin' || $user->is_admin === true)) {
+        if (! ($user->role === 'admin' || $user->is_admin === true)) {
             abort(403, 'Unauthorized access. Admin only.');
         }
 

@@ -136,6 +136,7 @@ class PegawaiSeeder extends Seeder
             if ($exists) {
                 $this->command->warn("⏭  Skip (sudah ada): {$nama}");
                 $skipped++;
+
                 continue;
             }
 
@@ -143,16 +144,16 @@ class PegawaiSeeder extends Seeder
             $email = $this->generateEmail($nama);
 
             User::create([
-                'name'     => $nama,
-                'nip'      => $nip,
+                'name' => $nama,
+                'nip' => $nip,
                 'golongan' => $golongan,
-                'jabatan'  => $jabatan,
-                'bidang'   => $bidang,
-                'role'     => 'user',
+                'jabatan' => $jabatan,
+                'bidang' => $bidang,
+                'role' => 'user',
                 'is_admin' => false,
-                'status'   => 'aktif',
+                'status' => 'aktif',
                 'username' => $username,
-                'email'    => $email,
+                'email' => $email,
                 'password' => $this->defaultPassword,
             ]);
 
@@ -161,10 +162,10 @@ class PegawaiSeeder extends Seeder
         }
 
         $this->command->newLine();
-        $this->command->info("📊 Selesai!");
+        $this->command->info('📊 Selesai!');
         $this->command->info("   Berhasil insert: {$inserted}");
         $this->command->info("   Skip          : {$skipped}");
-        $this->command->info("   Total data    : " . count($this->pegawai));
+        $this->command->info('   Total data    : '.count($this->pegawai));
         $this->command->newLine();
         $this->command->info("🔑 Password default: {$this->defaultPassword}");
     }
@@ -181,7 +182,7 @@ class PegawaiSeeder extends Seeder
         $i = 1;
         while (User::where('username', $username)->exists()) {
             $i++;
-            $username = $base . $i;
+            $username = $base.$i;
         }
 
         return $username;
@@ -195,12 +196,12 @@ class PegawaiSeeder extends Seeder
         $firstWord = explode(' ', $cleanName)[0];
         $baseEmail = strtolower(preg_replace('/[^a-z0-9]/', '', $firstWord));
 
-        $email = $baseEmail . '@gmail.com';
+        $email = $baseEmail.'@gmail.com';
         $base = $baseEmail;
         $i = 1;
         while (User::where('email', $email)->exists()) {
             $i++;
-            $email = $base . $i . '@gmail.com';
+            $email = $base.$i.'@gmail.com';
         }
 
         return $email;

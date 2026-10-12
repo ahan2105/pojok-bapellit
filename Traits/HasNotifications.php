@@ -2,9 +2,9 @@
 
 namespace App\Traits;
 
+use App\Events\NotificationSent;
 use App\Models\Notification;
 use App\Models\User;
-use App\Events\NotificationSent;
 
 trait HasNotifications
 {
@@ -35,11 +35,11 @@ trait HasNotifications
         ?string $url = null
     ): Notification {
         $notif = $this->customNotifications()->create([
-            'type'    => $type,
-            'title'   => $title,
+            'type' => $type,
+            'title' => $title,
             'message' => $message,
-            'data'    => $data,
-            'url'     => $url,
+            'data' => $data,
+            'url' => $url,
         ]);
 
         broadcast(new NotificationSent($notif));

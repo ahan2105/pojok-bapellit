@@ -19,6 +19,7 @@ class AulaController extends Controller
     {
         // ⭐ OPTIMASI: Gunakan paginate agar tidak memuat semua data sekaligus
         $aulas = Aula::orderBy('created_at', 'desc')->paginate(10);
+
         return view('admin.aula.index', compact('aulas'));
     }
 
@@ -36,14 +37,14 @@ class AulaController extends Controller
     private function validateAula(Request $request, ?int $id = null)
     {
         $rules = [
-            'nama' => 'required|string|max:255|unique:aulas,nama' . ($id ? ',' . $id : ''),
+            'nama' => 'required|string|max:255|unique:aulas,nama'.($id ? ','.$id : ''),
             'kapasitas' => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
             'informasi_tambahan' => 'nullable|string',
             'lokasi' => 'nullable|string|max:255',
             'foto.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             'foto' => 'nullable|array|max:3',
-            'status_aktif' => 'boolean'
+            'status_aktif' => 'boolean',
         ];
 
         $messages = [
@@ -80,10 +81,11 @@ class AulaController extends Controller
 
         $fotoPaths = $existingFoto;
         foreach ($validFiles as $file) {
-            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('uploads/aulas', $filename, 'public');
             $fotoPaths[] = $path;
         }
+
         return $fotoPaths;
     }
 
@@ -96,11 +98,13 @@ class AulaController extends Controller
             $fasilitas = json_decode($request->fasilitas, true);
             if (is_array($fasilitas)) {
                 $fasilitas = array_filter($fasilitas, function ($item) {
-                    return !empty(trim($item));
+                    return ! empty(trim($item));
                 });
+
                 return array_values($fasilitas);
             }
         }
+
         return [];
     }
 
@@ -118,7 +122,7 @@ class AulaController extends Controller
         }
 
         try {
-            $aula = new Aula();
+            $aula = new Aula;
             $aula->nama = $request->nama;
             $aula->kapasitas = $request->kapasitas;
             $aula->deskripsi = $request->deskripsi;
@@ -143,11 +147,11 @@ class AulaController extends Controller
             Cache::forget('active_aulas_list');
 
             return redirect()->route('admin.aula.index')
-                ->with('success', 'Data aula "' . $aula->nama . '" berhasil ditambahkan!');
+                ->with('success', 'Data aula "'.$aula->nama.'" berhasil ditambahkan!');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -158,6 +162,7 @@ class AulaController extends Controller
     public function edit(int $id)
     {
         $aula = Aula::findOrFail($id);
+
         return view('admin.aula.edit', compact('aula'));
     }
 
@@ -203,11 +208,11 @@ class AulaController extends Controller
             Cache::forget('active_aulas_list');
 
             return redirect()->route('admin.aula.index')
-                ->with('success', 'Data aula "' . $aula->nama . '" berhasil diperbarui!');
+                ->with('success', 'Data aula "'.$aula->nama.'" berhasil diperbarui!');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage())
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -235,11 +240,11 @@ class AulaController extends Controller
             Cache::forget('active_aulas_list');
 
             return redirect()->route('admin.aula.index')
-                ->with('success', 'Data aula "' . $namaAula . '" berhasil dihapus!');
+                ->with('success', 'Data aula "'.$namaAula.'" berhasil dihapus!');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus data: '.$e->getMessage());
         }
     }
 
@@ -255,7 +260,7 @@ class AulaController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => $aula,
-                    'foto_urls' => $aula->foto_urls
+                    'foto_urls' => $aula->foto_urls,
                 ]);
             }
 
@@ -265,7 +270,7 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Aula tidak ditemukan'
+                    'message' => 'Aula tidak ditemukan',
                 ], 404);
             }
             abort(404);
@@ -279,7 +284,7 @@ class AulaController extends Controller
     {
         try {
             $aula = Aula::findOrFail($id);
-            $aula->status_aktif = !$aula->status_aktif;
+            $aula->status_aktif = ! $aula->status_aktif;
             $aula->save();
 
             $status = $aula->status_aktif ? 'diaktifkan' : 'dinonaktifkan';
@@ -290,24 +295,24 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Status aula berhasil ' . $status,
-                    'status' => $aula->status_aktif
+                    'message' => 'Status aula berhasil '.$status,
+                    'status' => $aula->status_aktif,
                 ]);
             }
 
             return redirect()->back()
-                ->with('success', 'Status aula berhasil ' . $status . '!');
+                ->with('success', 'Status aula berhasil '.$status.'!');
 
         } catch (\Exception $e) {
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal mengubah status: ' . $e->getMessage()
+                    'message' => 'Gagal mengubah status: '.$e->getMessage(),
                 ], 500);
             }
 
             return redirect()->back()
-                ->with('error', 'Gagal mengubah status: ' . $e->getMessage());
+                ->with('error', 'Gagal mengubah status: '.$e->getMessage());
         }
     }
 
@@ -334,7 +339,7 @@ class AulaController extends Controller
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'Semua foto berhasil dihapus'
+                        'message' => 'Semua foto berhasil dihapus',
                     ]);
                 }
 
@@ -345,7 +350,7 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak ada foto untuk dihapus'
+                    'message' => 'Tidak ada foto untuk dihapus',
                 ]);
             }
 
@@ -356,12 +361,12 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal menghapus foto: ' . $e->getMessage()
+                    'message' => 'Gagal menghapus foto: '.$e->getMessage(),
                 ], 500);
             }
 
             return redirect()->back()
-                ->with('error', 'Gagal menghapus foto: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus foto: '.$e->getMessage());
         }
     }
 
@@ -390,7 +395,7 @@ class AulaController extends Controller
                 if (request()->ajax()) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'Foto berhasil dihapus'
+                        'message' => 'Foto berhasil dihapus',
                     ]);
                 }
 
@@ -401,7 +406,7 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Foto tidak ditemukan'
+                    'message' => 'Foto tidak ditemukan',
                 ], 404);
             }
 
@@ -412,12 +417,12 @@ class AulaController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal menghapus foto: ' . $e->getMessage()
+                    'message' => 'Gagal menghapus foto: '.$e->getMessage(),
                 ], 500);
             }
 
             return redirect()->back()
-                ->with('error', 'Gagal menghapus foto: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus foto: '.$e->getMessage());
         }
     }
 
@@ -440,20 +445,20 @@ class AulaController extends Controller
                             'kapasitas' => $aula->kapasitas,
                             'deskripsi' => $aula->deskripsi,
                             'foto_urls' => $aula->foto_urls,
-                            'fasilitas' => $aula->fasilitas
+                            'fasilitas' => $aula->fasilitas,
                         ];
                     });
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $aulas
+                'data' => $aulas,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+                'message' => 'Gagal mengambil data: '.$e->getMessage(),
             ], 500);
         }
     }

@@ -28,20 +28,20 @@ class AkunController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
-            'nip'      => ['nullable', 'string', 'max:50'],
+            'nip' => ['nullable', 'string', 'max:50'],
             'whatsapp' => ['nullable', 'string', 'max:20'],
-            'jabatan'  => ['nullable', 'string', 'max:255'],
+            'jabatan' => ['nullable', 'string', 'max:255'],
             'golongan' => ['nullable', 'string', 'max:50'],
-            'bidang'   => ['nullable', 'string', 'max:255'],
+            'bidang' => ['nullable', 'string', 'max:255'],
         ], [
             // Custom pesan error (opsional)
-            'email.email'     => 'Format email tidak valid.',
-            'email.unique'    => 'Email sudah digunakan oleh akun lain.',
-            'nip.max'         => 'NIP maksimal 50 karakter.',
-            'whatsapp.max'    => 'No. WhatsApp maksimal 20 karakter.',
-            'jabatan.max'     => 'Jabatan maksimal 255 karakter.',
-            'golongan.max'    => 'Golongan maksimal 50 karakter.',
-            'bidang.max'      => 'Bidang maksimal 255 karakter.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah digunakan oleh akun lain.',
+            'nip.max' => 'NIP maksimal 50 karakter.',
+            'whatsapp.max' => 'No. WhatsApp maksimal 20 karakter.',
+            'jabatan.max' => 'Jabatan maksimal 255 karakter.',
+            'golongan.max' => 'Golongan maksimal 50 karakter.',
+            'bidang.max' => 'Bidang maksimal 255 karakter.',
         ]);
 
         // Kalau email kosong → jangan ubah email lama (biar tidak jadi null)
@@ -72,9 +72,9 @@ class AkunController extends Controller
             ],
         ], [
             'profile_photo.required' => 'Silakan pilih foto terlebih dahulu.',
-            'profile_photo.image'    => 'File harus berupa gambar.',
-            'profile_photo.mimes'    => 'Foto harus berformat JPG, JPEG, PNG, atau WEBP.',
-            'profile_photo.max'      => 'Ukuran foto maksimal 2 MB.',
+            'profile_photo.image' => 'File harus berupa gambar.',
+            'profile_photo.mimes' => 'Foto harus berformat JPG, JPEG, PNG, atau WEBP.',
+            'profile_photo.max' => 'Ukuran foto maksimal 2 MB.',
         ]);
 
         $user = $request->user();
@@ -97,7 +97,7 @@ class AkunController extends Controller
     {
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password'         => ['required', 'confirmed', 'min:8'],
+            'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
         $request->user()->update([

@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             // ⭐ Tambah kolom jabatan (kalau belum ada)
-            if (!Schema::hasColumn('users', 'jabatan')) {
+            if (! Schema::hasColumn('users', 'jabatan')) {
                 $table->string('jabatan')->nullable()->after('bidang');
             }
-            
+
             // ⭐ Tambah kolom golongan (kalau belum ada)
-            if (!Schema::hasColumn('users', 'golongan')) {
+            if (! Schema::hasColumn('users', 'golongan')) {
                 $table->string('golongan')->nullable()->after('jabatan');
             }
         });

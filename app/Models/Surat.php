@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property int $user_id
  * @property string|null $no_surat
- * @property \Illuminate\Support\Carbon|null $tanggal
+ * @property Carbon|null $tanggal
  * @property string|null $no_indek
  * @property string|null $alamat_tujuan
  * @property string|null $isi_surat
@@ -27,10 +28,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read bool $is_pdf
  * @property-read bool $is_word
  * @property-read bool $is_excel
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- *
- * @property-read \App\Models\User|null $user
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User|null $user
  */
 class Surat extends Model
 {
@@ -57,7 +57,6 @@ class Surat extends Model
         'banyak_lampiran' => 'integer',
     ];
 
-    
     /**
      * Daftar ekstensi yang diizinkan (sinkron dengan validasi controller)
      * JPG/PNG dihapus dari daftar ini.
@@ -69,10 +68,10 @@ class Surat extends Model
      * Hanya untuk file yang diizinkan (PDF, Word, Excel)
      */
     public const FILE_STYLES = [
-        'pdf'  => ['label' => 'PDF',  'color' => 'red'],
-        'doc'  => ['label' => 'DOC',  'color' => 'blue'],
+        'pdf' => ['label' => 'PDF',  'color' => 'red'],
+        'doc' => ['label' => 'DOC',  'color' => 'blue'],
         'docx' => ['label' => 'DOCX', 'color' => 'blue'],
-        'xls'  => ['label' => 'XLS',  'color' => 'emerald'],
+        'xls' => ['label' => 'XLS',  'color' => 'emerald'],
         'xlsx' => ['label' => 'XLSX', 'color' => 'emerald'],
     ];
 
@@ -93,10 +92,11 @@ class Surat extends Model
      */
     public function getFileUrlAttribute(): ?string
     {
-        if (!$this->file_surat) {
+        if (! $this->file_surat) {
             return null;
         }
-        return asset('storage/' . $this->file_surat);
+
+        return asset('storage/'.$this->file_surat);
     }
 
     /**
@@ -104,7 +104,10 @@ class Surat extends Model
      */
     public function getFileExtensionAttribute(): ?string
     {
-        if (!$this->file_surat) return null;
+        if (! $this->file_surat) {
+            return null;
+        }
+
         return strtolower(pathinfo($this->file_surat, PATHINFO_EXTENSION));
     }
 
@@ -114,7 +117,10 @@ class Surat extends Model
     public function getFileLabelAttribute(): ?string
     {
         $ext = $this->file_extension;
-        if (!$ext) return null;
+        if (! $ext) {
+            return null;
+        }
+
         return self::FILE_STYLES[$ext]['label'] ?? strtoupper($ext);
     }
 
@@ -124,7 +130,10 @@ class Surat extends Model
     public function getFileColorAttribute(): string
     {
         $ext = $this->file_extension;
-        if (!$ext) return 'gray';
+        if (! $ext) {
+            return 'gray';
+        }
+
         return self::FILE_STYLES[$ext]['color'] ?? 'gray';
     }
 

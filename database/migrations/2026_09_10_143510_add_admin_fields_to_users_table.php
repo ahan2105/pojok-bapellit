@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Menambahkan No WhatsApp setelah email
             $table->string('whatsapp')->nullable()->after('email');
-            
+
             // Menambahkan Asal Bidang setelah role
             $table->string('bidang')->nullable()->after('role');
         });

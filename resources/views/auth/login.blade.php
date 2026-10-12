@@ -188,6 +188,8 @@
         .form-header {
             margin-bottom: 32px;
             text-align: center;
+            animation: slideInDown 0.6s ease-out forwards;
+            opacity: 0;
         }
 
         .form-title {
@@ -221,23 +223,24 @@
         /* Form Group */
         .form-group {
             margin-bottom: 24px;
-            animation: slideIn 0.5s ease-out forwards;
+            animation: slideInUp 0.6s ease-out forwards;
             opacity: 0;
         }
 
-        .form-group:nth-child(1) { animation-delay: 0.1s; }
-        .form-group:nth-child(2) { animation-delay: 0.2s; }
-        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(1) { animation-delay: 0.2s; }
+        .form-group:nth-child(2) { animation-delay: 0.3s; }
+        .form-group:nth-child(3) { animation-delay: 0.4s; }
+        .forgot-container { animation: slideInUp 0.6s ease-out forwards; opacity: 0; animation-delay: 0.5s; }
+        .submit-btn { animation: slideInUp 0.6s ease-out forwards; opacity: 0; animation-delay: 0.6s; }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .form-label {

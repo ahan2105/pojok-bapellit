@@ -120,10 +120,18 @@
     {{-- Sesi Aktif --}}
     @if($activeSessions->count())
     <div class="px-4 py-4 sm:px-6 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sesi Aktif Saat Ini ({{ $activeSessions->count() }})
-        </h3>
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Sesi Aktif Saat Ini ({{ $activeSessions->count() }})
+            </h3>
+            @if($activeSessions->count() > 0)
+            <form onsubmit="deleteWithSwal(event, this, 'Yakin ingin menghentikan semua sesi aktif lainnya?')" action="{{ route('admin.settings.sessions.destroy-all-active') }}" method="POST">
+                @csrf @method('DELETE')
+                <button type="submit" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition">Hapus Sesi Lainnya</button>
+            </form>
+            @endif
+        </div>
         {{-- Mobile --}}
         <div class="sm:hidden space-y-2">
             @foreach($activeSessions as $s)
@@ -133,9 +141,9 @@
                     <div class="text-xs text-gray-500 font-mono">{{ $s->ip_address ?? '-' }} · {{ $s->platform }} {{ $s->device }}</div>
                     <div class="text-[11px] text-gray-400">{{ \Carbon\Carbon::createFromTimestamp($s->last_activity)->diffForHumans() }}</div>
                 </div>
-                <form action="{{ route('admin.settings.sessions.destroy-active', $s->id) }}" method="POST" onsubmit="return confirm('Hapus sesi aktif ini?')" class="shrink-0">
+                <form onsubmit="deleteWithSwal(event, this, 'Hapus sesi aktif ini?')" action="{{ route('admin.settings.sessions.destroy-active', $s->id) }}" method="POST" class="shrink-0">
                     @csrf @method('DELETE')
-                    <button class="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs font-semibold text-red-600">Kick</button>
+                    <button type="submit" class="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs font-semibold text-red-600">Kick</button>
                 </form>
             </div>
             @endforeach
@@ -163,9 +171,9 @@
                         <td class="px-4 py-2.5 text-xs text-gray-600">{{ $s->platform }} · {{ $s->device }}</td>
                         <td class="px-4 py-2.5 text-xs text-gray-500">{{ \Carbon\Carbon::createFromTimestamp($s->last_activity)->diffForHumans() }}</td>
                         <td class="px-4 py-2.5 text-right">
-                            <form action="{{ route('admin.settings.sessions.destroy-active', $s->id) }}" method="POST" onsubmit="return confirm('Hapus sesi aktif ini?')" class="inline">
+                            <form onsubmit="deleteWithSwal(event, this, 'Hapus sesi aktif ini?')" action="{{ route('admin.settings.sessions.destroy-active', $s->id) }}" method="POST" class="inline">
                                 @csrf @method('DELETE')
-                                <button class="rounded bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100">Kick</button>
+                                <button type="submit" class="rounded bg-red-50 border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100">Kick</button>
                             </form>
                         </td>
                     </tr>
@@ -176,7 +184,16 @@
     </div>
     @endif
 
-    {{-- Riwayat Login --}}
+    {{-- Riwayat Login Header & Delete All --}}
+    <div class="px-4 py-4 sm:px-6 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-800">Semua Riwayat Log Aktivitas</h3>
+        @if($histories->count() > 0)
+        <form onsubmit="deleteWithSwal(event, this, 'Yakin ingin menghapus SELURUH riwayat sesi?')" action="{{ route('admin.settings.sessions.destroy-all') }}" method="POST">
+            @csrf @method('DELETE')
+            <button type="submit" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition">Hapus Semua Riwayat</button>
+        </form>
+        @endif
+    </div>
     {{-- Mobile cards --}}
     <div class="sm:hidden divide-y divide-gray-100">
         @forelse($histories as $h)
@@ -201,9 +218,9 @@
             <div class="text-xs text-gray-500">{{ $h->last_active_at?->format('d/m H:i') ?? '-' }} · {{ $h->last_active_at?->diffForHumans() }}</div>
             <div class="flex gap-2">
                 <button onclick="openBanModal({{ $h->user_id }}, '{{ $h->ip_address }}', `{{ addslashes($h->user_agent ?? '') }}`, '{{ $h->user->name ?? '' }}')" class="flex-1 rounded-lg bg-amber-500 py-2.5 text-sm font-semibold text-white hover:bg-amber-600">Ban</button>
-                <form action="{{ route('admin.settings.sessions.destroy', $h) }}" method="POST" onsubmit="return confirm('Hapus riwayat sesi ini?')" class="flex-1">
+                <form onsubmit="deleteWithSwal(event, this, 'Hapus riwayat sesi ini?')" action="{{ route('admin.settings.sessions.destroy', $h) }}" method="POST" class="flex-1">
                     @csrf @method('DELETE')
-                    <button class="w-full rounded-lg bg-white border border-gray-200 py-2.5 text-sm text-gray-700">Hapus</button>
+                    <button type="submit" class="w-full rounded-lg bg-white border border-gray-200 py-2.5 text-sm text-gray-700">Hapus</button>
                 </form>
             </div>
         </div>
@@ -258,9 +275,9 @@
                     <td class="px-4 py-3 text-right">
                         <div class="flex justify-end gap-1">
                             <button onclick="openBanModal({{ $h->user_id }}, '{{ $h->ip_address }}', `{{ addslashes($h->user_agent ?? '') }}`, '{{ $h->user->name ?? '' }}')" class="rounded bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600">Ban</button>
-                            <form action="{{ route('admin.settings.sessions.destroy', $h) }}" method="POST" onsubmit="return confirm('Hapus riwayat sesi ini?')">
+                            <form onsubmit="deleteWithSwal(event, this, 'Hapus riwayat sesi ini?')" action="{{ route('admin.settings.sessions.destroy', $h) }}" method="POST">
                                 @csrf @method('DELETE')
-                                <button class="rounded bg-white border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50">Hapus</button>
+                                <button type="submit" class="rounded bg-white border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50">Hapus</button>
                             </form>
                         </div>
                     </td>
@@ -315,4 +332,63 @@ function closeBanModal(){
     document.getElementById('banModal').classList.remove('flex');
 }
 document.getElementById('banModal')?.addEventListener('click', e=>{ if(e.target.id==='banModal') closeBanModal(); });
+
+async function deleteWithSwal(event, formElement, message = 'Yakin ingin menghapus ini?') {
+    event.preventDefault();
+    const result = await Swal.fire({
+        title: 'Konfirmasi',
+        text: message,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+        Swal.fire({
+            title: 'Menghapus...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        
+        try {
+            const formData = new FormData(formElement);
+            const response = await fetch(formElement.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            // Hapus elemen terdekat dari tampilan langsung tanpa reload
+            const rowOrCard = formElement.closest('tr') || formElement.closest('.p-4') || formElement.closest('.rounded-xl');
+            if (rowOrCard && !formElement.action.includes('semua')) {
+                rowOrCard.style.transition = 'all 0.5s ease';
+                rowOrCard.style.opacity = '0';
+                rowOrCard.style.transform = 'scale(0.95)';
+                setTimeout(() => rowOrCard.remove(), 500);
+            }
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'Sesi berhasil dihapus.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // Jika hapus semua, reload perlahan setelah animasi
+            if (formElement.action.includes('semua')) {
+                setTimeout(() => window.location.reload(), 1200);
+            }
+        } catch (err) {
+            Swal.fire('Error!', 'Terjadi kesalahan sistem.', 'error');
+        }
+    }
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

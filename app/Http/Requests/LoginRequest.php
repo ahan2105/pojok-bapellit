@@ -33,9 +33,9 @@ class LoginRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $login = $this->input('login');
-            
+
             if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
-                if (!str_ends_with($login, '@gmail.com')) {
+                if (! str_ends_with($login, '@gmail.com')) {
                     $validator->errors()->add('login', 'Email harus menggunakan domain @gmail.com');
                 }
             }

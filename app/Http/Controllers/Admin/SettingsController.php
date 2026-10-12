@@ -210,6 +210,21 @@ class SettingsController extends Controller
         return back()->with('success', 'Sesi aktif dihapus.');
     }
 
+    public function destroyAllSessions(Request $request)
+    {
+        LoginHistory::truncate();
+
+        return back()->with('success', 'Semua riwayat sesi berhasil dihapus.');
+    }
+
+    public function destroyAllActiveSessions(Request $request)
+    {
+        // Hapus semua kecuali sesi milik admin yang sedang login
+        DB::table('sessions')->where('id', '!=', session()->getId())->delete();
+
+        return back()->with('success', 'Semua sesi aktif lainnya berhasil dihapus.');
+    }
+
     public function banSession(Request $request)
     {
         $request->validate([

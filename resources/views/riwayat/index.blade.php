@@ -10,11 +10,14 @@
 @section('title', 'Riwayat Booking aula')
 
 @section('content')
-<div class="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-8" x-data="riwayatManager()">
+<div class="max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 py-8" x-data="riwayatManager()" x-init="initPage()">
     
     <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">
+    <div class="mb-8" x-show="showPage" 
+         x-transition:enter="transition ease-out duration-700" 
+         x-transition:enter-start="opacity-0 -translate-x-8" 
+         x-transition:enter-end="opacity-100 translate-x-0">
+        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">
             {{ $isAdmin ? 'Riwayat & Log Aktivitas' : 'Riwayat Booking Saya' }}
         </h1>
         <p class="text-base text-gray-500 mt-2 leading-relaxed max-w-3xl">
@@ -24,48 +27,48 @@
         </p>
     </div>
 
-    <!-- Tab Navigation (Hanya Booking Aula) -->
-    <div class="border-b border-gray-200 mb-6">
-        <div class="flex gap-8">
-            <button class="pb-3 text-base font-semibold text-indigo-600 border-b-2 border-indigo-600">
-                Booking Aula
-            </button>
-        </div>
-    </div>
+
 
     <!-- Filter & Search Bar -->
-    <div class="flex flex-col md:flex-row gap-3 mb-6">
+    <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="showPage" 
+         x-transition:enter="transition ease-out duration-700 delay-200" 
+         x-transition:enter-start="opacity-0 translate-y-4" 
+         x-transition:enter-end="opacity-100 translate-y-0">
         <!-- Search -->
-        <div class="relative flex-1">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative flex-1 group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-500">
+                <svg class="w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
             </div>
             <input type="text" 
                 x-model="searchQuery"
                 placeholder="Cari riwayat booking..." 
-                class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none text-base bg-white shadow-sm">
+                class="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none text-sm bg-white shadow-sm hover:shadow-md transition-all duration-300 placeholder-gray-400">
         </div>
     </div>
 
     <!-- ============================================ -->
     <!-- DESKTOP TABLE VIEW (Hidden on Mobile)        -->
     <!-- ============================================ -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hidden md:block">
+    <div class="bg-white rounded-3xl shadow-sm border border-gray-200/80 overflow-hidden hidden md:block"
+         x-show="showPage" 
+         x-transition:enter="transition ease-out duration-700 delay-300" 
+         x-transition:enter-start="opacity-0 translate-y-8" 
+         x-transition:enter-end="opacity-100 translate-y-0">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
-                    <tr class="border-b border-gray-100">
-                        <th class="px-6 py-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Aula</th>
-                        <th class="px-6 py-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pemohon</th>
-                        <th class="px-6 py-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jadwal</th>
-                        <th class="px-6 py-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Keperluan</th>
-                        <th class="px-6 py-5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                    <tr class="bg-slate-50/50 border-b border-gray-100">
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Aula</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Pemohon</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Jadwal</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Keperluan</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                        <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-50/80">
                     @forelse($bookings as $booking)
                         @php
                             $sesiLabels = [
@@ -74,55 +77,69 @@
                                 'seharian' => 'Seharian (08:00-17:00)'
                             ];
                             $statusConfig = [
-                                'pending' => ['label' => 'Menunggu', 'dot' => 'bg-yellow-500', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-700'],
-                                'approved' => ['label' => 'Disetujui', 'dot' => 'bg-green-500', 'bg' => 'bg-green-50', 'text' => 'text-green-700'],
-                                'rejected' => ['label' => 'Ditolak', 'dot' => 'bg-red-500', 'bg' => 'bg-red-50', 'text' => 'text-red-700'],
-                                'canceled' => ['label' => 'Dibatalkan', 'dot' => 'bg-red-500', 'bg' => 'bg-red-50', 'text' => 'text-red-700'],
-                                'completed' => ['label' => 'Selesai', 'dot' => 'bg-slate-400', 'bg' => 'bg-slate-100', 'text' => 'text-slate-700'],
+                                'pending' => ['label' => 'Menunggu', 'dot' => 'bg-amber-500', 'bg' => 'bg-amber-50', 'text' => 'text-amber-700 ring-1 ring-inset ring-amber-600/20'],
+                                'approved' => ['label' => 'Disetujui', 'dot' => 'bg-emerald-500', 'bg' => 'bg-emerald-50', 'text' => 'text-emerald-700 ring-1 ring-inset ring-emerald-600/20'],
+                                'rejected' => ['label' => 'Ditolak', 'dot' => 'bg-rose-500', 'bg' => 'bg-rose-50', 'text' => 'text-rose-700 ring-1 ring-inset ring-rose-600/20'],
+                                'canceled' => ['label' => 'Dibatalkan', 'dot' => 'bg-rose-500', 'bg' => 'bg-rose-50', 'text' => 'text-rose-700 ring-1 ring-inset ring-rose-600/20'],
+                                'completed' => ['label' => 'Selesai', 'dot' => 'bg-slate-400', 'bg' => 'bg-slate-50', 'text' => 'text-slate-700 ring-1 ring-inset ring-slate-600/20'],
                             ];
-                            $status = $statusConfig[$booking->status] ?? ['label' => $booking->status, 'dot' => 'bg-gray-400', 'bg' => 'bg-gray-50', 'text' => 'text-gray-700'];
-                            $userInitial = strtoupper(substr($booking->user->name ?? 'U', 0, 1));
+                            $status = $statusConfig[$booking->status] ?? ['label' => $booking->status, 'dot' => 'bg-gray-400', 'bg' => 'bg-gray-50', 'text' => 'text-gray-700 ring-1 ring-inset ring-gray-600/20'];
+                            
+                            $aulaFoto = null;
+                            if ($booking->aula && !empty($booking->aula->foto_urls)) {
+                                $aulaFoto = $booking->aula->foto_urls[0];
+                            }
+                            $aulaImageFallback = 'https://ui-avatars.com/api/?name='.urlencode($booking->aula->nama ?? 'Aula').'&background=e0e7ff&color=4f46e5&size=128&font-size=0.33';
+                            $aulaImage = $aulaFoto ?: $aulaImageFallback;
+
+                            $userAvatarFallback = 'https://ui-avatars.com/api/?name='.urlencode($booking->user->name ?? 'User').'&background=random&color=fff&size=128';
+                            $userAvatar = ($booking->user && $booking->user->profile_photo) 
+                                ? asset('storage/' . $booking->user->profile_photo) 
+                                : $userAvatarFallback;
+                            
+                            $searchString = strtolower(($booking->aula->nama ?? '') . ' ' . ($booking->user->name ?? '') . ' ' . ($booking->keperluan ?? ''));
                         @endphp
-                        <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition">
+                        <tr x-show="matchesSearch('{{ addslashes($searchString) }}')"
+                            x-transition:enter="transition ease-out duration-700 delay-500"
+                            x-transition:enter-start="opacity-0 translate-y-8"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-300"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="group hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-5">
                                 <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                        </svg>
-                                    </div>
+                                    <img src="{{ $aulaImage }}" alt="Foto Aula" class="w-10 h-10 rounded-xl object-cover flex-shrink-0 ring-1 ring-inset ring-indigo-500/20 shadow-sm" loading="lazy">
                                     <div>
-                                        <p class="font-semibold text-gray-900 text-base">{{ $booking->aula->nama ?? 'Aula' }}</p>
-                                        <p class="text-sm text-gray-400 mt-0.5">{{ $booking->aula->lokasi ?? 'Lokasi belum diisi' }}</p>
+                                        <p class="font-semibold text-gray-900 text-sm md:text-base">{{ $booking->aula->nama ?? 'Aula' }}</p>
+                                        <p class="text-xs md:text-sm text-gray-500 mt-0.5">{{ $booking->aula->lokasi ?? 'Lokasi belum diisi' }}</p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-5">
                                 <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
-                                        <span class="text-white font-semibold text-sm">{{ $userInitial }}</span>
-                                    </div>
+                                    <img src="{{ $userAvatar }}" alt="Avatar User" class="w-10 h-10 rounded-full object-cover shadow-sm flex-shrink-0" loading="lazy">
                                     <div>
-                                        <p class="font-semibold text-gray-900 text-base">{{ $booking->user->name ?? 'User' }}</p>
-                                        <p class="text-sm text-gray-400 mt-0.5">{{ $booking->nama_penanggung_jawab ?? '-' }}</p>
+                                        <p class="font-semibold text-gray-900 text-sm md:text-base">{{ $booking->user->name ?? 'User' }}</p>
+                                        <p class="text-xs md:text-sm text-gray-500 mt-0.5">{{ $booking->nama_penanggung_jawab ?? '-' }}</p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-5">
-                                <p class="font-semibold text-gray-900 text-base">{{ \Carbon\Carbon::parse($booking->tanggal_booking)->format('d M Y') }}</p>
-                                <p class="text-sm text-gray-400 mt-0.5">{{ $sesiLabels[$booking->sesi_waktu] ?? $booking->sesi_waktu }}</p>
+                                <p class="font-semibold text-gray-900 text-sm md:text-base">{{ \Carbon\Carbon::parse($booking->tanggal_booking)->format('d M Y') }}</p>
+                                <p class="text-xs md:text-sm text-gray-500 mt-0.5">{{ $sesiLabels[$booking->sesi_waktu] ?? $booking->sesi_waktu }}</p>
                             </td>
                             <td class="px-6 py-5">
-                                <p class="font-semibold text-gray-900 text-base line-clamp-2">{{ $booking->keperluan }}</p>
+                                <p class="font-medium text-gray-700 text-sm line-clamp-2 max-w-xs">{{ $booking->keperluan }}</p>
                             </td>
                             <td class="px-6 py-5">
-                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium {{ $status['bg'] }} {{ $status['text'] }}">
-                                    <span class="w-2 h-2 rounded-full {{ $status['dot'] }}"></span>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {{ $status['bg'] }} {{ $status['text'] }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $status['dot'] }}"></span>
                                     {{ $status['label'] }}
                                 </span>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
                                     <button type="button" 
                                         @click="openDetail({
                                             id: {{ $booking->id }},
@@ -142,7 +159,7 @@
                                             status_bg: '{{ $status['bg'] }}',
                                             status_text: '{{ $status['text'] }}'
                                         })"
-                                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition">
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 rounded-lg transition-colors focus:ring-2 focus:ring-indigo-500/20">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -153,7 +170,7 @@
                                     @if($booking->status == 'pending')
                                         <form action="{{ route('riwayat.cancel', $booking->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan booking ini?')">
                                             @csrf
-                                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition">
+                                            <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-100 hover:bg-rose-100 rounded-lg transition-colors focus:ring-2 focus:ring-rose-500/20">
                                                 Batalkan
                                             </button>
                                         </form>
@@ -163,13 +180,18 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-20 text-center">
-                                <svg class="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <p class="text-lg font-medium text-gray-700 mb-1">Belum Ada Riwayat Booking</p>
-                                <p class="text-base text-gray-500 mb-6">Anda belum pernah melakukan booking aula.</p>
-                                <a href="{{ route('booking.index') }}" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-base font-medium">
+                            <td colspan="6" class="px-6 py-24 text-center">
+                                <div class="w-24 h-24 mx-auto mb-6 bg-slate-50 rounded-full flex items-center justify-center ring-8 ring-slate-50/50">
+                                    <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-xl font-bold text-gray-900 mb-2">Belum Ada Riwayat Booking</p>
+                                <p class="text-base text-gray-500 mb-8 max-w-sm mx-auto">Anda belum pernah melakukan booking aula. Silakan buat pengajuan booking pertama Anda.</p>
+                                <a href="{{ route('booking.index') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg transition-all text-base font-semibold shadow-indigo-500/30">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
                                     Booking Sekarang
                                 </a>
                             </td>
@@ -194,7 +216,11 @@
     <!-- ============================================ -->
     <!-- MOBILE CARD VIEW (Hidden on Desktop)         -->
     <!-- ============================================ -->
-    <div class="md:hidden space-y-4">
+    <div class="md:hidden space-y-4"
+         x-show="showPage" 
+         x-transition:enter="transition ease-out duration-700 delay-300" 
+         x-transition:enter-start="opacity-0 translate-y-8" 
+         x-transition:enter-end="opacity-100 translate-y-0">
         @forelse($bookings as $booking)
             @php
                 $sesiLabels = [
@@ -203,30 +229,47 @@
                     'seharian' => 'Seharian (08:00-17:00)'
                 ];
                 $statusConfig = [
-                    'pending' => ['label' => 'Menunggu', 'dot' => 'bg-yellow-500', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-700'],
-                    'approved' => ['label' => 'Disetujui', 'dot' => 'bg-green-500', 'bg' => 'bg-green-50', 'text' => 'text-green-700'],
-                    'rejected' => ['label' => 'Ditolak', 'dot' => 'bg-red-500', 'bg' => 'bg-red-50', 'text' => 'text-red-700'],
-                    'canceled' => ['label' => 'Dibatalkan', 'dot' => 'bg-red-500', 'bg' => 'bg-red-50', 'text' => 'text-red-700'],
-                    'completed' => ['label' => 'Selesai', 'dot' => 'bg-slate-400', 'bg' => 'bg-slate-100', 'text' => 'text-slate-700'],
+                    'pending' => ['label' => 'Menunggu', 'dot' => 'bg-amber-500', 'bg' => 'bg-amber-50', 'text' => 'text-amber-700 ring-1 ring-inset ring-amber-600/20'],
+                    'approved' => ['label' => 'Disetujui', 'dot' => 'bg-emerald-500', 'bg' => 'bg-emerald-50', 'text' => 'text-emerald-700 ring-1 ring-inset ring-emerald-600/20'],
+                    'rejected' => ['label' => 'Ditolak', 'dot' => 'bg-rose-500', 'bg' => 'bg-rose-50', 'text' => 'text-rose-700 ring-1 ring-inset ring-rose-600/20'],
+                    'canceled' => ['label' => 'Dibatalkan', 'dot' => 'bg-rose-500', 'bg' => 'bg-rose-50', 'text' => 'text-rose-700 ring-1 ring-inset ring-rose-600/20'],
+                    'completed' => ['label' => 'Selesai', 'dot' => 'bg-slate-500', 'bg' => 'bg-slate-50', 'text' => 'text-slate-700 ring-1 ring-inset ring-slate-600/20'],
                 ];
-                $status = $statusConfig[$booking->status] ?? ['label' => $booking->status, 'dot' => 'bg-gray-400', 'bg' => 'bg-gray-50', 'text' => 'text-gray-700'];
+                $status = $statusConfig[$booking->status] ?? ['label' => $booking->status, 'dot' => 'bg-gray-400', 'bg' => 'bg-gray-50', 'text' => 'text-gray-700 ring-1 ring-inset ring-gray-600/20'];
+                
+                $aulaFoto = null;
+                if ($booking->aula && !empty($booking->aula->foto_urls)) {
+                    $aulaFoto = $booking->aula->foto_urls[0];
+                }
+                $aulaImageFallback = 'https://ui-avatars.com/api/?name='.urlencode($booking->aula->nama ?? 'Aula').'&background=e0e7ff&color=4f46e5&size=128&font-size=0.33';
+                $aulaImage = $aulaFoto ?: $aulaImageFallback;
+
+                $userAvatarFallback = 'https://ui-avatars.com/api/?name='.urlencode($booking->user->name ?? 'User').'&background=random&color=fff&size=128';
+                $userAvatar = ($booking->user && $booking->user->profile_photo) 
+                    ? asset('storage/' . $booking->user->profile_photo) 
+                    : $userAvatarFallback;
+                
+                $searchString = strtolower(($booking->aula->nama ?? '') . ' ' . ($booking->user->name ?? '') . ' ' . ($booking->keperluan ?? ''));
             @endphp
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div x-show="matchesSearch('{{ addslashes($searchString) }}')"
+                 x-transition:enter="transition ease-out duration-700 delay-500"
+                 x-transition:enter-start="opacity-0 translate-y-8"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-300"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-5 hover:shadow-md transition-shadow duration-300">
                 <!-- Header Card: Aula + Status -->
-                <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="flex items-start justify-between gap-3 mb-5">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
-                        </div>
+                        <img src="{{ $aulaImage }}" alt="Foto Aula" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 ring-1 ring-inset ring-indigo-500/20 shadow-sm" loading="lazy">
                         <div class="min-w-0">
                             <p class="font-bold text-gray-900 text-base truncate">{{ $booking->aula->nama ?? 'Aula' }}</p>
-                            <p class="text-xs text-gray-400 truncate">{{ $booking->aula->lokasi ?? 'Lokasi belum diisi' }}</p>
+                            <p class="text-xs text-gray-500 truncate mt-0.5">{{ $booking->aula->lokasi ?? 'Lokasi belum diisi' }}</p>
                         </div>
                     </div>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 {{ $status['bg'] }} {{ $status['text'] }}">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ $status['bg'] }} {{ $status['text'] }}">
                         <span class="w-1.5 h-1.5 rounded-full {{ $status['dot'] }}"></span>
                         {{ $status['label'] }}
                     </span>
@@ -273,7 +316,7 @@
                             status_bg: '{{ $status['bg'] }}',
                             status_text: '{{ $status['text'] }}'
                         })"
-                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition">
+                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 rounded-xl transition-colors focus:ring-2 focus:ring-indigo-500/20">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -284,7 +327,7 @@
                     @if($booking->status == 'pending')
                         <form action="{{ route('riwayat.cancel', $booking->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan booking ini?')" class="flex-1">
                             @csrf
-                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition">
+                            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-rose-700 bg-rose-50 border border-rose-100 hover:bg-rose-100 rounded-xl transition-colors focus:ring-2 focus:ring-rose-500/20">
                                 Batalkan
                             </button>
                         </form>
@@ -292,13 +335,19 @@
                 </div>
             </div>
         @empty
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <p class="text-lg font-medium text-gray-700 mb-1">Belum Ada Riwayat Booking</p>
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-200/80 p-10 text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <div class="w-20 h-20 mx-auto mb-5 bg-slate-50 rounded-full flex items-center justify-center ring-8 ring-slate-50/50">
+                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <p class="text-lg font-bold text-gray-900 mb-1">Belum Ada Riwayat</p>
                 <p class="text-sm text-gray-500 mb-6">Anda belum pernah melakukan booking aula.</p>
-                <a href="{{ route('booking.index') }}" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                <a href="{{ route('booking.index') }}" class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-semibold shadow-md shadow-indigo-500/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
                     Booking Sekarang
                 </a>
             </div>
@@ -421,7 +470,22 @@
 <script>
     function riwayatManager() {
         return {
-            searchQuery: '',
+            searchQuery: null,
+            showPage: false,
+            initPage() {
+                setTimeout(() => {
+                    this.showPage = true;
+                    // Trigger enter animation on rows after page wrapper is visible
+                    setTimeout(() => {
+                        this.searchQuery = '';
+                    }, 50);
+                }, 50);
+            },
+            matchesSearch(text) {
+                if (this.searchQuery === null) return false;
+                if (this.searchQuery.trim() === '') return true;
+                return text.includes(this.searchQuery.toLowerCase().trim());
+            },
             showDetailModal: false,
             detail: {
                 id: '',

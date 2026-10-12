@@ -367,11 +367,7 @@
 <div class="relative z-10 min-h-screen">
 
     {{-- HEADER / JUDUL --}}
-    <div class="text-center pt-24 md:pt-28 pb-10 px-6">
-        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/95 backdrop-blur-sm shadow-lg text-gray-900 text-xs font-bold tracking-widest uppercase">
-            <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-            Booking Aula
-        </div>
+    <div class="text-center pt-20 md:pt-25 pb-10 px-6">
         <h1 class="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-[52px] tracking-tight leading-tight"
             style="font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
                    font-weight: 800;
