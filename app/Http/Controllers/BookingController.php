@@ -147,7 +147,6 @@ class BookingController extends Controller
 
             return redirect()->route('riwayat.index')
                 ->with('success', 'Booking berhasil! Menunggu persetujuan admin.');
-
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal booking: '.$e->getMessage())->withInput();
         }
@@ -208,7 +207,6 @@ class BookingController extends Controller
 
             return redirect()->back()
                 ->with('success', 'Booking berhasil dibatalkan!');
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Gagal membatalkan booking: '.$e->getMessage());

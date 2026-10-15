@@ -6,311 +6,476 @@
 @endphp
 
 @extends($layout)
-
 @section('title', 'Presensi Saya')
-
 @section('content')
-<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8">
 
-    <!-- Header + Tombol Scan -->
-    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div class="flex-1">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Presensi Saya</h1>
-            <p class="text-sm sm:text-base text-gray-600 mt-2">
-                Riwayat dan statistik kehadiran Anda di semua sesi absensi.
-            </p>
-        </div>
+<style>
+    .bapelit-hero {
+        background: linear-gradient(135deg, #0f2d5e 0%, #1a4a8a 60%, #1e5799 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .bapelit-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: radial-gradient(circle at 80% 20%, rgba(234,179,8,0.15) 0%, transparent 50%),
+                          radial-gradient(circle at 10% 80%, rgba(255,255,255,0.05) 0%, transparent 40%);
+    }
+    .bapelit-hero > * {
+        position: relative;
+        z-index: 1;
+    }
 
-        {{-- ⭐ Tombol Scan Absensi --}}
-        <a href="{{ route('absensi.scan-page') }}" 
-           class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg self-start sm:self-center flex-shrink-0">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-            </svg>
-            Scan Absensi
-        </a>
-    </div>
+    .stat-card-hadir   { background: linear-gradient(135deg,#16a34a,#15803d); }
+    .stat-card-tidak   { background: linear-gradient(135deg,#dc2626,#b91c1c); }
+    .stat-card-persen  { background: linear-gradient(135deg,#0f2d5e,#1a4a8a); }
+    .stat-card-bulan   { background: linear-gradient(135deg,#b45309,#d97706); }
 
-    <!-- ===== Info Card: Cara Absen (muncul kalau belum ada riwayat) ===== -->
-    @if($riwayat->total() == 0)
-        <div class="mb-8 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl">
-            <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    .bapelit-hero a.btn-scan-absensi,
+    .bapelit-hero a.btn-scan-absensi:link,
+    .bapelit-hero a.btn-scan-absensi:visited,
+    .bapelit-hero a.btn-scan-absensi:hover,
+    .bapelit-hero a.btn-scan-absensi:focus,
+    .bapelit-hero a.btn-scan-absensi:active {
+        background-color: #facc15 !important;
+        background-image: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important;
+        color: #1e3a8a !important;
+        text-decoration: none !important;
+        border: none !important;
+        box-shadow: 0 10px 20px -5px rgba(250, 204, 21, 0.45) !important;
+        position: relative;
+        z-index: 10;
+        transition: all 0.2s ease;
+    }
+    .bapelit-hero a.btn-scan-absensi:hover {
+        background-image: linear-gradient(135deg, #fde047 0%, #facc15 100%) !important;
+        transform: scale(1.05);
+        box-shadow: 0 12px 24px -5px rgba(250, 204, 21, 0.6) !important;
+    }
+    .bapelit-hero a.btn-scan-absensi svg {
+        color: #1e3a8a !important;
+        stroke: #1e3a8a !important;
+    }
+
+    /* ===== Kalender ===== */
+    .kalender-cell {
+        min-height: 120px;
+    }
+
+    /* Header hari kerja (Senin-Jumat) - biru tua, teks putih */
+    .kalender-header-hari {
+        background-color: #1e3a8a !important;
+        color: #ffffff !important;
+        text-align: center !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        padding: 12px 4px !important;
+        letter-spacing: 0.1em !important;
+        text-transform: uppercase !important;
+        border-right: 1px solid #e5e7eb !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+
+    /* Header weekend (Sabtu-Minggu) - merah muda, teks merah */
+    .kalender-header-weekend {
+        background-color: #fef2f2 !important;
+        color: #ef4444 !important;
+        text-align: center !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        padding: 12px 4px !important;
+        letter-spacing: 0.1em !important;
+        text-transform: uppercase !important;
+        border-right: 1px solid #e5e7eb !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+
+    .table-scroll::-webkit-scrollbar { height: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+</style>
+
+<div x-data="presensiApp()" class="pb-10">
+
+    {{-- ===== HERO ===== --}}
+    <div class="bapelit-hero text-white px-4 sm:px-8 pt-8 pb-8">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
+                    <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+                                 M9 5a2 2 0 002 2h2a2 2 0 002-2
+                                 M9 5a2 2 0 012-2h2a2 2 0 012 2
+                                 m-6 9l2 2 4-4"/>
                     </svg>
                 </div>
-                <div class="flex-1">
-                    <h3 class="text-base font-bold text-purple-900 mb-1">Cara Absen</h3>
-                    <ol class="text-sm text-purple-800 space-y-1 list-decimal list-inside">
-                        <li>Minta admin menampilkan <strong>QR Code</strong> sesi absensi</li>
-                        <li>Klik tombol <strong>"Scan Absensi"</strong> di atas</li>
-                        <li>Arahkan kamera ke QR Code atau masukkan token manual</li>
-                        <li>Kehadiran dan <strong>Waktu</strong> otomatis tercatat ✅</li>
-                    </ol>
+                <div>
+                    <p class="text-xs font-semibold tracking-widest text-yellow-400 uppercase mb-0.5">POJOK BAPELIT</p>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold leading-tight">Presensi Saya</h1>
+                    <p class="text-sm text-blue-200 mt-0.5">Riwayat dan statistik kehadiran Anda</p>
                 </div>
             </div>
+            <a href="{{ route('absensi.scan-page') }}"
+               class="btn-scan-absensi inline-flex items-center gap-2.5 px-6 py-3
+                      font-bold rounded-2xl self-start sm:self-auto">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4
+                             m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z
+                             m12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z
+                             M5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                </svg>
+                Scan Absensi
+            </a>
         </div>
-    @endif
+    </div>
 
-    <!-- ===== Statistik Cards ===== -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-        
-        <!-- Hadir -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
-            <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Hadir
+    {{-- ===== STATS ===== --}}
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="stat-card-hadir rounded-2xl p-5 text-white shadow-lg">
+                <p class="text-xs font-bold tracking-widest opacity-80 uppercase mb-2">Hadir</p>
+                <p class="text-4xl font-extrabold">{{ $totalHadir }}</p>
+                <p class="text-xs opacity-70 mt-1">dari {{ $totalHadir + $totalTidak }} diabsen</p>
             </div>
-            <div class="text-3xl sm:text-4xl font-bold text-green-600">{{ $totalHadir }}</div>
-            <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                dari {{ $totalHadir + $totalTidak }} sesi diabsen
+            <div class="stat-card-tidak rounded-2xl p-5 text-white shadow-lg">
+                <p class="text-xs font-bold tracking-widest opacity-80 uppercase mb-2">Tidak Hadir</p>
+                <p class="text-4xl font-extrabold">{{ $totalTidak }}</p>
+                <p class="text-xs opacity-70 mt-1">dari {{ $totalHadir + $totalTidak }} diabsen</p>
             </div>
-        </div>
-
-        <!-- Tidak Hadir -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
-            <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Tidak Hadir
+            <div class="stat-card-persen rounded-2xl p-5 text-white shadow-lg">
+                <p class="text-xs font-bold tracking-widest opacity-80 uppercase mb-2">Kehadiran</p>
+                <p class="text-4xl font-extrabold">{{ $persentaseHadir }}<span class="text-2xl">%</span></p>
+                <p class="text-xs opacity-70 mt-1">tingkat kehadiran</p>
             </div>
-            <div class="text-3xl sm:text-4xl font-bold text-red-600">{{ $totalTidak }}</div>
-            <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                dari {{ $totalHadir + $totalTidak }} sesi diabsen
-            </div>
-        </div>
-
-        <!-- Persentase -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
-            <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Persentase Kehadiran
-            </div>
-            <div class="text-3xl sm:text-4xl font-bold text-purple-600">{{ $persentaseHadir }}%</div>
-            <div class="text-xs sm:text-sm text-gray-500 mt-1">
-                tingkat kehadiran
+            <div class="stat-card-bulan rounded-2xl p-5 text-white shadow-lg">
+                <p class="text-xs font-bold tracking-widest opacity-80 uppercase mb-2">Bulan Ini</p>
+                <p class="text-4xl font-extrabold">{{ $hadirBulanIni }}</p>
+                <p class="text-xs opacity-70 mt-1">sesi hadir bulan ini</p>
             </div>
         </div>
     </div>
 
-    <!-- ===== Toolbar: Search + Filter Status ===== -->
-    <div class="bg-white rounded-t-2xl shadow-sm border border-gray-200 p-4 sm:p-5">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            
-            <!-- Search -->
-            <form method="GET" action="{{ route('presensi.index') }}" class="flex-1 sm:max-w-md">
-                <div class="relative">
-                    <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    {{-- ===== MAIN CARD ===== --}}
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+
+        @if($riwayat->total() == 0)
+        <div class="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-blue-900 mb-1">Cara Absen</p>
+                <ol class="text-sm text-blue-800 space-y-0.5 list-decimal list-inside">
+                    <li>Minta admin menampilkan <strong>QR Code</strong> sesi</li>
+                    <li>Klik tombol <strong>Scan Absensi</strong> di atas</li>
+                    <li>Arahkan kamera ke QR Code atau masukkan token</li>
+                    <li>Kehadiran otomatis tercatat ✅</li>
+                </ol>
+            </div>
+        </div>
+        @endif
+
+        {{-- ===== TOOLBAR ===== --}}
+        <div class="bg-white rounded-t-2xl border border-gray-200 shadow-sm px-4 py-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="relative flex-1 min-w-[180px]">
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    <input type="text" 
-                           name="search" 
-                           value="{{ $search }}"
-                           placeholder="Cari nama sesi..."
-                           class="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none transition">
-                    
-                    @if($search)
-                        <a href="{{ route('presensi.index', ['status' => $filterStatus]) }}" 
-                           class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition"
-                           title="Hapus pencarian">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </a>
-                    @endif
+                    <input x-model="search" type="text" placeholder="Cari nama sesi..."
+                           class="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm
+                                  focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none transition">
                 </div>
-            </form>
 
-            <!-- Filter Status -->
-            <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start sm:self-auto">
-                <a href="{{ route('presensi.index', ['search' => $search]) }}" 
-                   class="px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition whitespace-nowrap
-                          {{ !$filterStatus 
-                              ? 'bg-white text-blue-600 shadow-sm' 
-                              : 'text-gray-600 hover:text-gray-900' }}">
-                    Semua
-                </a>
-                <a href="{{ route('presensi.index', ['search' => $search, 'status' => 'hadir']) }}" 
-                   class="px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition whitespace-nowrap
-                          {{ $filterStatus === 'hadir' 
-                              ? 'bg-white text-green-600 shadow-sm' 
-                              : 'text-gray-600 hover:text-gray-900' }}">
-                    Hadir
-                </a>
-                <a href="{{ route('presensi.index', ['search' => $search, 'status' => 'tidak']) }}" 
-                   class="px-3 sm:px-4 py-2 rounded-md text-sm font-semibold transition whitespace-nowrap
-                          {{ $filterStatus === 'tidak' 
-                              ? 'bg-white text-red-600 shadow-sm' 
-                              : 'text-gray-600 hover:text-gray-900' }}">
-                    Tidak
-                </a>
+                <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                    <button @click="filterStatus = ''"
+                            :class="filterStatus === '' ? 'bg-white text-blue-800 shadow font-bold' : 'text-gray-500 hover:text-gray-800'"
+                            class="px-4 py-2 rounded-lg text-sm transition">Semua</button>
+                    <button @click="filterStatus = 'hadir'"
+                            :class="filterStatus === 'hadir' ? 'bg-white text-green-700 shadow font-bold' : 'text-gray-500 hover:text-gray-800'"
+                            class="px-4 py-2 rounded-lg text-sm transition">Hadir</button>
+                    <button @click="filterStatus = 'tidak'"
+                            :class="filterStatus === 'tidak' ? 'bg-white text-red-600 shadow font-bold' : 'text-gray-500 hover:text-gray-800'"
+                            class="px-4 py-2 rounded-lg text-sm transition">Tidak</button>
+                </div>
+
+                <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 ml-auto">
+                    <button @click="view = 'tabel'"
+                            :class="view === 'tabel' ? 'bg-white text-blue-800 shadow font-bold' : 'text-gray-500 hover:text-gray-800'"
+                            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+                        </svg>
+                        Tabel
+                    </button>
+                    <button @click="view = 'kalender'"
+                            :class="view === 'kalender' ? 'bg-white text-blue-800 shadow font-bold' : 'text-gray-500 hover:text-gray-800'"
+                            class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Kalender
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- ===== Riwayat Absensi ===== -->
-    <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-gray-200 overflow-hidden">
-        
-        {{-- DESKTOP: Table --}}
-        <div class="hidden md:block overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">NO</th>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NAMA SESI</th>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">TANGGAL</th>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">WAKTU</th> <!-- ⭐ BARU -->
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">STATUS</th>
-                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">KETERANGAN</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($riwayat as $index => $r)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 text-base text-gray-600 font-medium">
-                                {{ $riwayat->firstItem() + $index }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-base font-semibold text-gray-800">{{ $r->sesi->nama_sesi }}</div>
-                                @if($r->sesi->lokasi)
-                                    <div class="text-sm text-gray-500 mt-0.5">📍 {{ $r->sesi->lokasi }}</div>
-                                @endif
-                                @if($r->sesi->is_default)
-                                    <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                                        Default
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-base text-gray-700">
-                                {{ $r->sesi->tanggal->translatedFormat('d M Y') }}
-                            </td>
-                            <td class="px-6 py-4 text-base text-gray-700 font-mono"> <!-- ⭐ BARU -->
-                                @if($r->waktu_absen)
-                                    {{ \Carbon\Carbon::parse($r->waktu_absen)->format('H:i') }}
-                                @else
-                                    <span class="text-gray-400">-</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($r->status_kehadiran === 'hadir')
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-green-50 text-green-700">
-                                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                        Hadir
-                                    </span>
-                                @elseif($r->status_kehadiran === 'tidak')
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-red-50 text-red-700">
-                                        <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                        Tidak Hadir
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-600">
-                                        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                        Belum Diabsen
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $r->keterangan ?? '-' }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-16 text-center"> <!-- ⭐ Diubah dari 5 ke 6 -->
-                                <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                                </svg>
-                                <p class="text-base text-gray-500">
-                                    @if($search || $filterStatus)
-                                        Tidak ada riwayat absen yang cocok dengan filter.
-                                    @else
-                                        Anda belum memiliki riwayat absensi.
-                                    @endif
-                                </p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        {{-- ===== VIEW KALENDER ===== --}}
+        <div x-show="view === 'kalender'" x-cloak
+             class="bg-white border border-t-0 border-gray-200 rounded-b-2xl shadow-sm p-4 sm:p-6">
 
-        {{-- MOBILE: Card List --}}
-        <div class="block md:hidden divide-y divide-gray-100">
-            @forelse($riwayat as $index => $r)
-                <div class="p-4 hover:bg-gray-50 transition">
-                    <div class="flex items-start gap-3 mb-2">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
-                            {{ $riwayat->firstItem() + $index }}
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-extrabold text-gray-900" x-text="judulBulan()"></h2>
+                <div class="flex gap-2">
+                    <button @click="prevBulan()"
+                            class="flex items-center gap-1 px-4 py-2 text-sm font-semibold text-gray-700
+                                   bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Sebelum
+                    </button>
+                    <button @click="nextBulan()"
+                            class="flex items-center gap-1 px-4 py-2 text-sm font-semibold text-gray-700
+                                   bg-gray-100 hover:bg-gray-200 rounded-xl transition">
+                        Berikut
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Grid kalender: 7 kolom, header hardcode --}}
+            <div class="grid grid-cols-7 border-l border-t border-gray-200 rounded-xl overflow-hidden">
+
+                {{-- Header 7 hari --}}
+                <div class="kalender-header-hari">SENIN</div>
+                <div class="kalender-header-hari">SELASA</div>
+                <div class="kalender-header-hari">RABU</div>
+                <div class="kalender-header-hari">KAMIS</div>
+                <div class="kalender-header-hari">JUMAT</div>
+                <div class="kalender-header-weekend">SABTU</div>
+                <div class="kalender-header-weekend">MINGGU</div>
+
+                {{-- Sel kosong offset awal --}}
+                <template x-for="n in offsetAwal()" :key="'e'+n">
+                    <div class="kalender-cell border-r border-b border-gray-200 bg-gray-50/50"></div>
+                </template>
+
+                {{-- Sel tanggal --}}
+                <template x-for="tgl in jumlahHari()" :key="'d'+tgl">
+                    <div :class="isHariIni(tgl) ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'"
+                         class="kalender-cell border-r border-b border-gray-200 p-2 sm:p-2.5 flex flex-col gap-1.5 transition-colors">
+                        <div class="flex justify-end">
+                            <span :class="isHariIni(tgl)
+                                    ? 'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-extrabold bg-blue-900 text-white shadow'
+                                    : 'w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-500'"
+                                  x-text="tgl"></span>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-base font-semibold text-gray-800">{{ $r->sesi->nama_sesi }}</div>
-                            <div class="text-sm text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                                <span>📅 {{ $r->sesi->tanggal->translatedFormat('d M Y') }}</span>
-                                @if($r->waktu_absen)
-                                    <span class="text-gray-400">•</span>
-                                    <span class="font-mono text-gray-700">🕒 {{ \Carbon\Carbon::parse($r->waktu_absen)->format('H:i') }}</span>
-                                @endif
+                        <template x-for="item in getAbsensi(tgl)" :key="item.id">
+                            <div :class="{
+                                    'bg-green-600 text-white': item.status === 'hadir',
+                                    'bg-red-600 text-white':   item.status === 'tidak',
+                                    'bg-gray-400 text-white':  !item.status
+                                 }"
+                                 class="rounded-lg px-2 py-1.5 text-[10px] sm:text-xs font-semibold shadow-sm flex flex-col leading-snug"
+                                 :title="item.nama">
+                                <span x-text="item.status === 'hadir' ? '✓ Hadir' : (item.status === 'tidak' ? '✗ Tidak Hadir' : '○ Belum Diabsen')"></span>
+                                <span class="opacity-80 truncate mt-0.5" x-text="item.nama"></span>
                             </div>
-                            @if($r->sesi->lokasi)
-                                <div class="text-sm text-gray-500 mt-0.5">📍 {{ $r->sesi->lokasi }}</div>
-                            @endif
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <div class="flex flex-wrap gap-5 mt-5 pt-4 border-t border-gray-100">
+                <div class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                    <span class="w-4 h-4 rounded-md bg-green-600"></span> Hadir
+                </div>
+                <div class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                    <span class="w-4 h-4 rounded-md bg-red-600"></span> Tidak Hadir
+                </div>
+                <div class="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                    <span class="w-4 h-4 rounded-md bg-gray-400"></span> Belum Diabsen
+                </div>
+            </div>
+        </div>
+
+        {{-- ===== VIEW TABEL ===== --}}
+        <div x-show="view === 'tabel'" x-cloak
+             class="bg-white border border-t-0 border-gray-200 rounded-b-2xl shadow-sm overflow-hidden">
+
+            <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                <p class="text-sm text-gray-500">
+                    Menampilkan <strong class="text-gray-800" x-text="filteredRiwayat().length"></strong> sesi
+                    <template x-if="filterStatus !== '' || search !== ''">
+                        <span> (difilter)</span>
+                    </template>
+                </p>
+                <button x-show="filterStatus !== '' || search !== ''"
+                        @click="filterStatus = ''; search = ''"
+                        class="text-xs font-semibold text-blue-700 hover:underline">Reset filter</button>
+            </div>
+
+            <div class="hidden md:block overflow-x-auto table-scroll">
+                <table class="w-full text-left">
+                    <thead class="bg-blue-900 text-white">
+                        <tr>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider w-12">No</th>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider">Nama Sesi</th>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider">Tanggal</th>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider">Waktu</th>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <template x-if="filteredRiwayat().length === 0">
+                            <tr>
+                                <td colspan="6" class="py-16 text-center text-gray-400 text-sm">
+                                    Tidak ada data yang cocok.
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-for="(r, i) in filteredRiwayat()" :key="r.id">
+                            <tr class="hover:bg-blue-50/40 transition">
+                                <td class="px-5 py-4 text-sm text-gray-500 font-medium" x-text="i + 1"></td>
+                                <td class="px-5 py-4">
+                                    <div class="text-sm font-semibold text-gray-800" x-text="r.nama_sesi"></div>
+                                </td>
+                                <td class="px-5 py-4 text-sm text-gray-700" x-text="r.tanggal_fmt"></td>
+                                <td class="px-5 py-4 text-sm font-mono text-gray-700" x-text="r.waktu || '—'"></td>
+                                <td class="px-5 py-4">
+                                    <span :class="{
+                                            'bg-green-100 text-green-800': r.status === 'hadir',
+                                            'bg-red-100 text-red-800': r.status === 'tidak',
+                                            'bg-gray-100 text-gray-600': !r.status
+                                          }"
+                                          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold">
+                                        <span :class="{
+                                                'bg-green-500': r.status === 'hadir',
+                                                'bg-red-500': r.status === 'tidak',
+                                                'bg-gray-400': !r.status
+                                              }"
+                                              class="w-2 h-2 rounded-full"></span>
+                                        <span x-text="r.status === 'hadir' ? 'Hadir' : (r.status === 'tidak' ? 'Tidak Hadir' : 'Belum Diabsen')"></span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-sm text-gray-600" x-text="r.keterangan || '—'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="block md:hidden divide-y divide-gray-100">
+                <template x-if="filteredRiwayat().length === 0">
+                    <div class="py-12 text-center text-gray-400 text-sm">Tidak ada data yang cocok.</div>
+                </template>
+                <template x-for="(r, i) in filteredRiwayat()" :key="r.id">
+                    <div class="p-4 hover:bg-blue-50/30 transition">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                 x-text="i + 1"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-semibold text-gray-800" x-text="r.nama_sesi"></div>
+                                <div class="text-xs text-gray-500 mt-0.5 flex flex-wrap gap-2">
+                                    <span x-text="'📅 ' + r.tanggal_fmt"></span>
+                                    <template x-if="r.waktu">
+                                        <span x-text="'🕒 ' + r.waktu"></span>
+                                    </template>
+                                </div>
+                                <div class="mt-2">
+                                    <span :class="{
+                                            'bg-green-100 text-green-800': r.status === 'hadir',
+                                            'bg-red-100 text-red-800': r.status === 'tidak',
+                                            'bg-gray-100 text-gray-600': !r.status
+                                          }"
+                                          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold">
+                                        <span :class="{
+                                                'bg-green-500': r.status === 'hadir',
+                                                'bg-red-500': r.status === 'tidak',
+                                                'bg-gray-400': !r.status
+                                              }"
+                                              class="w-2 h-2 rounded-full"></span>
+                                        <span x-text="r.status === 'hadir' ? 'Hadir' : (r.status === 'tidak' ? 'Tidak Hadir' : 'Belum Diabsen')"></span>
+                                    </span>
+                                </div>
+                                <template x-if="r.keterangan">
+                                    <div class="mt-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg p-2" x-text="r.keterangan"></div>
+                                </template>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="flex items-center gap-2 pl-11 flex-wrap">
-                        @if($r->status_kehadiran === 'hadir')
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-green-50 text-green-700">
-                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                Hadir
-                            </span>
-                        @elseif($r->status_kehadiran === 'tidak')
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-red-50 text-red-700">
-                                <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                Tidak Hadir
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-600">
-                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                                Belum Diabsen
-                            </span>
-                        @endif
-                        
-                        @if($r->sesi->is_default)
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                                Default
-                            </span>
-                        @endif
-                    </div>
-
-                    @if($r->keterangan)
-                        <div class="mt-2 ml-11 text-sm text-gray-600 bg-gray-50 rounded-lg p-2.5">
-                            <span class="font-medium text-gray-700">Keterangan: </span>{{ $r->keterangan }}
-                        </div>
-                    @endif
-                </div>
-            @empty
-                <div class="p-12 text-center">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                    </svg>
-                    <p class="text-base text-gray-500">
-                        @if($search || $filterStatus)
-                            Tidak ada riwayat absen yang cocok dengan filter.
-                        @else
-                            Anda belum memiliki riwayat absensi.
-                        @endif
-                    </p>
-                </div>
-            @endforelse
+                </template>
+            </div>
         </div>
-    </div>
-
-    <!-- Pagination -->
-    @if($riwayat->hasPages())
-        <div class="mt-6">
-            {{ $riwayat->links() }}
-        </div>
-    @endif
-
-    <!-- Total Info -->
-    <div class="mt-4 text-center text-sm text-gray-500">
-        Menampilkan <strong class="text-gray-700">{{ $riwayat->firstItem() ?? 0 }}</strong>-<strong class="text-gray-700">{{ $riwayat->lastItem() ?? 0 }}</strong> dari <strong class="text-gray-700">{{ $riwayat->total() }}</strong> sesi absensi.
     </div>
 </div>
+
 @endsection
+
+@push('scripts')
+<script>
+function presensiApp() {
+    const kalenderData = @json($kalenderData);
+    const tabelData = @json($tabelData);
+
+    return {
+        view: 'tabel',
+        search: '',
+        filterStatus: '',
+
+        filteredRiwayat() {
+            return tabelData.filter(r => {
+                const matchSearch = this.search === ''
+                    || r.nama_sesi.toLowerCase().includes(this.search.toLowerCase());
+                const matchStatus = this.filterStatus === ''
+                    || (this.filterStatus === 'hadir'  && r.status === 'hadir')
+                    || (this.filterStatus === 'tidak'  && r.status === 'tidak');
+                return matchSearch && matchStatus;
+            });
+        },
+
+        tahun: new Date().getFullYear(),
+        bulan: new Date().getMonth(),
+
+        judulBulan() {
+            return new Date(this.tahun, this.bulan, 1)
+                .toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        },
+        jumlahHari() {
+            return new Date(this.tahun, this.bulan + 1, 0).getDate();
+        },
+        offsetAwal() {
+            const day = new Date(this.tahun, this.bulan, 1).getDay();
+            return (day + 6) % 7;
+        },
+        isHariIni(tgl) {
+            const t = new Date();
+            return t.getDate() === tgl && t.getMonth() === this.bulan && t.getFullYear() === this.tahun;
+        },
+        getAbsensi(tgl) {
+            const pad  = String(tgl).padStart(2, '0');
+            const bln  = String(this.bulan + 1).padStart(2, '0');
+            const key  = `${this.tahun}-${bln}-${pad}`;
+            return kalenderData.filter(r => r.tgl === key);
+        },
+        prevBulan() {
+            if (this.bulan === 0) { this.bulan = 11; this.tahun--; } else this.bulan--;
+        },
+        nextBulan() {
+            if (this.bulan === 11) { this.bulan = 0; this.tahun++; } else this.bulan++;
+        },
+    };
+}
+</script>
+@endpush

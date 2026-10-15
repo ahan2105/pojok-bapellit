@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Kendaraan;
 use App\Models\PajakKendaraan;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,11 @@ class KendaraanController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Kendaraan::query()->with(['pajakTahunanAktif', 'pajakLimaTahunanAktif']);
+        $query = Kendaraan::query()->with(['pajakTahunanAktif', 'pajakLimaTahunanAktif', 'user']);
+        
+        // Semua user bisa melihat semua kendaraan
+        $isAdmin = $request->user()->role === 'admin';
+        
         $query->when($request->filled('search'), function ($query) use ($request) {
             $search = $request->string('search')->toString();
             $query->where(function ($query) use ($search) {
@@ -33,12 +38,14 @@ class KendaraanController extends Controller
             return [$days === null ? 1 : 0, $days ?? PHP_INT_MAX];
         })->values();
 
-        return view('admin.kendaraan.index', compact('kendaraan'));
+        return view('admin.kendaraan.index', compact('kendaraan', 'isAdmin'));
     }
 
     public function create(): View
     {
-        return view('admin.kendaraan.create');
+        $users = User::where('status', 'aktif')->orderBy('name')->get();
+        
+        return view('admin.kendaraan.create', compact('users'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -61,16 +68,22 @@ class KendaraanController extends Controller
 
     public function show(int $id): View
     {
-        $kendaraan = Kendaraan::with(['pajakTahunanAktif', 'pajakLimaTahunanAktif', 'pajakKendaraan'])->findOrFail($id);
+        $kendaraan = Kendaraan::with(['pajakTahunanAktif', 'pajakLimaTahunanAktif', 'pajakKendaraan', 'user'])->findOrFail($id);
+        
+        // Semua user bisa lihat semua kendaraan, tapi nomor rangka hanya untuk pemakai + admin
+        $isAdmin = request()->user()->role === 'admin';
+        $isPemakai = $kendaraan->user_id === request()->user()->id;
+        $canSeeNomorRangka = $isAdmin || $isPemakai;
 
-        return view('admin.kendaraan.show', compact('kendaraan'));
+        return view('admin.kendaraan.show', compact('kendaraan', 'isAdmin', 'canSeeNomorRangka'));
     }
 
     public function edit(int $id): View
     {
         $kendaraan = Kendaraan::with(['pajakTahunanAktif', 'pajakLimaTahunanAktif'])->findOrFail($id);
+        $users = User::where('status', 'aktif')->orderBy('name')->get();
 
-        return view('admin.kendaraan.edit', compact('kendaraan'));
+        return view('admin.kendaraan.edit', compact('kendaraan', 'users'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -133,6 +146,7 @@ class KendaraanController extends Controller
             'nomor_rangka' => ['nullable', 'string', 'max:255'],
             'unit_kerja' => ['nullable', 'string', 'max:255'],
             'pemakai' => ['nullable', 'string'],
+            'user_id' => ['nullable', 'exists:users,id'],
             'foto' => ['nullable', 'image', 'max:15360'],
             'status' => ['nullable', 'in:aktif,dijual,rusak'],
             'catatan' => ['nullable', 'string'],

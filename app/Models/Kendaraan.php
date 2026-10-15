@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -14,8 +15,14 @@ class Kendaraan extends Model
     protected $table = 'kendaraan';
 
     protected $fillable = [
-        'plat_nomor', 'merk', 'nomor_rangka', 'unit_kerja', 'pemakai', 'foto', 'status', 'catatan',
+        'plat_nomor', 'merk', 'nomor_rangka', 'unit_kerja', 'pemakai', 'user_id', 'foto', 'status', 'catatan',
     ];
+
+    /** User yang menjadi pemakai kendaraan ini. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /** Pajak kendaraan yang pernah tercatat. */
     public function pajakKendaraan(): HasMany

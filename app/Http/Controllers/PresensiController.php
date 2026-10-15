@@ -60,6 +60,35 @@ class PresensiController extends Controller
             ? round(($totalHadir / $totalDiabsen) * 100, 1)
             : 0;
 
+        // Data untuk kalender (semua tanpa pagination)
+        $kalenderData = AbsensiDetail::with(['sesi:id,nama_sesi,tanggal'])
+            ->where('user_id', $user->id)
+            ->whereHas('sesi')
+            ->get()
+            ->map(fn ($r) => [
+                'id'     => $r->id,
+                'nama'   => $r->sesi->nama_sesi,
+                'tgl'    => $r->sesi->tanggal->format('Y-m-d'),
+                'status' => $r->status_kehadiran,
+            ]);
+
+        // Data untuk tabel client-side (semua, tanpa pagination)
+        $tabelData = AbsensiDetail::with(['sesi:id,nama_sesi,tanggal'])
+            ->where('user_id', $user->id)
+            ->whereHas('sesi')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id'          => $r->id,
+                'nama_sesi'   => $r->sesi->nama_sesi,
+                'tanggal_fmt' => $r->sesi->tanggal->translatedFormat('d M Y'),
+                'waktu'       => $r->waktu_absen
+                    ? \Carbon\Carbon::parse($r->waktu_absen)->format('H:i')
+                    : null,
+                'status'      => $r->status_kehadiran,
+                'keterangan'  => $r->keterangan,
+            ]);
+
         return view('presensi.index', compact(
             'riwayat',
             'search',
@@ -69,7 +98,9 @@ class PresensiController extends Controller
             'totalTidak',
             'totalBelumDiabsen',
             'persentaseHadir',
-            'hadirBulanIni'
+            'hadirBulanIni',
+            'kalenderData',
+            'tabelData'
         ));
     }
 }

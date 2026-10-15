@@ -18,7 +18,7 @@
          x-transition:enter-start="opacity-0 -translate-x-8" 
          x-transition:enter-end="opacity-100 translate-x-0">
         <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">
-            {{ $isAdmin ? 'Riwayat & Log Aktivitas' : 'Riwayat Booking Saya' }}
+            {{ $isAdmin ? 'Riwayat' : 'Riwayat Booking Saya' }}
         </h1>
         <p class="text-base text-gray-500 mt-2 leading-relaxed max-w-3xl">
             {{ $isAdmin 

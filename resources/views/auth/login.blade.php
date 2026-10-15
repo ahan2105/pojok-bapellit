@@ -231,7 +231,7 @@
         .form-group:nth-child(2) { animation-delay: 0.3s; }
         .form-group:nth-child(3) { animation-delay: 0.4s; }
         .forgot-container { animation: slideInUp 0.6s ease-out forwards; opacity: 0; animation-delay: 0.5s; }
-        .submit-btn { animation: slideInUp 0.6s ease-out forwards; opacity: 0; animation-delay: 0.6s; }
+        .submit-btn { animation: slideInUp 0.6s ease-out forwards; opacity: 1; animation-delay: 0s; }
 
         @keyframes slideInUp {
             from { opacity: 0; transform: translateY(15px); }
@@ -336,7 +336,6 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
-            animation: slideIn 0.5s ease-out 0.4s both;
         }
 
         .submit-btn:hover {
@@ -727,6 +726,15 @@
                     </div>
                 @endif
 
+                <!-- Error Messages -->
+                @if ($errors->any())
+                    <div class="alert" style="background: #fee; border: 1px solid #fcc; color: #c33; margin-bottom: 20px;">
+                        @foreach ($errors->all() as $error)
+                            <p style="margin: 4px 0;">{{ $error }}</p>
+                        @endforeach
+                    </div>
+                @endif
+
                 <!-- Form -->
                 <form method="POST" action="{{ route('login') }}">
                     @csrf
@@ -785,9 +793,6 @@
         </div>
     </div>
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         function togglePassword() {
             const pwd = document.getElementById('password');
@@ -801,19 +806,6 @@
                 icon.innerHTML = '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
             }
         }
-
-        @if ($errors->any())
-            Swal.fire({
-                icon: 'error',
-                title: 'Login Failed',
-                html: `<div style="text-align: left; font-size: 14px;">
-                    @foreach ($errors->all() as $error)
-                        <p style="margin: 8px 0;">• {{ $error }}</p>
-                    @endforeach
-                </div>`,
-                confirmButtonColor: '#4a4a4a'
-            });
-        @endif
 
         document.querySelector('form').addEventListener('submit', function() {
             const btn = this.querySelector('.submit-btn');

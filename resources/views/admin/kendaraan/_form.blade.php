@@ -2,9 +2,44 @@
     <section class="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
         <div class="mb-5"><h2 class="text-lg font-bold text-slate-900">Informasi kendaraan</h2><p class="mt-1 text-sm text-slate-500">Isi identitas kendaraan dan status penggunaannya.</p></div>
         <div class="grid gap-5 md:grid-cols-2">
-            @foreach([['plat_nomor', 'Plat Nomor', 'text', true], ['merk', 'Merk Kendaraan', 'text', false], ['nomor_rangka', 'Nomor Rangka', 'text', false], ['unit_kerja', 'Unit Kerja', 'text', false], ['pemakai', 'Pemakai', 'text', false]] as [$name, $label, $type, $required])
+            @foreach([['plat_nomor', 'Plat Nomor', 'text', true], ['merk', 'Merk Kendaraan', 'text', false], ['nomor_rangka', 'Nomor Rangka', 'text', false], ['unit_kerja', 'Unit Kerja', 'text', false]] as [$name, $label, $type, $required])
                 <div><label for="{{ $name }}" class="mb-2 block text-sm font-semibold text-slate-700">{{ $label }} @if($required)<span class="text-red-500">*</span>@endif</label><input id="{{ $name }}" type="{{ $type }}" name="{{ $name }}" value="{{ old($name, $kendaraan?->$name) }}" @required($required) class="w-full rounded-xl border-slate-300 bg-white px-4 py-3 shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500"><x-input-error :messages="$errors->get($name)" class="mt-1" /></div>
             @endforeach
+            
+            <!-- Pemakai dari User -->
+            <div x-data="{ useUser: {{ old('user_id', $kendaraan?->user_id) ? 'true' : 'false' }} }">
+                <label class="mb-2 block text-sm font-semibold text-slate-700">Pemakai</label>
+                <div class="mb-2 flex gap-4">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="pemakai_type" value="user" @click="useUser = true" :checked="useUser" class="text-indigo-600">
+                        <span class="ml-2 text-sm">Pilih dari User</span>
+                    </label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="pemakai_type" value="manual" @click="useUser = false" :checked="!useUser" class="text-indigo-600">
+                        <span class="ml-2 text-sm">Isi Manual</span>
+                    </label>
+                </div>
+                
+                <!-- Dropdown User -->
+                <div x-show="useUser" x-cloak>
+                    <select id="user_id" name="user_id" @change="updatePemakai($event)" class="w-full rounded-xl border-slate-300 bg-white px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">-- Pilih User --</option>
+                        @foreach($users as $user)
+                            <option value="{{ $user->id }}" data-name="{{ $user->name }}" @selected(old('user_id', $kendaraan?->user_id) == $user->id)>
+                                {{ $user->name }} ({{ $user->email }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('user_id')" class="mt-1" />
+                </div>
+                
+                <!-- Input Manual -->
+                <div x-show="!useUser" x-cloak>
+                    <input id="pemakai_manual" type="text" name="pemakai" value="{{ old('pemakai', $kendaraan?->pemakai) }}" placeholder="Nama pemakai kendaraan" class="w-full rounded-xl border-slate-300 bg-white px-4 py-3 shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500">
+                    <x-input-error :messages="$errors->get('pemakai')" class="mt-1" />
+                </div>
+            </div>
+            
             <div><label for="status" class="mb-2 block text-sm font-semibold text-slate-700">Status</label><select id="status" name="status" class="w-full rounded-xl border-slate-300 bg-white px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">@foreach(['aktif', 'tidak dipakai', 'rusak'] as $status)<option value="{{ $status }}" @selected(old('status', $kendaraan?->status ?? 'aktif') === $status)>{{ ucfirst($status) }}</option>@endforeach</select></div>
         </div>
     </section>
@@ -45,6 +80,22 @@
             function vehiclePhotoPreview() {
                 return { imageUrl: null, fileName: '', preview(event) { const file = event.target.files[0]; if (!file) return; if (this.imageUrl) URL.revokeObjectURL(this.imageUrl); this.imageUrl = URL.createObjectURL(file); this.fileName = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`; }, clear() { const input = document.getElementById('foto'); input.value = ''; if (this.imageUrl) URL.revokeObjectURL(this.imageUrl); this.imageUrl = null; this.fileName = ''; } };
             }
+            
+            function updatePemakai(event) {
+                const select = event.target;
+                const selectedOption = select.options[select.selectedIndex];
+                const userName = selectedOption.getAttribute('data-name');
+                
+                // Update hidden pemakai field jika ada
+                const pemakaiInput = document.getElementById('pemakai');
+                if (pemakaiInput && userName) {
+                    pemakaiInput.value = userName;
+                }
+            }
         </script>
+        
+        <style>
+            [x-cloak] { display: none !important; }
+        </style>
     @endpush
 @endonce
